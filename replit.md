@@ -1,15 +1,17 @@
-# [Project name]
+# AI Recipes
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+AI Recipes is an Indian-first library of practical, tested AI workflows for real work, study, business, and everyday communication.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server on its managed port
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- `pnpm --filter @workspace/scripts run seed` — seed the development database with the curated recipe library
 - Required env: `DATABASE_URL` — Postgres connection string
+- Clerk secrets are provisioned through Replit Secrets. Set `CLERK_ADMIN_USER_IDS` to a comma-separated allowlist before using admin endpoints.
 
 ## Stack
 
@@ -22,23 +24,32 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/ai-recipes/` — React + Vite product UI and route-level views
+- `artifacts/api-server/src/routes/recipes.ts` — public, member, and admin API handlers
+- `lib/api-spec/openapi.yaml` — source-of-truth API contract
+- `lib/db/src/schema/recipes.ts` — Drizzle schema for recipes, taxonomy, engagement, submissions, and member activity
+- `scripts/src/seed.ts` — idempotent development content seed
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- V1 is intentionally AI-provider agnostic: users copy tested workflows into the assistant they already use.
+- Public browsing and discovery work without an account; Clerk is required only for member activity and admin routes.
+- Admin authorization is server-side and allowlist-based through `CLERK_ADMIN_USER_IDS`; it is never inferred from frontend state.
+- The frontend consumes generated React Query hooks from the OpenAPI contract rather than hand-written API clients.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Users can browse, search, filter, read, copy, share, save, and give feedback on tested workflows. They can submit workflows, view saved/history pages after signing in, and admins can manage recipe content, submissions, taxonomy, and analytics.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+No project-specific preferences recorded.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Regenerate API clients after changing `lib/api-spec/openapi.yaml`; generated files are not hand-edited.
+- The web Vite config requires managed `PORT` and `BASE_PATH` values when running a production build.
+- Seed data is idempotent by slug, so rerunning it does not duplicate the curated recipes.
 
 ## Pointers
 

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="64" viewBox="0 0 220 64" fill="none">
+  <rect width="220" height="64" rx="12" fill="#272235"/>
+  <path d="M30.4 31.8c-6.4-6.4-6.4-13.7 0-20.1 6.4 6.4 6.4 13.7 0 20.1Z" fill="#F6C944"/>
+  <path d="M30.4 31.8c6.4 6.4 6.4 13.7 0 20.1-6.4-6.4-6.4-13.7 0-20.1Z" fill="#F6C944"/>
+  <text x="53" y="39" fill="#FFFDF7" font-family="DM Sans, sans-serif" font-size="19" font-weight="700" letter-spacing="-0.8">AI RECIPES</text>
+</svg>

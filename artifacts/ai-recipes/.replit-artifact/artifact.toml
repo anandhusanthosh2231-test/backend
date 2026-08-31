@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "AI Recipes"
+description = "An Indian-first library of practical, tested AI workflows for work, study, business, creativity, and everyday life."
+version = "1.0.0"
+id = "artifacts/ai-recipes"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20497
+
+[services.development]
+run = "pnpm --filter @workspace/ai-recipes run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ai-recipes", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/ai-recipes/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20497"
+BASE_PATH = "/"

@@ -1,0 +1,1 @@
+- [Clerk package registry compatibility](clerk-package-versions.md) — verify Clerk versions against the workspace registry before installing.
