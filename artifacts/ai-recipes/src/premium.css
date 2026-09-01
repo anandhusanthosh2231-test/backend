@@ -15,7 +15,8 @@ body {
 .site-header {
   height: 82px;
   border-bottom-color: rgba(33, 29, 39, .16);
-  background: rgba(245, 238, 227, .88);
+  background: var(--ink);
+  color: var(--paper);
 }
 
 .brand-mark {
@@ -24,6 +25,19 @@ body {
   font-weight: 400;
   letter-spacing: -.035em;
 }
+
+.site-header .brand-mark,
+.site-header .main-nav a,
+.site-header .text-button,
+.site-header .icon-button,
+.site-header .mobile-menu {
+  color: var(--paper);
+}
+
+.site-header .brand-dot { background: var(--saffron); }
+.site-header .main-nav a.active,
+.site-header .main-nav a:hover { color: var(--saffron); }
+.site-header .button-small { background: var(--saffron); color: var(--ink); }
 
 .brand-dot { width: 10px; height: 10px; }
 
@@ -37,7 +51,21 @@ body {
 
 .button { border-radius: 3px; letter-spacing: .02em; }
 
-.home-hero { border-bottom: 1px solid rgba(33, 29, 39, .12); }
+.header-create-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--saffron);
+  font-family: var(--app-font-mono);
+  font-size: 9px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.home-hero {
+  border-bottom: 1px solid rgba(33, 29, 39, .16);
+  background: #dfe9df;
+}
 
 .hero-grid {
   min-height: 620px;
@@ -66,6 +94,8 @@ body {
   background: var(--ink);
   color: var(--paper);
 }
+
+.hero-proof { color: #56635b; }
 
 .hero-art {
   min-height: 500px;
@@ -170,6 +200,58 @@ body {
 .recipe-card:hover { box-shadow: 8px 10px 0 rgba(33, 29, 39, .08); }
 .categories-band { background: #eee4d5; }
 
+.creator-cta {
+  margin-top: 100px;
+  padding: 80px 0;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.creator-cta-inner {
+  display: grid;
+  grid-template-columns: 1fr .72fr;
+  align-items: end;
+  gap: 80px;
+}
+
+.creator-cta h2 {
+  max-width: 570px;
+  margin: 18px 0 12px;
+  font-family: var(--app-font-serif);
+  font-size: clamp(42px, 5vw, 70px);
+  font-weight: 400;
+  letter-spacing: -.065em;
+  line-height: .92;
+}
+
+.creator-cta p {
+  max-width: 440px;
+  margin: 0;
+  color: #c8c1cc;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.creator-cta .kicker { color: var(--saffron); }
+.creator-cta-actions { display: flex; flex-direction: column; gap: 28px; }
+.button-light { background: var(--paper); color: var(--ink); }
+.button-light:hover { background: var(--saffron); color: var(--ink); }
+
+.creator-steps {
+  display: grid;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid #51485c;
+  color: #c8c1cc;
+  font-family: var(--app-font-mono);
+  font-size: 10px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.creator-steps span { display: flex; gap: 12px; align-items: center; }
+.creator-steps b { color: var(--saffron); font-weight: 400; }
+
 .editor-page { max-width: 1280px; }
 
 .editor-subtitle {
@@ -248,10 +330,13 @@ body {
   .hero-grid { grid-template-columns: 1fr; gap: 30px; }
   .hero-art { border-left: 0; }
   .editor-aside { position: static; }
+  .creator-cta-inner { grid-template-columns: 1fr; gap: 40px; }
 }
 
 @media (max-width: 680px) {
   .site-header { height: 68px; }
+  .header-create-link { font-size: 0; gap: 0; }
+  .header-create-link svg { width: 18px; height: 18px; }
   .hero-grid { min-height: auto; }
   .hero-copy h1 { font-size: 62px; }
   .hero-art { min-height: 360px; margin-top: 0; transform: none; }

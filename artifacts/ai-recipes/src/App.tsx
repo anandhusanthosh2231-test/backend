@@ -105,11 +105,12 @@ function Header() {
   return <header className="site-header">
     <div className="shell header-inner">
       <Logo />
-      <nav className={`main-nav ${open ? 'is-open' : ''}`} aria-label="Primary navigation">
+       <nav className={`main-nav ${open ? 'is-open' : ''}`} aria-label="Primary navigation">
         {links.map(([href, label]) => <Link key={href} href={href} onClick={() => setOpen(false)} className={location.startsWith(href) ? 'active' : ''} data-testid={`link-nav-${label.toLowerCase()}`}>{label}</Link>)}
       </nav>
-      <div className="header-actions">
-        <Link href="/search" className="icon-button" aria-label="Search" data-testid="link-search"><Search size={18} /></Link>
+        <div className="header-actions">
+         <Link href="/search" className="icon-button" aria-label="Search" data-testid="link-search"><Search size={18} /></Link>
+         <Link href="/submit" className="header-create-link" data-testid="link-header-submit"><PenLine size={14} /> Share workflow</Link>
         {isSignedIn ? <Link href="/profile" className="avatar-chip" data-testid="link-profile">AR</Link> : <Link href="/sign-in" className="text-button" data-testid="link-sign-in">Sign in</Link>}
         {!isSignedIn && <Link href="/sign-up" className="button button-small" data-testid="link-sign-up">Join free</Link>}
         <button className="mobile-menu" onClick={() => setOpen(!open)} aria-label="Toggle menu" data-testid="button-menu">{open ? <X size={20} /> : <Menu size={20} />}</button>
@@ -185,7 +186,8 @@ function HomePage() {
     <section className="shell home-section feature-section">{data.recipeOfDay && <div className="feature-card"><div className="feature-side"><span className="kicker">Recipe of the day</span><span className="feature-number">01</span><p>One thoughtful workflow, picked for the way people actually work today.</p></div><div className="feature-main"><div className="card-topline"><span className="eyebrow">{data.recipeOfDay.category}</span><span className="verified-label"><Check size={13} /> Tested workflow</span></div><Link href={`/recipes/${data.recipeOfDay.slug}`} data-testid="link-recipe-of-day"><h2>{data.recipeOfDay.title}</h2></Link><p>{data.recipeOfDay.shortDescription}</p><div className="feature-bottom"><span><Clock3 size={14} /> {data.recipeOfDay.estimatedTime}</span><Link href={`/recipes/${data.recipeOfDay.slug}`} className="arrow-link" data-testid="link-recipe-of-day-read">Read the recipe <ArrowRight size={16} /></Link></div></div></div>}</section>
     <section className="shell home-section"><div className="section-heading"><div><span className="kicker">The shelf, refreshed</span><h2>For the thing you need to do next.</h2></div><Link href="/recipes" className="arrow-link" data-testid="link-all-recipes">Browse all recipes <ArrowRight size={16} /></Link></div><RecipeGrid recipes={data.trending || []} /></section>
     <section className="categories-band"><div className="shell home-section"><div className="section-heading"><div><span className="kicker">Browse by context</span><h2>Start where the work lives.</h2></div></div><div className="category-list">{data.categories.map((category) => <Link href={`/categories/${category.slug}`} className="category-row" key={category.id} data-testid={`link-category-${category.id}`}><span className="category-index">{String(category.id).padStart(2, '0')}</span><span className="category-name">{category.name}</span><span className="category-count">{category.recipeCount} recipes</span><ArrowRight size={18} /></Link>)}</div></div></section>
-    <section className="shell home-section audience-section"><div><span className="kicker">Made for</span><h2>Different desks.<br /><em>Same clarity.</em></h2></div><div className="audience-pills">{data.audiences.map((audience) => <Link href={`/audiences/${audience.slug}`} key={audience.id} className="audience-pill" data-testid={`link-audience-${audience.id}`}>{audience.name}<span>{audience.recipeCount}</span></Link>)}</div></section>
+     <section className="shell home-section audience-section"><div><span className="kicker">Made for</span><h2>Different desks.<br /><em>Same clarity.</em></h2></div><div className="audience-pills">{data.audiences.map((audience) => <Link href={`/audiences/${audience.slug}`} key={audience.id} className="audience-pill" data-testid={`link-audience-${audience.id}`}>{audience.name}<span>{audience.recipeCount}</span></Link>)}</div></section>
+     <section className="creator-cta"><div className="shell creator-cta-inner"><div><span className="kicker">Make the shelf better</span><h2>Have a workflow that actually works?</h2><p>Share the problem, the prompt, and what happened. Good submissions become tested recipes for everyone.</p></div><div className="creator-cta-actions"><Link href="/submit" className="button button-light" data-testid="link-home-submit">Share your workflow <ArrowRight size={16} /></Link><div className="creator-steps"><span><b>01</b> Tell us the moment</span><span><b>02</b> Add the workflow</span><span><b>03</b> We test the result</span></div></div></div></section>
   </SiteShell>;
 }
 
