@@ -5,6 +5,7 @@
  * API for AI Recipes, an Indian-first library of practical AI workflows.
  * OpenAPI spec version: 0.1.0
  */
+import type { EventInputMetadata } from './eventInputMetadata';
 import type { EventInputType } from './eventInputType';
 
 export interface EventInput {
@@ -16,4 +17,6 @@ export interface EventInput {
      * @nullable
      */
   query?: string | null;
+  /** @nullable */
+  metadata?: EventInputMetadata;
 }

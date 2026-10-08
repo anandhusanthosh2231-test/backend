@@ -10,6 +10,8 @@ export type AuthTokenGetter = () => Promise<string | null> | string | null;
 
 const NO_BODY_STATUS = new Set([204, 205, 304]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
+const REDACTED = "[REDACTED]";
+const SENSITIVE_QUERY_KEYS = /(token|apiKey|password|secret|api[_-]?key|access[_-]?token|client[_-]?secret)/i;
 
 // ---------------------------------------------------------------------------
 // Module-level configuration
@@ -81,11 +83,27 @@ function resolveUrl(input: RequestInfo | URL): string {
 function mergeHeaders(...sources: Array<HeadersInit | undefined>): Headers {
   const headers = new Headers();
 
+  const setSafeHeader = (key: string, value: string) => {
+    const safeValue = sanitizeHeaderValue(key, value);
+    headers.set(key, safeValue);
+  };
+
   for (const source of sources) {
     if (!source) continue;
     new Headers(source).forEach((value, key) => {
-      headers.set(key, value);
+      setSafeHeader(key, value);
     });
+  }
+
+  if (typeof window !== "undefined") {
+    const adminToken = window.localStorage.getItem("ai_recipes_admin_token");
+    if (adminToken && !headers.has("authorization")) {
+      setSafeHeader("authorization", `Bearer ${adminToken}`);
+    }
+    const adminKey = window.localStorage.getItem("ai_recipes_admin_key");
+    if (adminKey && !headers.has("x-admin-key")) {
+      setSafeHeader("x-admin-key", adminKey);
+    }
   }
 
   return headers;
@@ -148,11 +166,52 @@ function truncate(text: string, maxLength = 300): string {
   return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
 }
 
+function redactSensitiveText(value: string): string {
+  return value.replace(
+    /(\b(?:token|apiKey|password|secret|api[_-]?key|access[_-]?token|client[_-]?secret)\s*=?\s*)([^&\s,/]+)(?=$|[&\s,;/])/gi,
+    (_, prefix: string) => `${prefix}${REDACTED}`,
+  );
+}
+
+function redactSensitiveUrl(value: string): string {
+  return value.replace(
+    /(\b(?:token|apiKey|password|secret|api[_-]?key|access[_-]?token|client[_-]?secret)\s*[:=]\s*|[?&](?:token|apiKey|password|secret|api[_-]?key|access[_-]?token|client[_-]?secret)=)([^&\s,#?]+)/gi,
+    (_match, prefix: string) => `${prefix}${REDACTED}`,
+  );
+}
+
+function sanitizeHeaderValue(name: string, value: string): string {
+  if (/[\r\n]/.test(value)) {
+    throw new TypeError(`customFetch: invalid header value for "${name}" (CRLF injection detected).`);
+  }
+  return value;
+}
+
+function validateProtocol(input: RequestInfo | URL): void {
+  const candidate = resolveUrl(input).trim();
+  if (candidate === "" || candidate.startsWith("/")) return;
+
+  try {
+    const parsed = new URL(candidate);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      throw new TypeError(`customFetch: unsafe protocol "${parsed.protocol}" is not allowed.`);
+    }
+  } catch (error) {
+    if (error instanceof TypeError && /unsafe protocol|not allowed/.test(error.message)) {
+      throw error;
+    }
+
+    if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(candidate)) {
+      throw new TypeError(`customFetch: unsafe protocol is not allowed for request URL: ${candidate}`);
+    }
+  }
+}
+
 function buildErrorMessage(response: Response, data: unknown): string {
   const prefix = `HTTP ${response.status} ${response.statusText}`;
 
   if (typeof data === "string") {
-    const text = data.trim();
+    const text = redactSensitiveUrl(redactSensitiveText(data.trim()));
     return text ? `${prefix}: ${truncate(text)}` : prefix;
   }
 
@@ -163,10 +222,14 @@ function buildErrorMessage(response: Response, data: unknown): string {
     getStringField(data, "error_description") ??
     getStringField(data, "error");
 
-  if (title && detail) return `${prefix}: ${title} — ${detail}`;
-  if (detail) return `${prefix}: ${detail}`;
-  if (message) return `${prefix}: ${message}`;
-  if (title) return `${prefix}: ${title}`;
+  const redactedTitle = title ? redactSensitiveUrl(redactSensitiveText(title)) : undefined;
+  const redactedDetail = detail ? redactSensitiveUrl(redactSensitiveText(detail)) : undefined;
+  const redactedMessage = message ? redactSensitiveUrl(redactSensitiveText(message)) : undefined;
+
+  if (redactedTitle && redactedDetail) return `${prefix}: ${redactedTitle} — ${redactedDetail}`;
+  if (redactedDetail) return `${prefix}: ${redactedDetail}`;
+  if (redactedMessage) return `${prefix}: ${redactedMessage}`;
+  if (redactedTitle) return `${prefix}: ${redactedTitle}`;
 
   return prefix;
 }
@@ -326,6 +389,7 @@ export async function customFetch<T = unknown>(
   input: RequestInfo | URL,
   options: CustomFetchOptions = {},
 ): Promise<T> {
+  validateProtocol(input);
   input = applyBaseUrl(input);
   const { responseType = "auto", headers: headersInit, ...init } = options;
 
@@ -347,6 +411,12 @@ export async function customFetch<T = unknown>(
 
   if (responseType === "json" && !headers.has("accept")) {
     headers.set("accept", DEFAULT_JSON_ACCEPT);
+  }
+
+  for (const [key, value] of Array.from(headers.entries())) {
+    if (typeof value === "string") {
+      sanitizeHeaderValue(key, value);
+    }
   }
 
   // Attach bearer token when an auth getter is configured and no

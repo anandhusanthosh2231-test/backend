@@ -8,6 +8,8 @@ deploymentTarget = "autoscale"
 args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
 
+run = "pnpm --parallel --filter @workspace/ai-recipes --filter @workspace/api-server run dev"
+
 [workflows]
 runButton = "Project"
 

@@ -5,6 +5,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 
 import './index.css';
 import './premium.css';
+import './mobile-app.css';
 
 createRoot(document.getElementById('root')!, {
   // Keeps caught errors off reportError(), which would raise the dev overlay.

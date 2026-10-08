@@ -18,6 +18,11 @@ export const EventInputType = {
   recipe_share: 'recipe_share',
   recipe_feedback_positive: 'recipe_feedback_positive',
   recipe_feedback_negative: 'recipe_feedback_negative',
+  recipe_tool_click: 'recipe_tool_click',
+  recipe_example_view: 'recipe_example_view',
+  recipe_prompt_run: 'recipe_prompt_run',
+  recipe_feedback: 'recipe_feedback',
+  recipe_refinement_click: 'recipe_refinement_click',
   search: 'search',
   recipe_submission: 'recipe_submission',
 } as const;

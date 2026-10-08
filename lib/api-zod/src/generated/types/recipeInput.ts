@@ -5,6 +5,7 @@
  * API for AI Recipes, an Indian-first library of practical AI workflows.
  * OpenAPI spec version: 0.1.0
  */
+import type { RecipeGuide } from './recipeGuide';
 
 export interface RecipeInput {
   /** @minLength 3 */
@@ -41,4 +42,5 @@ export interface RecipeInput {
   testedWith: string[];
   seoTitle: string;
   seoDescription: string;
+  guide?: RecipeGuide;
 }

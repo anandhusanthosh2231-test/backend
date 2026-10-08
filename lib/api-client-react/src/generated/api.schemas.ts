@@ -53,6 +53,109 @@ export interface RecipeCard {
   saveCount: number;
 }
 
+export type RecipeGuideToolsItemSupport = typeof RecipeGuideToolsItemSupport[keyof typeof RecipeGuideToolsItemSupport];
+
+
+export const RecipeGuideToolsItemSupport = {
+  compatible: 'compatible',
+  good: 'good',
+  excellent: 'excellent',
+} as const;
+
+export type RecipeGuideQualityStatus = typeof RecipeGuideQualityStatus[keyof typeof RecipeGuideQualityStatus];
+
+
+export const RecipeGuideQualityStatus = {
+  untested: 'untested',
+  in_testing: 'in_testing',
+  tested: 'tested',
+} as const;
+
+export type RecipeGuideSnapshot = {
+  bestFor?: string;
+  worksBestWhen?: string;
+  timeToResult?: string;
+  output?: string;
+  bestWith?: string[];
+  skillLevel?: string;
+};
+
+export type RecipeGuideUseCasesItem = {
+  name: string;
+  description: string;
+};
+
+export type RecipeGuideInputs = {
+  required?: string[];
+  optional?: string[];
+};
+
+export type RecipeGuideSituationsItem = {
+  name: string;
+  description?: string;
+  promptModifier: string;
+};
+
+export type RecipeGuideToolsItem = {
+  name: string;
+  support: RecipeGuideToolsItemSupport;
+  notes?: string;
+};
+
+export type RecipeGuidePromptVariablesItem = {
+  name: string;
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+};
+
+export type RecipeGuideExpectedOutput = {
+  description?: string;
+  characteristics?: string[];
+};
+
+export type RecipeGuideExamplesItem = {
+  scenario: string;
+  input: string;
+  output: string;
+  whyItWorks?: string[];
+};
+
+export type RecipeGuideBestFor = {
+  people?: string[];
+  tasks?: string[];
+  channels?: string[];
+};
+
+export type RecipeGuideQuality = {
+  status?: RecipeGuideQualityStatus;
+  /** @nullable */
+  lastTested?: string | null;
+  version?: string;
+  testedWith?: string[];
+};
+
+export interface RecipeGuide {
+  snapshot?: RecipeGuideSnapshot;
+  useCases?: RecipeGuideUseCasesItem[];
+  whenNotToUse?: string[];
+  inputs?: RecipeGuideInputs;
+  situations?: RecipeGuideSituationsItem[];
+  tools?: RecipeGuideToolsItem[];
+  promptVariables?: RecipeGuidePromptVariablesItem[];
+  expectedOutput?: RecipeGuideExpectedOutput;
+  examples?: RecipeGuideExamplesItem[];
+  bestFor?: RecipeGuideBestFor;
+  timeToResult?: string;
+  effort?: string;
+  typicalIterations?: string;
+  commonMistakes?: string[];
+  betterApproach?: string;
+  proTips?: string[];
+  safetyNotes?: string[];
+  quality?: RecipeGuideQuality;
+}
+
 export type Recipe = RecipeCard & ({
   problem: string;
   subcategory: string;
@@ -71,8 +174,10 @@ export type Recipe = RecipeCard & ({
   testedWith: string[];
   seoTitle: string;
   seoDescription: string;
+  updatedAt?: string;
   /** @nullable */
   publishedAt?: string | null;
+  guide?: RecipeGuide | null;
 });
 
 export interface RecipeInput {
@@ -110,6 +215,33 @@ export interface RecipeInput {
   testedWith: string[];
   seoTitle: string;
   seoDescription: string;
+  guide?: RecipeGuide;
+}
+
+export interface ImportAdminRecipesBody {
+  /** @maxLength 5242880 */
+  csv: string;
+}
+
+export type ImportAdminRecipesResponseResultsItemStatus = typeof ImportAdminRecipesResponseResultsItemStatus[keyof typeof ImportAdminRecipesResponseResultsItemStatus];
+
+
+export const ImportAdminRecipesResponseResultsItemStatus = {
+  created: 'created',
+  failed: 'failed',
+} as const;
+
+export type ImportAdminRecipesResponseResultsItem = {
+  row: number;
+  slug: string;
+  status: ImportAdminRecipesResponseResultsItemStatus;
+  message: string;
+};
+
+export interface ImportAdminRecipesResponse {
+  createdCount: number;
+  failedCount: number;
+  results: ImportAdminRecipesResponseResultsItem[];
 }
 
 /**
@@ -153,9 +285,28 @@ export const EventInputType = {
   recipe_share: 'recipe_share',
   recipe_feedback_positive: 'recipe_feedback_positive',
   recipe_feedback_negative: 'recipe_feedback_negative',
+  recipe_tool_click: 'recipe_tool_click',
+  recipe_example_view: 'recipe_example_view',
+  recipe_prompt_run: 'recipe_prompt_run',
+  recipe_feedback: 'recipe_feedback',
+  recipe_refinement_click: 'recipe_refinement_click',
   search: 'search',
   recipe_submission: 'recipe_submission',
 } as const;
+
+/**
+ * @nullable
+ */
+export type EventInputMetadata = {
+  /** @maxLength 100 */
+  category?: string;
+  /** @maxLength 100 */
+  tool?: string;
+  /** @maxLength 100 */
+  example?: string;
+  /** @maxLength 200 */
+  refinement?: string;
+} | null;
 
 export interface EventInput {
   type: EventInputType;
@@ -166,6 +317,8 @@ export interface EventInput {
      * @nullable
      */
   query?: string | null;
+  /** @nullable */
+  metadata?: EventInputMetadata;
 }
 
 export interface FeedbackInput {
@@ -209,6 +362,27 @@ export interface SubmissionInput {
   howUsed: string;
   /** @nullable */
   email?: string | null;
+}
+
+export interface GenerateDraftInput {
+  /** @minLength 3 */
+  topicOrPrompt: string;
+  category?: string;
+  audience?: string;
+}
+
+export type SubmissionStatusUpdateStatus = typeof SubmissionStatusUpdateStatus[keyof typeof SubmissionStatusUpdateStatus];
+
+
+export const SubmissionStatusUpdateStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  CONVERTED: 'CONVERTED',
+} as const;
+
+export interface SubmissionStatusUpdate {
+  status: SubmissionStatusUpdateStatus;
 }
 
 export interface Profile {

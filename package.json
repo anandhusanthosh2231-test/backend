@@ -3,16 +3,24 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
+    "dev": "pnpm --parallel --filter @workspace/ai-recipes --filter @workspace/api-server run dev",
+    "preinstall": "node -e \"const fs=require('fs'); for (const f of ['package-lock.json','yarn.lock']) { try { fs.rmSync(f, { force: true }); } catch {} } const ua = process.env.npm_config_user_agent || ''; if (!ua.startsWith('pnpm/')) { console.error('Use pnpm instead'); process.exit(1); }\"",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "test": "pnpm --filter @workspace/api-client-react run test && pnpm --filter @workspace/api-server run test",
+    "test:fast": "pnpm --filter @workspace/api-client-react run test:fast && pnpm --filter @workspace/api-server run test",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
   "private": true,
   "dependencies": {
+    "@neon/config": "^1.1.0",
+    "@neon/env": "^1.1.6",
     "@replit/connectors-sdk": "^0.4.1"
   },
   "devDependencies": {
+    "@esbuild/win32-x64": "^0.27.3",
+    "@rollup/rollup-win32-x64-msvc": "^4.63.1",
+    "lightningcss-win32-x64-msvc": "^1.33.0",
     "prettier": "^3.9.6",
     "typescript": "~5.9.3"
   }

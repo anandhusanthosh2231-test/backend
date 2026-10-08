@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { RecipeCard } from './recipeCard';
+import type { RecipeGuide } from './recipeGuide';
 
 export type Recipe = RecipeCard & ({
   problem: string;
@@ -25,6 +26,8 @@ export type Recipe = RecipeCard & ({
   testedWith: string[];
   seoTitle: string;
   seoDescription: string;
+  updatedAt?: Date;
   /** @nullable */
   publishedAt?: Date | null;
+  guide?: RecipeGuide | null;
 });

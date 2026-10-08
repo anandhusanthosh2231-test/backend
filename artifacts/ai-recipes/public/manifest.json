@@ -1,0 +1,30 @@
+{
+  "name": "AI Recipes — Practical AI Workflows",
+  "short_name": "AI Recipes",
+  "description": "A trusted, Indian-first field guide to practical AI workflows you can copy, run, and make your own.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5eee3",
+  "theme_color": "#211d27",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "180x180 192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "220x64",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": [
+    "productivity",
+    "education",
+    "business"
+  ]
+}

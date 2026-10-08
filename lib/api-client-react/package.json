@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test": "node --test --experimental-strip-types ./src/custom-fetch.test.ts",
+    "test:fast": "node --test --experimental-strip-types ./src/custom-fetch.test.ts --test-name-pattern=\"^(?!.*semgrep).*\""
+  },
   "exports": {
     ".": "./src/index.ts"
   },

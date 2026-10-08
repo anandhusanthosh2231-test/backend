@@ -1,0 +1,9 @@
+BEGIN;
+
+ALTER TABLE recipes
+  ADD COLUMN IF NOT EXISTS guide jsonb;
+
+ALTER TABLE events
+  ADD COLUMN IF NOT EXISTS metadata jsonb;
+
+COMMIT;

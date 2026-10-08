@@ -28,9 +28,12 @@ import type {
   ErrorResponse,
   EventInput,
   FeedbackInput,
+  GenerateDraftInput,
   GetRelatedRecipesParams,
   HealthStatus,
   HomeResponse,
+  ImportAdminRecipesBody,
+  ImportAdminRecipesResponse,
   ListAdminRecipesParams,
   ListRecipesParams,
   MessageResponse,
@@ -42,6 +45,7 @@ import type {
   RecipeUpdate,
   Submission,
   SubmissionInput,
+  SubmissionStatusUpdate,
   SuggestionInput
 } from './api.schemas';
 
@@ -1674,6 +1678,78 @@ export const useCreateAdminRecipe = <TError = ErrorType<unknown>,
       return useMutation(getCreateAdminRecipeMutationOptions(options));
     }
 
+export const getImportAdminRecipesCsvUrl = () => {
+
+
+
+
+  return `/api/admin/recipes/import-csv`
+}
+
+/**
+ * Imports up to 500 recipe rows. Headers are matched case-insensitively to the AI Recipes spreadsheet columns. List cells may use commas, semicolons, pipes, line breaks, or JSON arrays. Recipes default to DRAFT unless Publishing Status explicitly says Published or Live.
+ * @summary Import recipes from a CSV spreadsheet
+ */
+export const importAdminRecipesCsv = async (importAdminRecipesBody: ImportAdminRecipesBody, options?: Parameters<typeof customFetch>[1]): Promise<ImportAdminRecipesResponse> => {
+
+  return customFetch<ImportAdminRecipesResponse>(getImportAdminRecipesCsvUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(importAdminRecipesBody)
+  }
+);}
+
+
+
+
+
+export const getImportAdminRecipesCsvMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importAdminRecipesCsv>>, TError,{data: BodyType<ImportAdminRecipesBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importAdminRecipesCsv>>, TError,{data: BodyType<ImportAdminRecipesBody>}, TContext> => {
+
+const mutationKey = ['importAdminRecipesCsv'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importAdminRecipesCsv>>, {data: BodyType<ImportAdminRecipesBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  importAdminRecipesCsv(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportAdminRecipesCsvMutationResult = NonNullable<Awaited<ReturnType<typeof importAdminRecipesCsv>>>
+    export type ImportAdminRecipesCsvMutationBody = BodyType<ImportAdminRecipesBody>
+    export type ImportAdminRecipesCsvMutationError = ErrorType<void>
+
+    /**
+ * @summary Import recipes from a CSV spreadsheet
+ */
+export const useImportAdminRecipesCsv = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importAdminRecipesCsv>>, TError,{data: BodyType<ImportAdminRecipesBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importAdminRecipesCsv>>,
+        TError,
+        {data: BodyType<ImportAdminRecipesBody>},
+        TContext
+      > => {
+      return useMutation(getImportAdminRecipesCsvMutationOptions(options));
+    }
+
 export const getUpdateAdminRecipeUrl = (id: number,) => {
 
 
@@ -1746,6 +1822,77 @@ export const useUpdateAdminRecipe = <TError = ErrorType<unknown>,
       return useMutation(getUpdateAdminRecipeMutationOptions(options));
     }
 
+export const getDeleteAdminRecipeUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/recipes/${id}`
+}
+
+/**
+ * @summary Delete an admin recipe
+ */
+export const deleteAdminRecipe = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteAdminRecipeUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAdminRecipeMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminRecipe>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAdminRecipe>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteAdminRecipe'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAdminRecipe>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteAdminRecipe(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAdminRecipeMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAdminRecipe>>>
+
+    export type DeleteAdminRecipeMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete an admin recipe
+ */
+export const useDeleteAdminRecipe = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminRecipe>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAdminRecipe>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteAdminRecipeMutationOptions(options));
+    }
+
 export const getDuplicateAdminRecipeUrl = (id: number,) => {
 
 
@@ -1815,6 +1962,77 @@ export const useDuplicateAdminRecipe = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDuplicateAdminRecipeMutationOptions(options));
+    }
+
+export const getGenerateDraftRecipeUrl = () => {
+
+
+
+
+  return `/api/admin/recipes/generate-draft`
+}
+
+/**
+ * @summary Generate a structured recipe draft from an idea or prompt
+ */
+export const generateDraftRecipe = async (generateDraftInput: GenerateDraftInput, options?: Parameters<typeof customFetch>[1]): Promise<RecipeInput> => {
+
+  return customFetch<RecipeInput>(getGenerateDraftRecipeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(generateDraftInput)
+  }
+);}
+
+
+
+
+
+export const getGenerateDraftRecipeMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateDraftRecipe>>, TError,{data: BodyType<GenerateDraftInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateDraftRecipe>>, TError,{data: BodyType<GenerateDraftInput>}, TContext> => {
+
+const mutationKey = ['generateDraftRecipe'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateDraftRecipe>>, {data: BodyType<GenerateDraftInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateDraftRecipe(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateDraftRecipeMutationResult = NonNullable<Awaited<ReturnType<typeof generateDraftRecipe>>>
+    export type GenerateDraftRecipeMutationBody = BodyType<GenerateDraftInput>
+    export type GenerateDraftRecipeMutationError = ErrorType<void>
+
+    /**
+ * @summary Generate a structured recipe draft from an idea or prompt
+ */
+export const useGenerateDraftRecipe = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateDraftRecipe>>, TError,{data: BodyType<GenerateDraftInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateDraftRecipe>>,
+        TError,
+        {data: BodyType<GenerateDraftInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateDraftRecipeMutationOptions(options));
     }
 
 export const getListAdminSubmissionsUrl = () => {
@@ -1893,6 +2111,78 @@ export function useListAdminSubmissions<TData = Awaited<ReturnType<typeof listAd
 
 
 
+
+export const getUpdateAdminSubmissionUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/submissions/${id}`
+}
+
+/**
+ * @summary Update status of a submission
+ */
+export const updateAdminSubmission = async (id: number,
+    submissionStatusUpdate: SubmissionStatusUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Submission> => {
+
+  return customFetch<Submission>(getUpdateAdminSubmissionUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(submissionStatusUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminSubmissionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminSubmission>>, TError,{id: number;data: BodyType<SubmissionStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminSubmission>>, TError,{id: number;data: BodyType<SubmissionStatusUpdate>}, TContext> => {
+
+const mutationKey = ['updateAdminSubmission'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminSubmission>>, {id: number;data: BodyType<SubmissionStatusUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminSubmission(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminSubmissionMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminSubmission>>>
+    export type UpdateAdminSubmissionMutationBody = BodyType<SubmissionStatusUpdate>
+    export type UpdateAdminSubmissionMutationError = ErrorType<void>
+
+    /**
+ * @summary Update status of a submission
+ */
+export const useUpdateAdminSubmission = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminSubmission>>, TError,{id: number;data: BodyType<SubmissionStatusUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminSubmission>>,
+        TError,
+        {id: number;data: BodyType<SubmissionStatusUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminSubmissionMutationOptions(options));
+    }
 
 export const getGetAdminAnalyticsUrl = () => {
 

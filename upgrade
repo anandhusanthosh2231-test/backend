@@ -1,0 +1,1168 @@
+# AI Recipes — Upgrade Recipe Detail Pages
+
+You are working on the existing **AI Recipes** application.
+
+I want to upgrade the Recipe Detail page from a basic prompt/documentation page into a highly useful, user-oriented **AI Recipe experience**.
+
+The existing page already contains:
+
+* Recipe title
+* Description
+* Category
+* Tested date
+* Time
+* Difficulty
+* Language
+* Save / Share
+* Problem
+* Before you start
+* Workflow
+* Copy prompt
+* Example input/output
+* Refinement prompts
+* Verification notes
+* Audience/category metadata
+* Related recipes
+
+Do NOT throw away the existing design system. Improve and extend it.
+
+The current recipe page is clean, but it needs significantly more practical context and better information architecture.
+
+---
+
+# 1. CORE PRODUCT PRINCIPLE
+
+Every AI Recipe should answer these questions immediately:
+
+1. **What can I use this for?**
+2. **Who is this useful for?**
+3. **When should I use it?**
+4. **When should I NOT use it?**
+5. **What do I need before starting?**
+6. **Which AI tools work best?**
+7. **What will I get as an output?**
+8. **How long will it take?**
+9. **What skill level is required?**
+10. **What should I be careful about?**
+11. **Can I copy the prompt immediately?**
+12. **Are there alternative ways to use this recipe?**
+13. **What recipes should I try next?**
+
+The page should feel like:
+
+> "Someone has already figured out how to do this with AI. I just need to follow the recipe."
+
+Avoid making it feel like a generic prompt directory.
+
+---
+
+# 2. NEW HERO SECTION
+
+Keep the existing hero but make it more informative.
+
+Current structure:
+
+* Category
+* Tested date
+* Title
+* Description
+* Time
+* Difficulty
+* Language
+* Save
+* Share
+
+Add a compact **"Recipe Snapshot"** directly below the description.
+
+Example:
+
+### Recipe Snapshot
+
+**Best for**
+Customer support, sales teams, small businesses
+
+**Works best when**
+You have a rough customer message and need a polished response quickly.
+
+**Time to result**
+~2–5 minutes
+
+**Output**
+A ready-to-review WhatsApp reply
+
+**Best with**
+ChatGPT · Gemini · Claude
+
+**Skill level**
+Beginner
+
+Use visually distinct compact chips/cards.
+
+---
+
+# 3. ADD "WHEN TO USE THIS" SECTION
+
+This is one of the most important additions.
+
+Add:
+
+## When this recipe is useful
+
+Use this recipe when:
+
+* A customer message needs a fast response
+* You know what you want to say but don't know how to phrase it
+* Your response needs to sound professional but natural
+* You need multiple tone variations
+* Your team wants consistent customer communication
+
+Also add:
+
+### Great for
+
+* Small businesses
+* Customer support
+* Sales teams
+* Freelancers
+* WhatsApp-based businesses
+* Founders
+
+Make this dynamically generated from backend recipe data.
+
+---
+
+# 4. ADD "WHEN NOT TO USE IT"
+
+Create a small warning/info card.
+
+Example:
+
+## When NOT to use this
+
+Avoid using this recipe when:
+
+* The message contains sensitive information that should not be pasted into an AI tool
+* The response requires legal or contractual interpretation
+* Exact company policy must be followed without human review
+
+The backend should support:
+
+```json
+{
+  "when_not_to_use": [
+    "...",
+    "...",
+    "..."
+  ]
+}
+```
+
+Do not force every recipe to have exactly three items.
+
+---
+
+# 5. ADD "WHAT YOU NEED"
+
+Improve the existing "Before you start" section.
+
+Instead of generic:
+
+* Goal and audience
+* Relevant source material
+* Constraints
+
+Make it practical.
+
+Example:
+
+## What you need
+
+### Required
+
+* The customer's original message
+* Your intended response
+* Any important facts or policies
+
+### Optional
+
+* Preferred tone
+* Maximum response length
+* Previous conversation context
+* Product/service details
+
+Use Required and Optional visually.
+
+Backend structure:
+
+```json
+{
+  "inputs": {
+    "required": [],
+    "optional": []
+  }
+}
+```
+
+---
+
+# 6. ADD "CHOOSE YOUR SITUATION"
+
+This should make the recipe feel interactive.
+
+For example:
+
+## What are you trying to reply to?
+
+[ Customer complaint ]
+
+[ Price question ]
+
+[ Delivery question ]
+
+[ Refund request ]
+
+[ Product enquiry ]
+
+[ Follow-up ]
+
+When the user selects an option, dynamically update the prompt template or show a relevant prompt variation.
+
+Backend should support:
+
+```json
+{
+  "use_cases": [
+    {
+      "name": "Customer complaint",
+      "description": "...",
+      "prompt_modifier": "..."
+    }
+  ]
+}
+```
+
+This is a major product improvement.
+
+---
+
+# 7. IMPROVE THE PROMPT EXPERIENCE
+
+The prompt should become the central action.
+
+Instead of only:
+
+"Copy prompt"
+
+Create a stronger prompt card:
+
+## Your AI Recipe
+
+[ Full prompt ]
+
+[ Copy prompt ]
+
+[ Open in ChatGPT ]
+
+[ Open in Gemini ]
+
+[ Open in Claude ]
+
+If direct links cannot be reliably generated, only show "Copy prompt".
+
+Add:
+
+* Copy confirmation
+* Character count
+* Prompt version
+* Last updated
+* Optional variables highlighted
+
+Example:
+
+```text
+Write a WhatsApp reply to:
+
+{{CUSTOMER_MESSAGE}}
+
+Context:
+{{BUSINESS_CONTEXT}}
+
+Tone:
+{{TONE}}
+
+Maximum length:
+{{MAX_LENGTH}}
+```
+
+Make variables visually identifiable.
+
+---
+
+# 8. ADD "FILL THESE IN FIRST"
+
+Before the prompt, provide a lightweight form.
+
+Example:
+
+### Fill these in
+
+Customer message
+[ textarea ]
+
+Your goal
+[ textarea ]
+
+Tone
+[ Friendly ▼ ]
+
+Maximum length
+[ 100 words ▼ ]
+
+Important facts
+[ textarea ]
+
+Then generate the final prompt automatically.
+
+Do NOT require login for this basic functionality.
+
+The user should be able to use the recipe immediately.
+
+---
+
+# 9. ADD "EXPECTED OUTPUT"
+
+Create a section:
+
+## What you'll get
+
+Example:
+
+> A short, natural WhatsApp reply that acknowledges the customer, answers their question clearly, avoids unnecessary promises, and ends with an appropriate next step.
+
+Then show:
+
+### Output characteristics
+
+✓ Clear
+✓ Concise
+✓ Human-sounding
+✓ Context-aware
+✓ Easy to review
+
+Backend:
+
+```json
+{
+  "expected_output": {
+    "description": "...",
+    "characteristics": []
+  }
+}
+```
+
+---
+
+# 10. ADD REALISTIC EXAMPLES
+
+The current example section is too generic.
+
+Replace generic placeholder output with realistic examples.
+
+For this recipe:
+
+### Example 1 — Customer complaint
+
+Input:
+
+> "I ordered this two days ago and still haven't received it. Nobody is responding."
+
+Output:
+
+Show a realistic AI-generated response.
+
+Then provide:
+
+**Why this works**
+
+* Acknowledges frustration
+* Doesn't make an unsupported promise
+* Gives the customer a clear next step
+* Keeps the tone natural
+
+Add 2–3 realistic scenarios per recipe where appropriate.
+
+Backend:
+
+```json
+{
+  "examples": [
+    {
+      "scenario": "...",
+      "input": "...",
+      "output": "...",
+      "why_it_works": []
+    }
+  ]
+}
+```
+
+---
+
+# 11. ADD "AI TOOLS"
+
+The existing tool chips should become more informative.
+
+Instead of:
+
+ChatGPT
+Gemini
+
+Display:
+
+## Works with
+
+ChatGPT — Excellent
+Gemini — Excellent
+Claude — Excellent
+Copilot — Good
+
+Do NOT invent quality scores.
+
+Instead allow backend metadata:
+
+```json
+{
+  "tools": [
+    {
+      "name": "ChatGPT",
+      "support": "excellent",
+      "notes": "Works well for tone and rewriting."
+    }
+  ]
+}
+```
+
+If tool performance has not actually been tested, use neutral labels such as:
+
+"Compatible"
+
+rather than claiming superiority.
+
+---
+
+# 12. ADD "BEST FOR"
+
+Create a dedicated section:
+
+## Best for
+
+### 👤 People
+
+* Business owners
+* Customer support agents
+* Sales representatives
+* Freelancers
+
+### 🧩 Tasks
+
+* Customer replies
+* Follow-ups
+* Complaint handling
+* Product questions
+
+### 📱 Channels
+
+* WhatsApp
+* Email
+* Instagram DM
+* Messenger
+
+Backend:
+
+```json
+{
+  "best_for": {
+    "people": [],
+    "tasks": [],
+    "channels": []
+  }
+}
+```
+
+Only render categories that contain data.
+
+---
+
+# 13. ADD "TIME & EFFORT"
+
+Make the existing metadata more meaningful.
+
+Instead of only:
+
+5 min · Beginner
+
+Use:
+
+### Time to complete
+
+~5 minutes
+
+### Effort
+
+Low
+
+### AI interaction
+
+1–3 iterations
+
+Backend:
+
+```json
+{
+  "time_to_result": "5 min",
+  "effort": "Low",
+  "typical_iterations": "1–3"
+}
+```
+
+---
+
+# 14. ADD "COMMON MISTAKES"
+
+This is very useful for an AI recipe website.
+
+Example:
+
+## Common mistakes
+
+❌ Giving the AI too little context
+
+❌ Asking for "professional" without explaining what that means
+
+❌ Copying the response without checking names, dates or promises
+
+❌ Including confidential customer information
+
+Then:
+
+### Better approach
+
+Give the AI the relevant context while removing unnecessary sensitive information.
+
+Backend:
+
+```json
+{
+  "common_mistakes": [],
+  "better_approach": "..."
+}
+```
+
+---
+
+# 15. ADD "PRO TIPS"
+
+Example:
+
+## Make the result better
+
+**Tip 01**
+Tell the AI who the recipient is.
+
+**Tip 02**
+Give it the exact facts it must preserve.
+
+**Tip 03**
+Specify the desired length.
+
+**Tip 04**
+Ask for 2–3 tone variations when unsure.
+
+Backend:
+
+```json
+{
+  "pro_tips": []
+}
+```
+
+---
+
+# 16. ADD "PRIVACY / SAFETY"
+
+Since users may paste real-world information into prompts, add a subtle section:
+
+## Before you paste
+
+Remove passwords, payment information, private customer data, API keys, confidential documents and other sensitive information unless the AI service and your organization's policy explicitly permit their use.
+
+This should be reusable across recipes.
+
+Allow recipes to optionally specify additional warnings.
+
+---
+
+# 17. ADD "RECIPE QUALITY"
+
+Improve the existing "Field Tested" concept.
+
+Current page has:
+
+FIELD TESTED
+v1.0 · ChatGPT, Gemini
+
+Make this data-driven.
+
+Example:
+
+### Recipe status
+
+✓ Tested
+
+**Last tested:** August 2026
+
+**Recipe version:** 1.2
+
+**Tested with:** ChatGPT, Gemini
+
+Do not claim "tested" unless the backend actually marks the recipe as tested.
+
+Backend:
+
+```json
+{
+  "quality": {
+    "status": "tested",
+    "last_tested": "2026-08-01",
+    "version": "1.2",
+    "tested_with": []
+  }
+}
+```
+
+---
+
+# 18. ADD "QUICK START"
+
+At the top of the content, provide a compact action block:
+
+## Ready to try?
+
+1. Copy the prompt
+2. Add your context
+3. Run it in your AI tool
+4. Review the output
+5. Refine if needed
+
+[ Copy prompt ]
+
+This gives users a clear path instead of forcing them to read the entire page.
+
+---
+
+# 19. ADD "RECIPE DEPTH"
+
+The page should have progressive disclosure.
+
+Do NOT make everything visible at once.
+
+Use:
+
+### Quick answer
+
+Hero + Snapshot + Quick Start
+
+### Learn
+
+Problem + When to use + What you need
+
+### Use
+
+Prompt + Inputs + Examples
+
+### Improve
+
+Refinement prompts + Tips + Common mistakes
+
+### Explore
+
+Related recipes
+
+Use collapsible sections where appropriate, especially on mobile.
+
+---
+
+# 20. MOBILE UX
+
+The existing application has a mobile-specific header and bottom navigation.
+
+Keep that system, but improve recipe consumption.
+
+On mobile:
+
+* Sticky bottom "Copy Prompt" CTA
+* Keep Save and Share accessible
+* Make prompt box full-width
+* Make example cards horizontally scrollable
+* Make tool chips horizontally scrollable
+* Avoid huge hero whitespace
+* Keep important information above the fold
+* Make accordions easy to tap
+* Never create horizontal page overflow
+
+The primary mobile CTA should be:
+
+[ Copy Prompt ]
+
+---
+
+# 21. DESKTOP UX
+
+Use a two-column layout.
+
+LEFT:
+Main recipe content.
+
+RIGHT:
+Sticky "Recipe at a glance" card.
+
+Right card should contain:
+
+* Best for
+* Time
+* Difficulty
+* Tools
+* Output
+* Save recipe
+* Copy prompt
+
+The current "At a glance" sidebar should be expanded rather than removed.
+
+---
+
+# 22. BACKEND DATA MODEL
+
+Extend the recipe model without breaking existing recipes.
+
+Suggested structure:
+
+```json
+{
+  "id": "",
+  "slug": "",
+  "title": "",
+  "description": "",
+  "category": "",
+  "audience": [],
+
+  "snapshot": {
+    "best_for": "",
+    "works_best_when": "",
+    "time_to_result": "",
+    "output": "",
+    "difficulty": ""
+  },
+
+  "use_cases": [],
+
+  "when_not_to_use": [],
+
+  "inputs": {
+    "required": [],
+    "optional": []
+  },
+
+  "situations": [],
+
+  "tools": [],
+
+  "prompt": {
+    "template": "",
+    "variables": []
+  },
+
+  "expected_output": {
+    "description": "",
+    "characteristics": []
+  },
+
+  "examples": [],
+
+  "best_for": {
+    "people": [],
+    "tasks": [],
+    "channels": []
+  },
+
+  "common_mistakes": [],
+
+  "pro_tips": [],
+
+  "safety_notes": [],
+
+  "refinement_prompts": [],
+
+  "verification_notes": "",
+
+  "quality": {
+    "status": "",
+    "last_tested": "",
+    "version": "",
+    "tested_with": []
+  },
+
+  "related_recipe_ids": []
+}
+```
+
+IMPORTANT:
+
+Make all new fields optional.
+
+Existing recipes must continue rendering correctly even if these fields are missing.
+
+---
+
+# 23. ADMIN / RECIPE CREATION FORM
+
+If the application has a recipe creation/admin backend, update it to support the new fields.
+
+The creator should be able to enter:
+
+* Recipe title
+* Description
+* Category
+* Audience
+* Best for
+* Works best when
+* When not to use
+* Required inputs
+* Optional inputs
+* Use cases
+* Supported AI tools
+* Prompt
+* Prompt variables
+* Expected output
+* Examples
+* Common mistakes
+* Pro tips
+* Safety notes
+* Verification notes
+* Tested status
+* Last tested date
+* Version
+
+Use repeatable fields for arrays.
+
+For example:
+
+[ + Add use case ]
+
+[ + Add example ]
+
+[ + Add pro tip ]
+
+Do not make the creator manually edit JSON.
+
+---
+
+# 24. SEO
+
+Maintain the existing SEO architecture.
+
+The current page already has:
+
+* title
+* description
+* canonical
+* OpenGraph
+* Twitter metadata
+* HowTo structured data
+
+Keep these.
+
+Expand structured data where appropriate using actual recipe data.
+
+Do NOT generate structured data containing information that isn't actually present on the page.
+
+Generate dynamic metadata from the recipe.
+
+Example:
+
+Title:
+"Write Customer WhatsApp Replies — AI Recipe"
+
+Description:
+"Create clear, natural WhatsApp customer replies with AI. Includes a tested prompt, examples, refinement tips and practical guidance."
+
+---
+
+# 25. ANALYTICS
+
+Track meaningful recipe interactions.
+
+Add events for:
+
+* recipe_view
+* recipe_copy
+* recipe_save
+* recipe_share
+* recipe_tool_click
+* recipe_example_view
+* recipe_prompt_run
+* recipe_feedback
+* recipe_refinement_click
+
+Event payload:
+
+```json
+{
+  "recipe_id": "",
+  "recipe_category": "",
+  "action": "",
+  "tool": ""
+}
+```
+
+Do not collect prompt contents or sensitive user input in analytics.
+
+---
+
+# 26. PERSONALIZATION WITHOUT LOGIN
+
+Where possible, remember lightweight local state:
+
+* Saved recipes
+* Recently viewed recipes
+* Last selected tone
+* Last selected use case
+
+Use localStorage where appropriate.
+
+Do not require account creation for basic recipe usage.
+
+---
+
+# 27. RELATED RECIPES
+
+Improve "More like this."
+
+Instead of simply showing category-related recipes, calculate relevance using:
+
+1. Same task
+2. Same audience
+3. Same category
+4. Similar tools
+5. Shared tags
+6. User interaction data where available
+
+Display:
+
+### If you found this useful
+
+* Handle Customer Complaints
+* Turn Customer Questions into an FAQ
+* Create Follow-up Messages
+
+Add a short explanation:
+
+"Because you are working on customer communication."
+
+Do not show irrelevant recommendations.
+
+---
+
+# 28. USER FEEDBACK
+
+Keep:
+
+Was this useful?
+
+Yes / Not yet
+
+But if the user selects "Not yet", show optional reasons:
+
+* Too generic
+* Prompt didn't work
+* Missing example
+* Missing information
+* Too complicated
+* Other
+
+Store structured feedback against recipe ID.
+
+Do not require the user to write a comment.
+
+---
+
+# 29. VISUAL DESIGN
+
+Keep the existing clean editorial aesthetic.
+
+Do NOT turn the page into a generic SaaS dashboard.
+
+Design principles:
+
+* Warm background
+* Strong typography
+* Plenty of whitespace
+* Subtle borders
+* Rounded cards
+* Minimal shadows
+* Clear hierarchy
+* Compact metadata
+* Editorial-style section labels
+* Strong primary CTA
+
+The page should feel like:
+
+**Notion × Linear × a practical cookbook**
+
+rather than:
+
+**AI tool directory × enterprise dashboard**
+
+---
+
+# 30. IMPORTANT CONTENT RULE
+
+Avoid meaningless AI marketing language.
+
+Do NOT use:
+
+"Revolutionary AI-powered solution"
+
+"Supercharge your productivity"
+
+"Unlock the power of AI"
+
+"Next-generation AI workflow"
+
+Instead use concrete language:
+
+"Create a customer reply in about 5 minutes."
+
+"Useful when you know what you want to say but need help wording it."
+
+"Works best when you provide the customer's original message and the facts that must remain unchanged."
+
+---
+
+# 31. IMPLEMENTATION REQUIREMENTS
+
+Before modifying anything:
+
+1. Inspect the existing frontend architecture.
+2. Identify the recipe data model.
+3. Identify the recipe detail component/page.
+4. Identify the API/backend endpoint supplying recipes.
+5. Identify the recipe creation/admin interface.
+6. Identify the existing CSS/design system.
+7. Reuse existing components wherever possible.
+
+Then implement the changes.
+
+Do NOT duplicate components unnecessarily.
+
+Do NOT hardcode the new content specifically for "Write Customer WhatsApp Replies."
+
+The architecture must support every future AI Recipe.
+
+---
+
+# 32. BACKWARD COMPATIBILITY
+
+Existing recipes must continue working.
+
+For missing fields:
+
+* Hide the corresponding section.
+* Do not display empty cards.
+* Do not display "N/A".
+* Do not break the page.
+* Do not require database migration if the existing schema can safely support optional fields.
+
+Create sensible fallback behavior for legacy recipes.
+
+---
+
+# 33. FINAL USER JOURNEY
+
+The final recipe page should feel like this:
+
+User opens recipe.
+
+↓
+
+Immediately understands:
+
+"What is this?"
+
+"Is this useful for me?"
+
+"When should I use it?"
+
+↓
+
+Sees:
+
+**Quick Start**
+
+↓
+
+Provides their situation.
+
+↓
+
+Copies or generates the customized prompt.
+
+↓
+
+Runs it in ChatGPT / Gemini / Claude.
+
+↓
+
+Looks at realistic examples.
+
+↓
+
+Uses refinement prompts if needed.
+
+↓
+
+Checks verification/safety notes.
+
+↓
+
+Saves the recipe.
+
+↓
+
+Gets relevant next recipes.
+
+The goal is not simply to show users a prompt.
+
+The goal is to help them **successfully complete a real task with AI.**
+
+---
+
+# 34. SUCCESS CRITERIA
+
+Consider the implementation successful when:
+
+* A first-time visitor understands the recipe within 10 seconds.
+* The user knows whether the recipe is relevant to them.
+* The user knows exactly what information they need.
+* The user can reach the prompt quickly.
+* The prompt can be customized.
+* Examples feel realistic rather than generic.
+* The page explains when the recipe should and shouldn't be used.
+* Users understand the expected output.
+* Users understand limitations and verification requirements.
+* Mobile experience is equally usable.
+* Existing recipes continue working.
+* New recipe fields are controlled by backend data rather than hardcoded frontend content.
+* SEO metadata remains valid.
+* Analytics capture meaningful interactions without collecting sensitive prompt content.
+
+Build this as a **scalable recipe system**, not a one-off redesign for this single recipe.

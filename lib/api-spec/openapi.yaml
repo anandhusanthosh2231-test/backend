@@ -311,6 +311,30 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Recipe" }
+  /admin/recipes/import-csv:
+    post:
+      operationId: importAdminRecipesCsv
+      tags: [admin]
+      summary: Import recipes from a CSV spreadsheet
+      description: >-
+        Imports up to 500 recipe rows. Headers are matched case-insensitively to
+        the AI Recipes spreadsheet columns. List cells may use commas,
+        semicolons, pipes, line breaks, or JSON arrays. Recipes default to DRAFT
+        unless Publishing Status explicitly says Published or Live.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImportAdminRecipesBody" }
+      responses:
+        "200":
+          description: Per-row import results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportAdminRecipesResponse" }
+        "400": { description: Invalid CSV or import size }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
   /admin/recipes/{id}:
     patch:
       operationId: updateAdminRecipe
@@ -329,6 +353,17 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Recipe" }
+    delete:
+      operationId: deleteAdminRecipe
+      tags: [admin]
+      summary: Delete an admin recipe
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      responses:
+        "204": { description: Recipe deleted }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: Recipe not found }
   /admin/recipes/{id}/duplicate:
     post:
       operationId: duplicateAdminRecipe
@@ -342,6 +377,24 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Recipe" }
+  /admin/recipes/generate-draft:
+    post:
+      operationId: generateDraftRecipe
+      tags: [admin]
+      summary: Generate a structured recipe draft from an idea or prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GenerateDraftInput" }
+      responses:
+        "200":
+          description: Generated draft recipe
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecipeInput" }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
   /admin/submissions:
     get:
       operationId: listAdminSubmissions
@@ -355,6 +408,27 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Submission" }
+  /admin/submissions/{id}:
+    patch:
+      operationId: updateAdminSubmission
+      tags: [admin]
+      summary: Update status of a submission
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SubmissionStatusUpdate" }
+      responses:
+        "200":
+          description: Updated submission
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Submission" }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: Submission not found }
   /admin/analytics:
     get:
       operationId: getAdminAnalytics
@@ -457,7 +531,12 @@ components:
               items: { type: string }
             seoTitle: { type: string }
             seoDescription: { type: string }
+            updatedAt: { type: string, format: date-time }
             publishedAt: { type: ["string", "null"], format: date-time }
+            guide:
+              oneOf:
+                - $ref: "#/components/schemas/RecipeGuide"
+                - type: "null"
           required: [problem, subcategory, aiTools, requiredInputs, steps, prompt, exampleInput, exampleOutput, refinementPrompts, verificationNotes, status, version, testedWith, seoTitle, seoDescription]
     RecipeInput:
       type: object
@@ -490,7 +569,29 @@ components:
         testedWith: { type: array, items: { type: string } }
         seoTitle: { type: string }
         seoDescription: { type: string }
+        guide: { $ref: "#/components/schemas/RecipeGuide" }
       required: [title, slug, shortDescription, problem, categoryId, audienceId, subcategory, difficulty, estimatedTime, language, aiTools, requiredInputs, steps, prompt, exampleInput, exampleOutput, refinementPrompts, verificationNotes, tags, status, featured, trending, recipeOfDay, version, testedWith, seoTitle, seoDescription]
+    ImportAdminRecipesBody:
+      type: object
+      properties:
+        csv: { type: string, maxLength: 5242880 }
+      required: [csv]
+    ImportAdminRecipesResponse:
+      type: object
+      properties:
+        createdCount: { type: integer }
+        failedCount: { type: integer }
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              row: { type: integer }
+              slug: { type: string }
+              status: { type: string, enum: [created, failed] }
+              message: { type: string }
+            required: [row, slug, status, message]
+      required: [createdCount, failedCount, results]
     RecipeUpdate:
       allOf:
         - $ref: "#/components/schemas/RecipeInput"
@@ -524,10 +625,108 @@ components:
     EventInput:
       type: object
       properties:
-        type: { type: string, enum: [page_view, recipe_view, recipe_copy, recipe_save, recipe_unsave, recipe_share, recipe_feedback_positive, recipe_feedback_negative, search, recipe_submission] }
+        type: { type: string, enum: [page_view, recipe_view, recipe_copy, recipe_save, recipe_unsave, recipe_share, recipe_feedback_positive, recipe_feedback_negative, recipe_tool_click, recipe_example_view, recipe_prompt_run, recipe_feedback, recipe_refinement_click, search, recipe_submission] }
         recipeId: { type: ["integer", "null"] }
         query: { type: ["string", "null"], maxLength: 200 }
+        metadata:
+          type: ["object", "null"]
+          properties:
+            category: { type: string, maxLength: 100 }
+            tool: { type: string, maxLength: 100 }
+            example: { type: string, maxLength: 100 }
+            refinement: { type: string, maxLength: 200 }
       required: [type]
+    RecipeGuide:
+      type: object
+      properties:
+        snapshot:
+          type: object
+          properties:
+            bestFor: { type: string }
+            worksBestWhen: { type: string }
+            timeToResult: { type: string }
+            output: { type: string }
+            bestWith: { type: array, items: { type: string } }
+            skillLevel: { type: string }
+        useCases:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              description: { type: string }
+            required: [name, description]
+        whenNotToUse:
+          type: array
+          items: { type: string }
+        inputs:
+          type: object
+          properties:
+            required: { type: array, items: { type: string } }
+            optional: { type: array, items: { type: string } }
+        situations:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              description: { type: string }
+              promptModifier: { type: string }
+            required: [name, promptModifier]
+        tools:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              support: { type: string, enum: [compatible, good, excellent] }
+              notes: { type: string }
+            required: [name, support]
+        promptVariables:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              label: { type: string }
+              placeholder: { type: string }
+              required: { type: boolean }
+            required: [name, label]
+        expectedOutput:
+          type: object
+          properties:
+            description: { type: string }
+            characteristics: { type: array, items: { type: string } }
+        examples:
+          type: array
+          items:
+            type: object
+            properties:
+              scenario: { type: string }
+              input: { type: string }
+              output: { type: string }
+              whyItWorks: { type: array, items: { type: string } }
+            required: [scenario, input, output]
+        bestFor:
+          type: object
+          properties:
+            people: { type: array, items: { type: string } }
+            tasks: { type: array, items: { type: string } }
+            channels: { type: array, items: { type: string } }
+        timeToResult: { type: string }
+        effort: { type: string }
+        typicalIterations: { type: string }
+        commonMistakes: { type: array, items: { type: string } }
+        betterApproach: { type: string }
+        proTips: { type: array, items: { type: string } }
+        safetyNotes: { type: array, items: { type: string } }
+        quality:
+          type: object
+          properties:
+            status: { type: string, enum: [untested, in_testing, tested] }
+            lastTested: { type: ["string", "null"], format: date }
+            version: { type: string }
+            testedWith: { type: array, items: { type: string } }
     FeedbackInput:
       type: object
       properties:
@@ -549,6 +748,18 @@ components:
         howUsed: { type: string, minLength: 10, maxLength: 2000 }
         email: { type: ["string", "null"], format: email }
       required: [title, problem, workflow, howUsed]
+    GenerateDraftInput:
+      type: object
+      properties:
+        topicOrPrompt: { type: string, minLength: 3 }
+        category: { type: string }
+        audience: { type: string }
+      required: [topicOrPrompt]
+    SubmissionStatusUpdate:
+      type: object
+      properties:
+        status: { type: string, enum: [PENDING, APPROVED, REJECTED, CONVERTED] }
+      required: [status]
     Profile:
       type: object
       properties:

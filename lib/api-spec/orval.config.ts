@@ -53,7 +53,8 @@ export default defineConfig({
       target: "generated",
       schemas: { path: "generated/types", type: "typescript" },
       mode: "split",
-      clean: true,
+      clean: false,
+      indexFiles: false,
       prettier: true,
       override: {
         zod: {

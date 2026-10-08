@@ -108,7 +108,71 @@ export const GetRecipeResponse = zod.object({
   "testedWith": zod.array(zod.string()),
   "seoTitle": zod.string(),
   "seoDescription": zod.string(),
-  "publishedAt": zod.coerce.date().nullish()
+  "updatedAt": zod.coerce.date().optional(),
+  "publishedAt": zod.coerce.date().nullish(),
+  "guide": zod.union([zod.object({
+  "snapshot": zod.object({
+  "bestFor": zod.string().optional(),
+  "worksBestWhen": zod.string().optional(),
+  "timeToResult": zod.string().optional(),
+  "output": zod.string().optional(),
+  "bestWith": zod.array(zod.string()).optional(),
+  "skillLevel": zod.string().optional()
+}).optional(),
+  "useCases": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})).optional(),
+  "whenNotToUse": zod.array(zod.string()).optional(),
+  "inputs": zod.object({
+  "required": zod.array(zod.string()).optional(),
+  "optional": zod.array(zod.string()).optional()
+}).optional(),
+  "situations": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "promptModifier": zod.string()
+})).optional(),
+  "tools": zod.array(zod.object({
+  "name": zod.string(),
+  "support": zod.enum(['compatible', 'good', 'excellent']),
+  "notes": zod.string().optional()
+})).optional(),
+  "promptVariables": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "placeholder": zod.string().optional(),
+  "required": zod.boolean().optional()
+})).optional(),
+  "expectedOutput": zod.object({
+  "description": zod.string().optional(),
+  "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "examples": zod.array(zod.object({
+  "scenario": zod.string(),
+  "input": zod.string(),
+  "output": zod.string(),
+  "whyItWorks": zod.array(zod.string()).optional()
+})).optional(),
+  "bestFor": zod.object({
+  "people": zod.array(zod.string()).optional(),
+  "tasks": zod.array(zod.string()).optional(),
+  "channels": zod.array(zod.string()).optional()
+}).optional(),
+  "timeToResult": zod.string().optional(),
+  "effort": zod.string().optional(),
+  "typicalIterations": zod.string().optional(),
+  "commonMistakes": zod.array(zod.string()).optional(),
+  "betterApproach": zod.string().optional(),
+  "proTips": zod.array(zod.string()).optional(),
+  "safetyNotes": zod.array(zod.string()).optional(),
+  "quality": zod.object({
+  "status": zod.enum(['untested', 'in_testing', 'tested']).optional(),
+  "lastTested": zod.coerce.date().nullish(),
+  "version": zod.string().optional(),
+  "testedWith": zod.array(zod.string()).optional()
+}).optional()
+}),zod.null()]).optional()
 }))
 
 
@@ -325,12 +389,26 @@ export const GetAudienceResponse = zod.object({
  */
 export const trackEventBodyQueryMax = 200;
 
+export const trackEventBodyMetadataCategoryMax = 100;
+
+export const trackEventBodyMetadataToolMax = 100;
+
+export const trackEventBodyMetadataExampleMax = 100;
+
+export const trackEventBodyMetadataRefinementMax = 200;
+
 
 
 export const TrackEventBody = zod.object({
-  "type": zod.enum(['page_view', 'recipe_view', 'recipe_copy', 'recipe_save', 'recipe_unsave', 'recipe_share', 'recipe_feedback_positive', 'recipe_feedback_negative', 'search', 'recipe_submission']),
+  "type": zod.enum(['page_view', 'recipe_view', 'recipe_copy', 'recipe_save', 'recipe_unsave', 'recipe_share', 'recipe_feedback_positive', 'recipe_feedback_negative', 'recipe_tool_click', 'recipe_example_view', 'recipe_prompt_run', 'recipe_feedback', 'recipe_refinement_click', 'search', 'recipe_submission']),
   "recipeId": zod.int().nullish(),
-  "query": zod.string().max(trackEventBodyQueryMax).nullish()
+  "query": zod.string().max(trackEventBodyQueryMax).nullish(),
+  "metadata": zod.object({
+  "category": zod.string().max(trackEventBodyMetadataCategoryMax).optional(),
+  "tool": zod.string().max(trackEventBodyMetadataToolMax).optional(),
+  "example": zod.string().max(trackEventBodyMetadataExampleMax).optional(),
+  "refinement": zod.string().max(trackEventBodyMetadataRefinementMax).optional()
+}).nullish()
 })
 
 export const TrackEventResponse = zod.void()
@@ -584,7 +662,70 @@ export const CreateAdminRecipeBody = zod.object({
   "testedAt": zod.coerce.date().nullish(),
   "testedWith": zod.array(zod.string()),
   "seoTitle": zod.string(),
-  "seoDescription": zod.string()
+  "seoDescription": zod.string(),
+  "guide": zod.object({
+  "snapshot": zod.object({
+  "bestFor": zod.string().optional(),
+  "worksBestWhen": zod.string().optional(),
+  "timeToResult": zod.string().optional(),
+  "output": zod.string().optional(),
+  "bestWith": zod.array(zod.string()).optional(),
+  "skillLevel": zod.string().optional()
+}).optional(),
+  "useCases": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})).optional(),
+  "whenNotToUse": zod.array(zod.string()).optional(),
+  "inputs": zod.object({
+  "required": zod.array(zod.string()).optional(),
+  "optional": zod.array(zod.string()).optional()
+}).optional(),
+  "situations": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "promptModifier": zod.string()
+})).optional(),
+  "tools": zod.array(zod.object({
+  "name": zod.string(),
+  "support": zod.enum(['compatible', 'good', 'excellent']),
+  "notes": zod.string().optional()
+})).optional(),
+  "promptVariables": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "placeholder": zod.string().optional(),
+  "required": zod.boolean().optional()
+})).optional(),
+  "expectedOutput": zod.object({
+  "description": zod.string().optional(),
+  "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "examples": zod.array(zod.object({
+  "scenario": zod.string(),
+  "input": zod.string(),
+  "output": zod.string(),
+  "whyItWorks": zod.array(zod.string()).optional()
+})).optional(),
+  "bestFor": zod.object({
+  "people": zod.array(zod.string()).optional(),
+  "tasks": zod.array(zod.string()).optional(),
+  "channels": zod.array(zod.string()).optional()
+}).optional(),
+  "timeToResult": zod.string().optional(),
+  "effort": zod.string().optional(),
+  "typicalIterations": zod.string().optional(),
+  "commonMistakes": zod.array(zod.string()).optional(),
+  "betterApproach": zod.string().optional(),
+  "proTips": zod.array(zod.string()).optional(),
+  "safetyNotes": zod.array(zod.string()).optional(),
+  "quality": zod.object({
+  "status": zod.enum(['untested', 'in_testing', 'tested']).optional(),
+  "lastTested": zod.coerce.date().nullish(),
+  "version": zod.string().optional(),
+  "testedWith": zod.array(zod.string()).optional()
+}).optional()
+}).optional()
 })
 
 export const CreateAdminRecipeResponse = zod.object({
@@ -622,8 +763,96 @@ export const CreateAdminRecipeResponse = zod.object({
   "testedWith": zod.array(zod.string()),
   "seoTitle": zod.string(),
   "seoDescription": zod.string(),
-  "publishedAt": zod.coerce.date().nullish()
+  "updatedAt": zod.coerce.date().optional(),
+  "publishedAt": zod.coerce.date().nullish(),
+  "guide": zod.union([zod.object({
+  "snapshot": zod.object({
+  "bestFor": zod.string().optional(),
+  "worksBestWhen": zod.string().optional(),
+  "timeToResult": zod.string().optional(),
+  "output": zod.string().optional(),
+  "bestWith": zod.array(zod.string()).optional(),
+  "skillLevel": zod.string().optional()
+}).optional(),
+  "useCases": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})).optional(),
+  "whenNotToUse": zod.array(zod.string()).optional(),
+  "inputs": zod.object({
+  "required": zod.array(zod.string()).optional(),
+  "optional": zod.array(zod.string()).optional()
+}).optional(),
+  "situations": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "promptModifier": zod.string()
+})).optional(),
+  "tools": zod.array(zod.object({
+  "name": zod.string(),
+  "support": zod.enum(['compatible', 'good', 'excellent']),
+  "notes": zod.string().optional()
+})).optional(),
+  "promptVariables": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "placeholder": zod.string().optional(),
+  "required": zod.boolean().optional()
+})).optional(),
+  "expectedOutput": zod.object({
+  "description": zod.string().optional(),
+  "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "examples": zod.array(zod.object({
+  "scenario": zod.string(),
+  "input": zod.string(),
+  "output": zod.string(),
+  "whyItWorks": zod.array(zod.string()).optional()
+})).optional(),
+  "bestFor": zod.object({
+  "people": zod.array(zod.string()).optional(),
+  "tasks": zod.array(zod.string()).optional(),
+  "channels": zod.array(zod.string()).optional()
+}).optional(),
+  "timeToResult": zod.string().optional(),
+  "effort": zod.string().optional(),
+  "typicalIterations": zod.string().optional(),
+  "commonMistakes": zod.array(zod.string()).optional(),
+  "betterApproach": zod.string().optional(),
+  "proTips": zod.array(zod.string()).optional(),
+  "safetyNotes": zod.array(zod.string()).optional(),
+  "quality": zod.object({
+  "status": zod.enum(['untested', 'in_testing', 'tested']).optional(),
+  "lastTested": zod.coerce.date().nullish(),
+  "version": zod.string().optional(),
+  "testedWith": zod.array(zod.string()).optional()
+}).optional()
+}),zod.null()]).optional()
 }))
+
+
+/**
+ * Imports up to 500 recipe rows. Headers are matched case-insensitively to the AI Recipes spreadsheet columns. List cells may use commas, semicolons, pipes, line breaks, or JSON arrays. Recipes default to DRAFT unless Publishing Status explicitly says Published or Live.
+ * @summary Import recipes from a CSV spreadsheet
+ */
+export const importAdminRecipesCsvBodyCsvMax = 5242880;
+
+
+
+export const ImportAdminRecipesCsvBody = zod.object({
+  "csv": zod.string().max(importAdminRecipesCsvBodyCsvMax)
+})
+
+export const ImportAdminRecipesCsvResponse = zod.object({
+  "createdCount": zod.int(),
+  "failedCount": zod.int(),
+  "results": zod.array(zod.object({
+  "row": zod.int(),
+  "slug": zod.string(),
+  "status": zod.enum(['created', 'failed']),
+  "message": zod.string()
+}))
+})
 
 
 /**
@@ -673,7 +902,70 @@ export const UpdateAdminRecipeBody = zod.object({
   "testedAt": zod.coerce.date().nullish(),
   "testedWith": zod.array(zod.string()),
   "seoTitle": zod.string(),
-  "seoDescription": zod.string()
+  "seoDescription": zod.string(),
+  "guide": zod.object({
+  "snapshot": zod.object({
+  "bestFor": zod.string().optional(),
+  "worksBestWhen": zod.string().optional(),
+  "timeToResult": zod.string().optional(),
+  "output": zod.string().optional(),
+  "bestWith": zod.array(zod.string()).optional(),
+  "skillLevel": zod.string().optional()
+}).optional(),
+  "useCases": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})).optional(),
+  "whenNotToUse": zod.array(zod.string()).optional(),
+  "inputs": zod.object({
+  "required": zod.array(zod.string()).optional(),
+  "optional": zod.array(zod.string()).optional()
+}).optional(),
+  "situations": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "promptModifier": zod.string()
+})).optional(),
+  "tools": zod.array(zod.object({
+  "name": zod.string(),
+  "support": zod.enum(['compatible', 'good', 'excellent']),
+  "notes": zod.string().optional()
+})).optional(),
+  "promptVariables": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "placeholder": zod.string().optional(),
+  "required": zod.boolean().optional()
+})).optional(),
+  "expectedOutput": zod.object({
+  "description": zod.string().optional(),
+  "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "examples": zod.array(zod.object({
+  "scenario": zod.string(),
+  "input": zod.string(),
+  "output": zod.string(),
+  "whyItWorks": zod.array(zod.string()).optional()
+})).optional(),
+  "bestFor": zod.object({
+  "people": zod.array(zod.string()).optional(),
+  "tasks": zod.array(zod.string()).optional(),
+  "channels": zod.array(zod.string()).optional()
+}).optional(),
+  "timeToResult": zod.string().optional(),
+  "effort": zod.string().optional(),
+  "typicalIterations": zod.string().optional(),
+  "commonMistakes": zod.array(zod.string()).optional(),
+  "betterApproach": zod.string().optional(),
+  "proTips": zod.array(zod.string()).optional(),
+  "safetyNotes": zod.array(zod.string()).optional(),
+  "quality": zod.object({
+  "status": zod.enum(['untested', 'in_testing', 'tested']).optional(),
+  "lastTested": zod.coerce.date().nullish(),
+  "version": zod.string().optional(),
+  "testedWith": zod.array(zod.string()).optional()
+}).optional()
+}).optional()
 }).describe('Full replacement payload for an admin recipe.')
 
 export const UpdateAdminRecipeResponse = zod.object({
@@ -711,8 +1003,82 @@ export const UpdateAdminRecipeResponse = zod.object({
   "testedWith": zod.array(zod.string()),
   "seoTitle": zod.string(),
   "seoDescription": zod.string(),
-  "publishedAt": zod.coerce.date().nullish()
+  "updatedAt": zod.coerce.date().optional(),
+  "publishedAt": zod.coerce.date().nullish(),
+  "guide": zod.union([zod.object({
+  "snapshot": zod.object({
+  "bestFor": zod.string().optional(),
+  "worksBestWhen": zod.string().optional(),
+  "timeToResult": zod.string().optional(),
+  "output": zod.string().optional(),
+  "bestWith": zod.array(zod.string()).optional(),
+  "skillLevel": zod.string().optional()
+}).optional(),
+  "useCases": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})).optional(),
+  "whenNotToUse": zod.array(zod.string()).optional(),
+  "inputs": zod.object({
+  "required": zod.array(zod.string()).optional(),
+  "optional": zod.array(zod.string()).optional()
+}).optional(),
+  "situations": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "promptModifier": zod.string()
+})).optional(),
+  "tools": zod.array(zod.object({
+  "name": zod.string(),
+  "support": zod.enum(['compatible', 'good', 'excellent']),
+  "notes": zod.string().optional()
+})).optional(),
+  "promptVariables": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "placeholder": zod.string().optional(),
+  "required": zod.boolean().optional()
+})).optional(),
+  "expectedOutput": zod.object({
+  "description": zod.string().optional(),
+  "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "examples": zod.array(zod.object({
+  "scenario": zod.string(),
+  "input": zod.string(),
+  "output": zod.string(),
+  "whyItWorks": zod.array(zod.string()).optional()
+})).optional(),
+  "bestFor": zod.object({
+  "people": zod.array(zod.string()).optional(),
+  "tasks": zod.array(zod.string()).optional(),
+  "channels": zod.array(zod.string()).optional()
+}).optional(),
+  "timeToResult": zod.string().optional(),
+  "effort": zod.string().optional(),
+  "typicalIterations": zod.string().optional(),
+  "commonMistakes": zod.array(zod.string()).optional(),
+  "betterApproach": zod.string().optional(),
+  "proTips": zod.array(zod.string()).optional(),
+  "safetyNotes": zod.array(zod.string()).optional(),
+  "quality": zod.object({
+  "status": zod.enum(['untested', 'in_testing', 'tested']).optional(),
+  "lastTested": zod.coerce.date().nullish(),
+  "version": zod.string().optional(),
+  "testedWith": zod.array(zod.string()).optional()
+}).optional()
+}),zod.null()]).optional()
 }))
+
+
+/**
+ * @summary Delete an admin recipe
+ */
+export const DeleteAdminRecipeParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteAdminRecipeResponse = zod.void()
 
 
 /**
@@ -757,8 +1123,192 @@ export const DuplicateAdminRecipeResponse = zod.object({
   "testedWith": zod.array(zod.string()),
   "seoTitle": zod.string(),
   "seoDescription": zod.string(),
-  "publishedAt": zod.coerce.date().nullish()
+  "updatedAt": zod.coerce.date().optional(),
+  "publishedAt": zod.coerce.date().nullish(),
+  "guide": zod.union([zod.object({
+  "snapshot": zod.object({
+  "bestFor": zod.string().optional(),
+  "worksBestWhen": zod.string().optional(),
+  "timeToResult": zod.string().optional(),
+  "output": zod.string().optional(),
+  "bestWith": zod.array(zod.string()).optional(),
+  "skillLevel": zod.string().optional()
+}).optional(),
+  "useCases": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})).optional(),
+  "whenNotToUse": zod.array(zod.string()).optional(),
+  "inputs": zod.object({
+  "required": zod.array(zod.string()).optional(),
+  "optional": zod.array(zod.string()).optional()
+}).optional(),
+  "situations": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "promptModifier": zod.string()
+})).optional(),
+  "tools": zod.array(zod.object({
+  "name": zod.string(),
+  "support": zod.enum(['compatible', 'good', 'excellent']),
+  "notes": zod.string().optional()
+})).optional(),
+  "promptVariables": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "placeholder": zod.string().optional(),
+  "required": zod.boolean().optional()
+})).optional(),
+  "expectedOutput": zod.object({
+  "description": zod.string().optional(),
+  "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "examples": zod.array(zod.object({
+  "scenario": zod.string(),
+  "input": zod.string(),
+  "output": zod.string(),
+  "whyItWorks": zod.array(zod.string()).optional()
+})).optional(),
+  "bestFor": zod.object({
+  "people": zod.array(zod.string()).optional(),
+  "tasks": zod.array(zod.string()).optional(),
+  "channels": zod.array(zod.string()).optional()
+}).optional(),
+  "timeToResult": zod.string().optional(),
+  "effort": zod.string().optional(),
+  "typicalIterations": zod.string().optional(),
+  "commonMistakes": zod.array(zod.string()).optional(),
+  "betterApproach": zod.string().optional(),
+  "proTips": zod.array(zod.string()).optional(),
+  "safetyNotes": zod.array(zod.string()).optional(),
+  "quality": zod.object({
+  "status": zod.enum(['untested', 'in_testing', 'tested']).optional(),
+  "lastTested": zod.coerce.date().nullish(),
+  "version": zod.string().optional(),
+  "testedWith": zod.array(zod.string()).optional()
+}).optional()
+}),zod.null()]).optional()
 }))
+
+
+/**
+ * @summary Generate a structured recipe draft from an idea or prompt
+ */
+export const generateDraftRecipeBodyTopicOrPromptMin = 3;
+
+
+
+export const GenerateDraftRecipeBody = zod.object({
+  "topicOrPrompt": zod.string().min(generateDraftRecipeBodyTopicOrPromptMin),
+  "category": zod.string().optional(),
+  "audience": zod.string().optional()
+})
+
+export const generateDraftRecipeResponseTitleMin = 3;
+
+export const generateDraftRecipeResponseSlugMin = 3;
+
+export const generateDraftRecipeResponseShortDescriptionMin = 10;
+
+export const generateDraftRecipeResponseProblemMin = 10;
+
+export const generateDraftRecipeResponsePromptMin = 20;
+
+
+
+export const GenerateDraftRecipeResponse = zod.object({
+  "title": zod.string().min(generateDraftRecipeResponseTitleMin),
+  "slug": zod.string().min(generateDraftRecipeResponseSlugMin),
+  "shortDescription": zod.string().min(generateDraftRecipeResponseShortDescriptionMin),
+  "problem": zod.string().min(generateDraftRecipeResponseProblemMin),
+  "categoryId": zod.number(),
+  "audienceId": zod.number(),
+  "subcategory": zod.string(),
+  "difficulty": zod.string(),
+  "estimatedTime": zod.string(),
+  "language": zod.string(),
+  "aiTools": zod.array(zod.string()),
+  "requiredInputs": zod.array(zod.string()),
+  "steps": zod.array(zod.string()),
+  "prompt": zod.string().min(generateDraftRecipeResponsePromptMin),
+  "exampleInput": zod.string(),
+  "exampleOutput": zod.string(),
+  "refinementPrompts": zod.array(zod.string()),
+  "verificationNotes": zod.string(),
+  "tags": zod.array(zod.string()),
+  "status": zod.string(),
+  "featured": zod.boolean(),
+  "trending": zod.boolean(),
+  "recipeOfDay": zod.boolean(),
+  "version": zod.string(),
+  "testedAt": zod.coerce.date().nullish(),
+  "testedWith": zod.array(zod.string()),
+  "seoTitle": zod.string(),
+  "seoDescription": zod.string(),
+  "guide": zod.object({
+  "snapshot": zod.object({
+  "bestFor": zod.string().optional(),
+  "worksBestWhen": zod.string().optional(),
+  "timeToResult": zod.string().optional(),
+  "output": zod.string().optional(),
+  "bestWith": zod.array(zod.string()).optional(),
+  "skillLevel": zod.string().optional()
+}).optional(),
+  "useCases": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})).optional(),
+  "whenNotToUse": zod.array(zod.string()).optional(),
+  "inputs": zod.object({
+  "required": zod.array(zod.string()).optional(),
+  "optional": zod.array(zod.string()).optional()
+}).optional(),
+  "situations": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "promptModifier": zod.string()
+})).optional(),
+  "tools": zod.array(zod.object({
+  "name": zod.string(),
+  "support": zod.enum(['compatible', 'good', 'excellent']),
+  "notes": zod.string().optional()
+})).optional(),
+  "promptVariables": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "placeholder": zod.string().optional(),
+  "required": zod.boolean().optional()
+})).optional(),
+  "expectedOutput": zod.object({
+  "description": zod.string().optional(),
+  "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "examples": zod.array(zod.object({
+  "scenario": zod.string(),
+  "input": zod.string(),
+  "output": zod.string(),
+  "whyItWorks": zod.array(zod.string()).optional()
+})).optional(),
+  "bestFor": zod.object({
+  "people": zod.array(zod.string()).optional(),
+  "tasks": zod.array(zod.string()).optional(),
+  "channels": zod.array(zod.string()).optional()
+}).optional(),
+  "timeToResult": zod.string().optional(),
+  "effort": zod.string().optional(),
+  "typicalIterations": zod.string().optional(),
+  "commonMistakes": zod.array(zod.string()).optional(),
+  "betterApproach": zod.string().optional(),
+  "proTips": zod.array(zod.string()).optional(),
+  "safetyNotes": zod.array(zod.string()).optional(),
+  "quality": zod.object({
+  "status": zod.enum(['untested', 'in_testing', 'tested']).optional(),
+  "lastTested": zod.coerce.date().nullish(),
+  "version": zod.string().optional(),
+  "testedWith": zod.array(zod.string()).optional()
+}).optional()
+}).optional()
+})
 
 
 /**
@@ -775,6 +1325,29 @@ export const ListAdminSubmissionsResponseItem = zod.object({
   "createdAt": zod.coerce.date()
 })
 export const ListAdminSubmissionsResponse = zod.array(ListAdminSubmissionsResponseItem)
+
+
+/**
+ * @summary Update status of a submission
+ */
+export const UpdateAdminSubmissionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateAdminSubmissionBody = zod.object({
+  "status": zod.enum(['PENDING', 'APPROVED', 'REJECTED', 'CONVERTED'])
+})
+
+export const UpdateAdminSubmissionResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "problem": zod.string(),
+  "workflow": zod.string(),
+  "howUsed": zod.string(),
+  "email": zod.string().nullish(),
+  "status": zod.string(),
+  "createdAt": zod.coerce.date()
+})
 
 
 /**
