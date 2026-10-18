@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/config-schema.json",
+  "name": "quiet-haze-04ca",
+  "main": "./src/worker.ts",
+  "compatibility_date": "2026-10-08",
+  "assets": {
+    "directory": "./dist/public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "auto-trailing-slash"
+  },
+  "vars": {
+    "API_URL": "https://backend-xkwn.onrender.com"
+  }
+}

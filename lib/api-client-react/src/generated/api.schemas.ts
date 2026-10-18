@@ -53,6 +53,14 @@ export interface RecipeCard {
   saveCount: number;
 }
 
+export type RecipeLayoutMode = typeof RecipeLayoutMode[keyof typeof RecipeLayoutMode];
+
+
+export const RecipeLayoutMode = {
+  normal: 'normal',
+  custom: 'custom',
+} as const;
+
 export type RecipeGuideToolsItemSupport = typeof RecipeGuideToolsItemSupport[keyof typeof RecipeGuideToolsItemSupport];
 
 
@@ -156,6 +164,103 @@ export interface RecipeGuide {
   quality?: RecipeGuideQuality;
 }
 
+export type RecipeLayoutConfigVersion = typeof RecipeLayoutConfigVersion[keyof typeof RecipeLayoutConfigVersion];
+
+
+export const RecipeLayoutConfigVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type RecipeLayoutBlockType = typeof RecipeLayoutBlockType[keyof typeof RecipeLayoutBlockType];
+
+
+export const RecipeLayoutBlockType = {
+  hero: 'hero',
+  overview: 'overview',
+  richText: 'richText',
+  inputs: 'inputs',
+  workflow: 'workflow',
+  prompt: 'prompt',
+  example: 'example',
+  image: 'image',
+  callout: 'callout',
+  tools: 'tools',
+  useCases: 'useCases',
+  mistakes: 'mistakes',
+  verification: 'verification',
+  related: 'related',
+} as const;
+
+export type RecipeLayoutBlockAlign = typeof RecipeLayoutBlockAlign[keyof typeof RecipeLayoutBlockAlign];
+
+
+export const RecipeLayoutBlockAlign = {
+  left: 'left',
+  center: 'center',
+} as const;
+
+export type RecipeLayoutBlockWidth = typeof RecipeLayoutBlockWidth[keyof typeof RecipeLayoutBlockWidth];
+
+
+export const RecipeLayoutBlockWidth = {
+  standard: 'standard',
+  wide: 'wide',
+} as const;
+
+export type RecipeLayoutBlockBackground = typeof RecipeLayoutBlockBackground[keyof typeof RecipeLayoutBlockBackground];
+
+
+export const RecipeLayoutBlockBackground = {
+  plain: 'plain',
+  tint: 'tint',
+  dark: 'dark',
+} as const;
+
+export type RecipeLayoutBlockVariant = typeof RecipeLayoutBlockVariant[keyof typeof RecipeLayoutBlockVariant];
+
+
+export const RecipeLayoutBlockVariant = {
+  tip: 'tip',
+  warning: 'warning',
+  info: 'info',
+} as const;
+
+export interface RecipeLayoutBlock {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  id: string;
+  type: RecipeLayoutBlockType;
+  visible: boolean;
+  /** @maxLength 200 */
+  heading?: string;
+  /** @maxLength 500 */
+  subtitle?: string;
+  align?: RecipeLayoutBlockAlign;
+  width?: RecipeLayoutBlockWidth;
+  background?: RecipeLayoutBlockBackground;
+  /** @maxLength 300 */
+  title?: string;
+  /** @maxLength 4000 */
+  description?: string;
+  /** @maxLength 20000 */
+  content?: string;
+  /** @maxLength 2048 */
+  imageUrl?: string;
+  /** @maxLength 500 */
+  alt?: string;
+  /** @maxLength 500 */
+  caption?: string;
+  variant?: RecipeLayoutBlockVariant;
+}
+
+export interface RecipeLayoutConfig {
+  version: RecipeLayoutConfigVersion;
+  /** @maxItems 50 */
+  blocks: RecipeLayoutBlock[];
+}
+
 export type Recipe = RecipeCard & ({
   problem: string;
   subcategory: string;
@@ -178,7 +283,17 @@ export type Recipe = RecipeCard & ({
   /** @nullable */
   publishedAt?: string | null;
   guide?: RecipeGuide | null;
+  layoutMode: RecipeLayoutMode;
+  layoutConfig: RecipeLayoutConfig | null;
 });
+
+export type RecipeInputLayoutMode = typeof RecipeInputLayoutMode[keyof typeof RecipeInputLayoutMode];
+
+
+export const RecipeInputLayoutMode = {
+  normal: 'normal',
+  custom: 'custom',
+} as const;
 
 export interface RecipeInput {
   /** @minLength 3 */
@@ -216,6 +331,30 @@ export interface RecipeInput {
   seoTitle: string;
   seoDescription: string;
   guide?: RecipeGuide;
+  layoutMode?: RecipeInputLayoutMode;
+  layoutConfig?: RecipeLayoutConfig | null;
+}
+
+export type AdminMediaItemContentType = typeof AdminMediaItemContentType[keyof typeof AdminMediaItemContentType];
+
+
+export const AdminMediaItemContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+  'image/avif': 'image/avif',
+} as const;
+
+export interface AdminMediaItem {
+  key: string;
+  url: string;
+  contentType: AdminMediaItemContentType;
+  size: number;
+}
+
+export interface AdminMediaListResponse {
+  configured: boolean;
+  items: AdminMediaItem[];
 }
 
 export interface ImportAdminRecipesBody {
@@ -251,6 +390,14 @@ export type RecipeUpdate = RecipeInput;
 
 export interface RecipeListResponse {
   items: RecipeCard[];
+  page: number;
+  pageSize: number;
+  total: number;
+  query: string;
+}
+
+export interface AdminRecipeListResponse {
+  items: Recipe[];
   page: number;
   pageSize: number;
   total: number;
@@ -476,6 +623,29 @@ export type GetRelatedRecipesParams = {
  */
 limit?: number;
 };
+
+export type ListAdminRecipeMediaParams = {
+/**
+ * @minimum 1
+ */
+recipeId?: number;
+};
+
+export type UploadAdminRecipeMediaParams = {
+/**
+ * @minimum 1
+ */
+recipeId?: number;
+purpose?: UploadAdminRecipeMediaPurpose;
+};
+
+export type UploadAdminRecipeMediaPurpose = typeof UploadAdminRecipeMediaPurpose[keyof typeof UploadAdminRecipeMediaPurpose];
+
+
+export const UploadAdminRecipeMediaPurpose = {
+  cover: 'cover',
+  sections: 'sections',
+} as const;
 
 export type ListAdminRecipesParams = {
 q?: string;

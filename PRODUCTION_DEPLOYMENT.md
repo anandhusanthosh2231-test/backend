@@ -156,6 +156,33 @@ Before launch:
 
 ---
 
+## Recipe layouts and optional R2 media
+
+Recipe layout mode defaults to `normal`; recipes without layout metadata, including CSV imports, continue using the existing recipe renderer. The layout migration only adds two columns and does not rewrite recipe content:
+
+```sql
+ALTER TABLE recipes
+   ADD COLUMN IF NOT EXISTS layout_mode text NOT NULL DEFAULT 'normal',
+   ADD COLUMN IF NOT EXISTS layout_config jsonb;
+```
+
+Apply `lib/db/migrations/0002_recipe_layout.sql` to the production database before deploying the API version that reads the new fields. On development databases, the existing Drizzle `push` workflow can apply the schema change.
+
+R2 image storage is optional. Create an R2 bucket and an S3 API token scoped to that bucket with object read/list/write access. If images should be publicly visible, attach a custom domain to the bucket and use that HTTPS domain as `R2_PUBLIC_BASE_URL`. The API proxies image uploads, so bucket CORS is not needed for browser uploads. Configure these variables on the backend service only:
+
+```env
+R2_ACCOUNT_ID=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_BUCKET_NAME=...
+R2_PUBLIC_BASE_URL=https://media.example.com
+R2_MAX_FILE_SIZE_BYTES=8388608
+```
+
+Never add R2 credentials to `VITE_` variables or the Cloudflare frontend. Without the R2 settings, recipes and custom layouts remain editable; the image picker reports that storage is unavailable.
+
+---
+
 ## Best next move
 
 If you want a truly product-style production rollout without Git, the best path is:

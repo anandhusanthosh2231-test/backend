@@ -5,9 +5,10 @@
   "scripts": {
     "dev": "pnpm --parallel --filter @workspace/ai-recipes --filter @workspace/api-server run dev",
     "preinstall": "node -e \"const fs=require('fs'); for (const f of ['package-lock.json','yarn.lock']) { try { fs.rmSync(f, { force: true }); } catch {} } const ua = process.env.npm_config_user_agent || ''; if (!ua.startsWith('pnpm/')) { console.error('Use pnpm instead'); process.exit(1); }\"",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "build": "pnpm run typecheck && pnpm -r --if-present run build && pnpm run test && pnpm run test:e2e",
     "test": "pnpm --filter @workspace/api-client-react run test && pnpm --filter @workspace/api-server run test",
     "test:fast": "pnpm --filter @workspace/api-client-react run test:fast && pnpm --filter @workspace/api-server run test",
+    "test:e2e": "playwright test --config=playwright.config.ts",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@esbuild/win32-x64": "^0.27.3",
+    "@playwright/test": "^1.64.1",
     "@rollup/rollup-win32-x64-msvc": "^4.63.1",
     "lightningcss-win32-x64-msvc": "^1.33.0",
     "prettier": "^3.9.6",

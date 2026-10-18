@@ -7,6 +7,8 @@
  */
 import type { RecipeCard } from './recipeCard';
 import type { RecipeGuide } from './recipeGuide';
+import type { RecipeLayoutConfig } from './recipeLayoutConfig';
+import type { RecipeLayoutMode } from './recipeLayoutMode';
 
 export type Recipe = RecipeCard & ({
   problem: string;
@@ -30,4 +32,6 @@ export type Recipe = RecipeCard & ({
   /** @nullable */
   publishedAt?: Date | null;
   guide?: RecipeGuide | null;
+  layoutMode: RecipeLayoutMode;
+  layoutConfig: RecipeLayoutConfig | null;
 });

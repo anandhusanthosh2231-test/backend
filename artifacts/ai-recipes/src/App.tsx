@@ -14,7 +14,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/reac
 import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation, useParams } from 'wouter';
 import {
   getGetAudienceQueryKey, getGetCategoryQueryKey, getGetRecipeQueryKey, getGetRelatedRecipesQueryKey,
-  getGetAdminSummaryQueryKey, getGetHomeQueryKey, getListAdminRecipesQueryKey, getListAdminSubmissionsQueryKey, getListRecipesQueryKey, getListSavedRecipesQueryKey,
+  getGetAdminSummaryQueryKey, getGetHomeQueryKey, getListAdminRecipesQueryKey, getListAdminSubmissionsQueryKey, getListAudiencesQueryKey, getListCategoriesQueryKey, getListRecipesQueryKey, getListSavedRecipesQueryKey,
   useCreateAdminRecipe, useCreateSubmission, useDeleteAdminRecipe, useDuplicateAdminRecipe,
   useGenerateDraftRecipe, useGetAdminAnalytics, useGetAdminSummary, useGetAudience, useGetCategory,
   useGetHome, useGetMe, useGetRecipe, useGetRelatedRecipes, useListAdminRecipes,
@@ -31,6 +31,9 @@ import { MobileTopHeader } from '@/components/mobile/MobileTopHeader';
 import { MobileCategoryChips } from '@/components/mobile/MobileCategoryChips';
 import { MobileBannerCarousel } from '@/components/mobile/MobileBannerCarousel';
 import { useMobileEnforcement } from '@/hooks/useMobileEnforcement';
+import { createDefaultRecipeLayout, isValidRecipeLayout, RecipeLayoutBuilder, RecipeLayoutRenderer } from '@/components/recipe-layout';
+import type { RecipeLayoutData } from '@/components/recipe-layout';
+import { ADMIN_PATH, getAdminPath } from '@/lib/admin-path';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
@@ -492,6 +495,9 @@ function RecipePage() {
     );
     trackGuideEvent("recipe_feedback");
   };
+  if (recipe.layoutMode === 'custom' && isValidRecipeLayout(recipe.layoutConfig)) {
+    return <SiteShell><div className="shell custom-recipe-page"><RecipeLayoutRenderer recipe={recipe} config={recipe.layoutConfig} related={related.data ?? []} /></div></SiteShell>;
+  }
   return (
     <SiteShell>
       <div className="recipe-hero shell">
@@ -923,7 +929,7 @@ function useAdminAuth() {
       // Ignore network errors on logout
     }
     setAdminUser(null);
-    window.location.href = '/admin';
+    window.location.href = getAdminPath();
   };
 
   const isAuthenticated = tokenVerified && Boolean(adminUser);
@@ -1576,14 +1582,36 @@ function SmartDraftModal({
 }
 
 function AdminShell({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    const existingMeta = document.head.querySelector<HTMLMetaElement>(
+      'meta[name="robots"]',
+    );
+    const meta = existingMeta ?? document.createElement('meta');
+    const previousContent = meta.content;
+    if (!existingMeta) {
+      meta.name = 'robots';
+      document.head.appendChild(meta);
+    }
+    meta.content = 'noindex, nofollow';
+    return () => {
+      if (existingMeta) meta.content = previousContent;
+      else meta.remove();
+    };
+  }, []);
   const auth = useAdminAuth();
   const [location, setLocation] = useLocation();
   const [showSettings, setShowSettings] = useState(false);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const submissionsQuery = useListAdminSubmissions();
-  const categoriesQuery = useListCategories();
-  const audiencesQuery = useListAudiences();
+  const submissionsQuery = useListAdminSubmissions({
+    query: { queryKey: getListAdminSubmissionsQueryKey(), enabled: auth.isAuthenticated },
+  });
+  const categoriesQuery = useListCategories({
+    query: { queryKey: getListCategoriesQueryKey(), enabled: auth.isAuthenticated },
+  });
+  const audiencesQuery = useListAudiences({
+    query: { queryKey: getListAudiencesQueryKey(), enabled: auth.isAuthenticated },
+  });
 
   if (!auth.isAuthenticated) {
     return <AdminAuthGateway auth={auth} />;
@@ -1592,12 +1620,12 @@ function AdminShell({ children }: { children: ReactNode }) {
   const pendingSubmissionsCount = submissionsQuery.data?.filter((s) => s.status === 'PENDING').length || 0;
 
   const navItems = [
-    { href: '/admin', label: 'Overview', icon: LayoutDashboard },
-    { href: '/admin/recipes', label: 'Recipes', icon: FileText },
-    { href: '/admin/submissions', label: 'Submissions', icon: InboxIcon, badge: pendingSubmissionsCount },
-    { href: '/admin/categories', label: 'Categories', icon: Tag },
-    { href: '/admin/audiences', label: 'Audiences', icon: Users },
-    { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+    { href: getAdminPath(), label: 'Overview', icon: LayoutDashboard },
+    { href: getAdminPath('/recipes'), label: 'Recipes', icon: FileText },
+    { href: getAdminPath('/submissions'), label: 'Submissions', icon: InboxIcon, badge: pendingSubmissionsCount },
+    { href: getAdminPath('/categories'), label: 'Categories', icon: Tag },
+    { href: getAdminPath('/audiences'), label: 'Audiences', icon: Users },
+    { href: getAdminPath('/analytics'), label: 'Analytics', icon: BarChart3 },
   ];
 
   return (
@@ -1624,7 +1652,7 @@ function AdminShell({ children }: { children: ReactNode }) {
             <Link
               key={href}
               href={href}
-              className={location === href || (href !== '/admin' && location.startsWith(href)) ? 'active' : ''}
+              className={location === href || (href !== ADMIN_PATH && location.startsWith(href)) ? 'active' : ''}
               data-testid={`link-admin-${label.toLowerCase()}`}
               onClick={() => setSidebarOpen(false)}
             >
@@ -1698,7 +1726,7 @@ function AdminShell({ children }: { children: ReactNode }) {
           onClose={() => setShowDraftModal(false)}
           onSelectDraft={(draft) => {
             setShowDraftModal(false);
-            setLocation(`/admin/recipes/new?draft=${encodeURIComponent(JSON.stringify(draft))}`);
+            setLocation(getAdminPath(`/recipes/new?draft=${encodeURIComponent(JSON.stringify(draft))}`));
           }}
           categories={categoriesQuery.data}
           audiences={audiencesQuery.data}
@@ -1769,7 +1797,7 @@ function AdminOverview() {
       requiredInputs: ["[Context / Input Materials]", "[Target Output Constraints]"],
       status: "DRAFT",
     };
-    setLocation(`/admin/recipes/new?draft=${encodeURIComponent(JSON.stringify(draft))}&submissionId=${submission.id}`);
+    setLocation(getAdminPath(`/recipes/new?draft=${encodeURIComponent(JSON.stringify(draft))}&submissionId=${submission.id}`));
   };
 
   return (
@@ -1789,7 +1817,7 @@ function AdminOverview() {
           >
             <Wand2 size={16} /> ✨ AI Draft Generator
           </button>
-          <Link href="/admin/recipes/new" className="button button-dark" data-testid="link-admin-new-recipe">
+          <Link href={getAdminPath('/recipes/new')} className="button button-dark" data-testid="link-admin-new-recipe">
             <Plus size={16} /> New Recipe
           </Link>
         </div>
@@ -1895,7 +1923,7 @@ function AdminOverview() {
               <h2>Community Submissions Queue</h2>
               <p>Workflows shared by readers that can be converted into recipes.</p>
             </div>
-            <Link href="/admin/submissions" className="arrow-link" data-testid="link-view-all-submissions">
+            <Link href={getAdminPath('/submissions')} className="arrow-link" data-testid="link-view-all-submissions">
               View all ({submissionsQuery.data?.length || 0}) <ArrowRight size={14} />
             </Link>
           </div>
@@ -1946,7 +1974,7 @@ function AdminOverview() {
               <h2>Top Performing Recipes</h2>
               <p>Workflows with the highest copy and reach counts.</p>
             </div>
-            <Link href="/admin/recipes" className="arrow-link" data-testid="link-view-all-recipes">
+            <Link href={getAdminPath('/recipes')} className="arrow-link" data-testid="link-view-all-recipes">
               Manage all <ArrowRight size={14} />
             </Link>
           </div>
@@ -1959,7 +1987,7 @@ function AdminOverview() {
               .map((recipe) => (
                 <div key={recipe.id} className="top-recipe-row">
                   <div className="top-recipe-info">
-                    <Link href={`/admin/recipes/${recipe.id}`} className="top-recipe-title">
+                    <Link href={getAdminPath(`/recipes/${recipe.id}`)} className="top-recipe-title">
                       {recipe.title}
                     </Link>
                     <span className="top-recipe-meta">{recipe.category} · {recipe.estimatedTime}</span>
@@ -1979,7 +2007,7 @@ function AdminOverview() {
         onClose={() => setShowDraftModal(false)}
         onSelectDraft={(draft) => {
           setShowDraftModal(false);
-          setLocation(`/admin/recipes/new?draft=${encodeURIComponent(JSON.stringify(draft))}`);
+          setLocation(getAdminPath(`/recipes/new?draft=${encodeURIComponent(JSON.stringify(draft))}`));
         }}
         categories={categoriesQuery.data}
         audiences={audiencesQuery.data}
@@ -2097,7 +2125,7 @@ function AdminRecipes() {
           >
             <Wand2 size={16} /> ✨ Smart Draft
           </button>
-          <Link href="/admin/recipes/new" className="button button-dark" data-testid="link-admin-add-recipe">
+          <Link href={getAdminPath('/recipes/new')} className="button button-dark" data-testid="link-admin-add-recipe">
             <Plus size={16} /> Add Recipe
           </Link>
         </div>
@@ -2170,7 +2198,7 @@ function AdminRecipes() {
                 return (
                   <tr key={recipe.id}>
                     <td>
-                      <Link href={`/admin/recipes/${recipe.id}`} className="table-title" data-testid={`link-admin-recipe-${recipe.id}`}>
+                      <Link href={getAdminPath(`/recipes/${recipe.id}`)} className="table-title" data-testid={`link-admin-recipe-${recipe.id}`}>
                         {recipe.title}
                       </Link>
                       <small className="table-subinfo">{recipe.language} · {recipe.estimatedTime} · {recipe.difficulty}</small>
@@ -2191,7 +2219,7 @@ function AdminRecipes() {
                     </td>
                     <td>
                       <div className="table-actions-cell">
-                        <Link href={`/admin/recipes/${recipe.id}`} className="table-action edit" title="Edit recipe">
+                        <Link href={getAdminPath(`/recipes/${recipe.id}`)} className="table-action edit" title="Edit recipe">
                           <PenLine size={14} /> Edit
                         </Link>
                         <button
@@ -2266,7 +2294,7 @@ function AdminRecipes() {
         }}
         onSelectDraft={(draft) => {
           setShowDraftModal(false);
-          setLocation(`/admin/recipes/new?draft=${encodeURIComponent(JSON.stringify(draft))}`);
+          setLocation(getAdminPath(`/recipes/new?draft=${encodeURIComponent(JSON.stringify(draft))}`));
         }}
         categories={categoriesQuery.data}
         audiences={audiencesQuery.data}
@@ -2313,6 +2341,8 @@ const emptyRecipe: RecipeInput = {
   testedWith: [],
   seoTitle: '',
   seoDescription: '',
+  layoutMode: 'normal',
+  layoutConfig: null,
 };
 
 type RecipeGuideData = RecipeGuide;
@@ -2434,9 +2464,10 @@ function AdminRecipeEditor() {
   const duplicateMutation = useDuplicateAdminRecipe();
   const updateSubmission = useUpdateAdminSubmission();
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [form, setForm] = useState<RecipeInput>(emptyRecipe);
   const [guide, setGuide] = useState<RecipeGuideData>(() => createEmptyRecipeGuide(emptyRecipe.requiredInputs));
+  const initialEditorSnapshot = useRef(JSON.stringify({ form, guide }));
   const [editorTab, setEditorTab] = useState<'edit' | 'preview' | 'checklist'>('edit');
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -2449,8 +2480,12 @@ function AdminRecipeEditor() {
     if (draftParam && isNew) {
       try {
         const parsed = JSON.parse(draftParam) as Partial<RecipeInput> & { guide?: RecipeGuideData };
-        setForm((prev) => ({ ...prev, ...parsed }));
-        if (parsed.guide) setGuide(normalizeRecipeGuide(parsed.guide));
+        const { guide: draftGuide, ...recipeDraft } = parsed;
+        const nextForm = { ...emptyRecipe, ...recipeDraft };
+        const nextGuide = draftGuide ? normalizeRecipeGuide(draftGuide) : createEmptyRecipeGuide(nextForm.requiredInputs);
+        initialEditorSnapshot.current = JSON.stringify({ form: nextForm, guide: nextGuide });
+        setForm(nextForm);
+        setGuide(nextGuide);
       } catch (err) {
         console.error('Failed to parse draft from URL:', err);
       }
@@ -2465,14 +2500,14 @@ function AdminRecipeEditor() {
         loadedGuide.quality = { status: 'tested', lastTested: existingDetail.testedAt, version: existingDetail.version, testedWith: existingDetail.testedWith };
       }
       setGuide(loadedGuide);
-      setForm((old) => ({
-        ...old,
+      const nextForm: RecipeInput = {
+        ...emptyRecipe,
         title: existingDetail.title,
         slug: existingDetail.slug,
         shortDescription: existingDetail.shortDescription,
         problem: existingDetail.problem,
-        categoryId: categories.data?.find((item) => item.slug === existingDetail.categorySlug)?.id ?? old.categoryId,
-        audienceId: audiences.data?.find((item) => item.slug === existingDetail.audienceSlug)?.id ?? old.audienceId,
+        categoryId: categories.data?.find((item) => item.slug === existingDetail.categorySlug)?.id ?? emptyRecipe.categoryId,
+        audienceId: audiences.data?.find((item) => item.slug === existingDetail.audienceSlug)?.id ?? emptyRecipe.audienceId,
         subcategory: existingDetail.subcategory,
         difficulty: existingDetail.difficulty,
         estimatedTime: existingDetail.estimatedTime,
@@ -2495,9 +2530,39 @@ function AdminRecipeEditor() {
         testedWith: existingDetail.testedWith,
         seoTitle: existingDetail.seoTitle,
         seoDescription: existingDetail.seoDescription,
-      }));
+        layoutMode: existingDetail.layoutMode ?? 'normal',
+        layoutConfig: existingDetail.layoutConfig ?? null,
+      };
+      initialEditorSnapshot.current = JSON.stringify({ form: nextForm, guide: loadedGuide });
+      setForm(nextForm);
     }
   }, [existingDetail, isNew, categories.data, audiences.data]);
+
+  const editorIsDirty = initialEditorSnapshot.current !== JSON.stringify({ form, guide });
+  useEffect(() => {
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!editorIsDirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    const confirmInternalNavigation = (event: MouseEvent) => {
+      if (!editorIsDirty || !(event.target instanceof Element)) return;
+      const anchor = event.target.closest('a[href]') as HTMLAnchorElement | null;
+      if (!anchor || anchor.target || anchor.origin !== window.location.origin) return;
+      const destination = new URL(anchor.href);
+      if (destination.pathname === location) return;
+      if (!window.confirm('You have unsaved recipe changes. Leave this page and discard them?')) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    document.addEventListener('click', confirmInternalNavigation, true);
+    return () => {
+      window.removeEventListener('beforeunload', warnBeforeUnload);
+      document.removeEventListener('click', confirmInternalNavigation, true);
+    };
+  }, [editorIsDirty, location]);
 
   const set = (key: keyof RecipeInput) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const value = e.target.type === 'checkbox'
@@ -2570,7 +2635,7 @@ function AdminRecipeEditor() {
           updateSubmission.mutate({ id: Number(submissionId), data: { status: 'CONVERTED' } });
         }
         queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
-        setLocation('/admin/recipes');
+        setLocation(getAdminPath('/recipes'));
       },
     });
   };
@@ -2582,7 +2647,7 @@ function AdminRecipeEditor() {
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
-          setLocation('/admin/recipes');
+          setLocation(getAdminPath('/recipes'));
         },
       }
     );
@@ -2595,7 +2660,7 @@ function AdminRecipeEditor() {
       {
         onSuccess: (dup: any) => {
           queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
-          setLocation(`/admin/recipes/${dup.id}`);
+          setLocation(getAdminPath(`/recipes/${dup.id}`));
         },
       }
     );
@@ -2619,6 +2684,25 @@ function AdminRecipeEditor() {
 
   const selectedCategoryName = categories.data?.find((c) => c.id === form.categoryId)?.name || 'Category';
   const selectedAudienceName = audiences.data?.find((a) => a.id === form.audienceId)?.name || 'Audience';
+  const layoutConfig = isValidRecipeLayout(form.layoutConfig) ? form.layoutConfig : createDefaultRecipeLayout();
+  const layoutPreviewRecipe: RecipeLayoutData = {
+    title: form.title || 'Untitled Recipe',
+    shortDescription: form.shortDescription || 'Short description preview...',
+    category: selectedCategoryName,
+    audience: selectedAudienceName,
+    difficulty: form.difficulty,
+    estimatedTime: form.estimatedTime,
+    language: form.language,
+    problem: form.problem,
+    aiTools: form.aiTools,
+    requiredInputs: form.requiredInputs,
+    steps: form.steps,
+    prompt: form.prompt,
+    exampleInput: form.exampleInput,
+    exampleOutput: form.exampleOutput,
+    verificationNotes: form.verificationNotes,
+    guide,
+  };
 
   usePageMeta(isNew ? 'New Recipe Editor — AI Recipes' : `Edit: ${form.title || 'Recipe'} — AI Recipes`, 'Edit and curate practical AI workflows.');
 
@@ -2626,7 +2710,7 @@ function AdminRecipeEditor() {
     <div className="admin-page editor-page">
       <div className="admin-page-heading editor-topbar-heading">
         <div>
-          <Link href="/admin/recipes" className="back-link" data-testid="link-back-admin-recipes">
+          <Link href={getAdminPath('/recipes')} className="back-link" data-testid="link-back-admin-recipes">
             <ChevronLeft size={15} /> Back to Recipes
           </Link>
           <h1>{isNew ? 'Create New AI Recipe' : `Edit: ${form.title || 'Recipe'}`}</h1>
@@ -2703,6 +2787,18 @@ function AdminRecipeEditor() {
       {/* Tab 1: Form View */}
       {editorTab === 'edit' && (
         <form className="editor-form" onSubmit={submit}>
+          <section className="editor-layout-mode" aria-labelledby="editor-layout-title">
+            <div><span className="kicker">Page presentation</span><h2 id="editor-layout-title">Choose a recipe layout</h2></div>
+            <div className="editor-layout-options">
+              <button type="button" className={`editor-layout-option ${form.layoutMode !== 'custom' ? 'selected' : ''}`} aria-pressed={form.layoutMode !== 'custom'} onClick={() => setForm((current) => ({ ...current, layoutMode: 'normal' }))}>
+                <strong>Normal Layout</strong><span>Use the existing recipe template and fields.</span>
+              </button>
+              <button type="button" className={`editor-layout-option ${form.layoutMode === 'custom' ? 'selected' : ''}`} aria-pressed={form.layoutMode === 'custom'} onClick={() => setForm((current) => ({ ...current, layoutMode: 'custom', layoutConfig: isValidRecipeLayout(current.layoutConfig) ? current.layoutConfig : createDefaultRecipeLayout() }))}>
+                <strong>Custom Layout</strong><span>Arrange reusable content blocks and preview the page.</span>
+              </button>
+            </div>
+            {form.layoutMode === 'custom' && <RecipeLayoutBuilder value={layoutConfig} onChange={(next) => setForm((current) => ({ ...current, layoutConfig: next }))} recipe={layoutPreviewRecipe} recipeId={isNew ? undefined : Number(id)} />}
+          </section>
           <div className="editor-main">
             <div className="editor-section-label">01 / Concept & Taxonomy</div>
             <label>
@@ -3062,7 +3158,10 @@ function AdminRecipeEditor() {
       {/* Tab 2: Live Real-Time Preview */}
       {editorTab === 'preview' && (
         <div className="editor-preview-container">
-          <div className="preview-section-box">
+          {form.layoutMode === 'custom' ? <div className="preview-section-box">
+            <span className="preview-label">2. Custom Recipe Page Preview</span>
+            <div className="preview-page-wrap"><RecipeLayoutRenderer recipe={layoutPreviewRecipe} config={layoutConfig} /></div>
+          </div> : <div className="preview-section-box">
             <span className="preview-label">1. Card View Preview (As seen in Library Grid)</span>
             <div className="preview-card-wrap">
               <article className="recipe-card">
@@ -3088,7 +3187,7 @@ function AdminRecipeEditor() {
                 </div>
               </article>
             </div>
-          </div>
+          </div>}
 
           <div className="preview-section-box">
             <span className="preview-label">2. Full Recipe Detail Page Preview</span>
@@ -3339,7 +3438,7 @@ function AdminSubmissions() {
       requiredInputs: ["[Context / Input Materials]", "[Target Output Constraints]"],
       status: "DRAFT",
     };
-    setLocation(`/admin/recipes/new?draft=${encodeURIComponent(JSON.stringify(draft))}&submissionId=${submission.id}`);
+    setLocation(getAdminPath(`/recipes/new?draft=${encodeURIComponent(JSON.stringify(draft))}&submissionId=${submission.id}`));
   };
 
   return (
@@ -3511,7 +3610,7 @@ function AdminAnalytics() {
               <strong>{item.recipe.title}</strong>
               <small>{item.reason}</small>
             </div>
-            <Link href={`/admin/recipes/${item.recipe.id}`} data-testid={`link-analytics-recipe-${item.recipe.id}`}>
+            <Link href={getAdminPath(`/recipes/${item.recipe.id}`)} data-testid={`link-analytics-recipe-${item.recipe.id}`}>
               Review <ArrowRight size={14} />
             </Link>
           </div>
@@ -3541,7 +3640,7 @@ function Router() {
     <Route path="/search" component={SearchPage} /><Route path="/submit" component={SubmitPage} /><Route path="/about" component={AboutPage} />
     <Route path="/privacy" component={() => <SimplePage type="privacy" />} /><Route path="/terms" component={() => <SimplePage type="terms" />} /><Route path="/disclaimer" component={() => <SimplePage type="disclaimer" />} />
     <Route path="/profile" component={() => <Protected><ProfilePage /></Protected>} /><Route path="/saved" component={() => <Protected><SavedPage /></Protected>} /><Route path="/history" component={() => <Protected><HistoryPage /></Protected>} />
-    <Route path="/admin" component={() => <AdminShell><AdminOverview /></AdminShell>} /><Route path="/admin/recipes" component={() => <AdminShell><AdminRecipes /></AdminShell>} /><Route path="/admin/recipes/new" component={() => <AdminShell><AdminRecipeEditor /></AdminShell>} /><Route path="/admin/recipes/:id" component={() => <AdminShell><AdminRecipeEditor /></AdminShell>} /><Route path="/admin/categories" component={() => <AdminShell><AdminCollections type="categories" /></AdminShell>} /><Route path="/admin/audiences" component={() => <AdminShell><AdminCollections type="audiences" /></AdminShell>} /><Route path="/admin/submissions" component={() => <AdminShell><AdminSubmissions /></AdminShell>} /><Route path="/admin/analytics" component={() => <AdminShell><AdminAnalytics /></AdminShell>} />
+    <Route path={ADMIN_PATH} component={() => <AdminShell><AdminOverview /></AdminShell>} /><Route path={getAdminPath('/recipes')} component={() => <AdminShell><AdminRecipes /></AdminShell>} /><Route path={getAdminPath('/recipes/new')} component={() => <AdminShell><AdminRecipeEditor /></AdminShell>} /><Route path={getAdminPath('/recipes/:id')} component={() => <AdminShell><AdminRecipeEditor /></AdminShell>} /><Route path={getAdminPath('/categories')} component={() => <AdminShell><AdminCollections type="categories" /></AdminShell>} /><Route path={getAdminPath('/audiences')} component={() => <AdminShell><AdminCollections type="audiences" /></AdminShell>} /><Route path={getAdminPath('/submissions')} component={() => <AdminShell><AdminSubmissions /></AdminShell>} /><Route path={getAdminPath('/analytics')} component={() => <AdminShell><AdminAnalytics /></AdminShell>} />
     <Route component={() => <SiteShell><div className="state-panel shell"><span className="kicker">404</span><h1>This recipe is not on the shelf.</h1><Link href="/recipes" className="button button-dark" data-testid="link-404-library">Back to the library <ArrowRight size={16} /></Link></div></SiteShell>} />
   </Switch>;
 }
@@ -3557,7 +3656,14 @@ function App() {
 }
 
 function QueryClientProviderWrapper({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 30_000,
+        retry: 1,
+      },
+    },
+  }));
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 

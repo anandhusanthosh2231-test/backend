@@ -3,6 +3,7 @@ import { Home, Layers, Search, ShoppingBag, User } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@clerk/react';
 import { useListSavedRecipes, getListSavedRecipesQueryKey } from '@workspace/api-client-react';
+import { ADMIN_PATH } from '@/lib/admin-path';
 
 export function MobileBottomNav() {
   const [location] = useLocation();
@@ -20,7 +21,7 @@ export function MobileBottomNav() {
     return savedQuery.data.length;
   }, [isSignedIn, savedQuery.data]);
 
-  if (location.startsWith('/admin')) {
+  if (location === ADMIN_PATH || location.startsWith(`${ADMIN_PATH}/`)) {
     return null;
   }
 

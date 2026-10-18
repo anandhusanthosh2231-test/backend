@@ -280,6 +280,52 @@ paths:
               schema: { $ref: "#/components/schemas/AdminSummary" }
         "401": { description: Authentication required }
         "403": { description: Admin access required }
+  /admin/media:
+    get:
+      operationId: listAdminRecipeMedia
+      tags: [admin]
+      summary: List uploaded recipe images
+      parameters:
+        - { name: recipeId, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Uploaded recipe images
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminMediaListResponse" }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "503": { description: R2 is not configured }
+  /admin/media/upload:
+    post:
+      operationId: uploadAdminRecipeMedia
+      tags: [admin]
+      summary: Upload an image to recipe media storage
+      parameters:
+        - { name: recipeId, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: purpose, in: query, schema: { type: string, enum: [cover, sections] } }
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema: { type: string, format: binary }
+          image/png:
+            schema: { type: string, format: binary }
+          image/webp:
+            schema: { type: string, format: binary }
+          image/avif:
+            schema: { type: string, format: binary }
+      responses:
+        "201":
+          description: Image stored
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminMediaItem" }
+        "400": { description: Invalid image or upload parameters }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "413": { description: Image exceeds the configured size limit }
+        "503": { description: R2 is not configured }
   /admin/recipes:
     get:
       operationId: listAdminRecipes
@@ -294,8 +340,7 @@ paths:
           description: Admin recipe list
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/RecipeListResponse"
+              schema: { $ref: "#/components/schemas/AdminRecipeListResponse" }
     post:
       operationId: createAdminRecipe
       tags: [admin]
@@ -537,7 +582,14 @@ components:
               oneOf:
                 - $ref: "#/components/schemas/RecipeGuide"
                 - type: "null"
-          required: [problem, subcategory, aiTools, requiredInputs, steps, prompt, exampleInput, exampleOutput, refinementPrompts, verificationNotes, status, version, testedWith, seoTitle, seoDescription]
+            layoutMode:
+              type: string
+              enum: [normal, custom]
+            layoutConfig:
+              oneOf:
+                - $ref: "#/components/schemas/RecipeLayoutConfig"
+                - type: "null"
+          required: [problem, subcategory, aiTools, requiredInputs, steps, prompt, exampleInput, exampleOutput, refinementPrompts, verificationNotes, status, version, testedWith, seoTitle, seoDescription, layoutMode, layoutConfig]
     RecipeInput:
       type: object
       properties:
@@ -570,7 +622,60 @@ components:
         seoTitle: { type: string }
         seoDescription: { type: string }
         guide: { $ref: "#/components/schemas/RecipeGuide" }
+        layoutMode:
+          type: string
+          enum: [normal, custom]
+        layoutConfig:
+          oneOf:
+            - $ref: "#/components/schemas/RecipeLayoutConfig"
+            - type: "null"
       required: [title, slug, shortDescription, problem, categoryId, audienceId, subcategory, difficulty, estimatedTime, language, aiTools, requiredInputs, steps, prompt, exampleInput, exampleOutput, refinementPrompts, verificationNotes, tags, status, featured, trending, recipeOfDay, version, testedWith, seoTitle, seoDescription]
+    RecipeLayoutConfig:
+      type: object
+      properties:
+        version: { type: integer, enum: [1] }
+        blocks:
+          type: array
+          maxItems: 50
+          items: { $ref: "#/components/schemas/RecipeLayoutBlock" }
+      required: [version, blocks]
+    RecipeLayoutBlock:
+      type: object
+      properties:
+        id: { type: string, minLength: 1, maxLength: 100 }
+        type:
+          type: string
+          enum: [hero, overview, richText, inputs, workflow, prompt, example, image, callout, tools, useCases, mistakes, verification, related]
+        visible: { type: boolean }
+        heading: { type: string, maxLength: 200 }
+        subtitle: { type: string, maxLength: 500 }
+        align: { type: string, enum: [left, center] }
+        width: { type: string, enum: [standard, wide] }
+        background: { type: string, enum: [plain, tint, dark] }
+        title: { type: string, maxLength: 300 }
+        description: { type: string, maxLength: 4000 }
+        content: { type: string, maxLength: 20000 }
+        imageUrl: { type: string, maxLength: 2048 }
+        alt: { type: string, maxLength: 500 }
+        caption: { type: string, maxLength: 500 }
+        variant: { type: string, enum: [tip, warning, info] }
+      required: [id, type, visible]
+    AdminMediaItem:
+      type: object
+      properties:
+        key: { type: string }
+        url: { type: string, format: uri }
+        contentType: { type: string, enum: [image/jpeg, image/png, image/webp, image/avif] }
+        size: { type: integer }
+      required: [key, url, contentType, size]
+    AdminMediaListResponse:
+      type: object
+      properties:
+        configured: { type: boolean }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/AdminMediaItem" }
+      required: [configured, items]
     ImportAdminRecipesBody:
       type: object
       properties:
@@ -600,6 +705,15 @@ components:
       type: object
       properties:
         items: { type: array, items: { $ref: "#/components/schemas/RecipeCard" } }
+        page: { type: number }
+        pageSize: { type: number }
+        total: { type: number }
+        query: { type: string }
+      required: [items, page, pageSize, total, query]
+    AdminRecipeListResponse:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Recipe" } }
         page: { type: number }
         pageSize: { type: number }
         total: { type: number }

@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { RecipeGuide } from './recipeGuide';
+import type { RecipeInputLayoutMode } from './recipeInputLayoutMode';
+import type { RecipeLayoutConfig } from './recipeLayoutConfig';
 
 export interface RecipeInput {
   /** @minLength 3 */
@@ -43,4 +45,6 @@ export interface RecipeInput {
   seoTitle: string;
   seoDescription: string;
   guide?: RecipeGuide;
+  layoutMode?: RecipeInputLayoutMode;
+  layoutConfig?: RecipeLayoutConfig | null;
 }

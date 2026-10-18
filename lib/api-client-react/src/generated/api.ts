@@ -20,6 +20,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminMediaItem,
+  AdminMediaListResponse,
+  AdminRecipeListResponse,
   AdminSummary,
   AnalyticsResponse,
   Audience,
@@ -34,6 +37,7 @@ import type {
   HomeResponse,
   ImportAdminRecipesBody,
   ImportAdminRecipesResponse,
+  ListAdminRecipeMediaParams,
   ListAdminRecipesParams,
   ListRecipesParams,
   MessageResponse,
@@ -46,7 +50,8 @@ import type {
   Submission,
   SubmissionInput,
   SubmissionStatusUpdate,
-  SuggestionInput
+  SuggestionInput,
+  UploadAdminRecipeMediaParams
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1523,6 +1528,169 @@ export function useGetAdminSummary<TData = Awaited<ReturnType<typeof getAdminSum
 
 
 
+export const getListAdminRecipeMediaUrl = (params?: ListAdminRecipeMediaParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/media?${stringifiedParams}` : `/api/admin/media`
+}
+
+/**
+ * @summary List uploaded recipe images
+ */
+export const listAdminRecipeMedia = async (params?: ListAdminRecipeMediaParams, options?: Parameters<typeof customFetch>[1]): Promise<AdminMediaListResponse> => {
+
+  return customFetch<AdminMediaListResponse>(getListAdminRecipeMediaUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminRecipeMediaQueryKey = (params?: ListAdminRecipeMediaParams,) => {
+    return [
+    `/api/admin/media`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminRecipeMediaQueryOptions = <TData = Awaited<ReturnType<typeof listAdminRecipeMedia>>, TError = ErrorType<void>>(params?: ListAdminRecipeMediaParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminRecipeMedia>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminRecipeMediaQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminRecipeMedia>>> = ({ signal }) => listAdminRecipeMedia(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminRecipeMedia>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminRecipeMediaQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminRecipeMedia>>>
+export type ListAdminRecipeMediaQueryError = ErrorType<void>
+
+
+/**
+ * @summary List uploaded recipe images
+ */
+
+export function useListAdminRecipeMedia<TData = Awaited<ReturnType<typeof listAdminRecipeMedia>>, TError = ErrorType<void>>(
+ params?: ListAdminRecipeMediaParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminRecipeMedia>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminRecipeMediaQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUploadAdminRecipeMediaUrl = (params?: UploadAdminRecipeMediaParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/media/upload?${stringifiedParams}` : `/api/admin/media/upload`
+}
+
+/**
+ * @summary Upload an image to recipe media storage
+ */
+export const uploadAdminRecipeMedia = async (uploadAdminRecipeMediaBody: Blob,
+    params?: UploadAdminRecipeMediaParams, options?: Parameters<typeof customFetch>[1]): Promise<AdminMediaItem> => {
+
+  return customFetch<AdminMediaItem>(getUploadAdminRecipeMediaUrl(params),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'image/jpeg', ...options?.headers },
+    body: uploadAdminRecipeMediaBody
+  }
+);}
+
+
+
+
+
+export const getUploadAdminRecipeMediaMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadAdminRecipeMedia>>, TError,{data: BodyType<Blob>;params?: UploadAdminRecipeMediaParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadAdminRecipeMedia>>, TError,{data: BodyType<Blob>;params?: UploadAdminRecipeMediaParams}, TContext> => {
+
+const mutationKey = ['uploadAdminRecipeMedia'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadAdminRecipeMedia>>, {data: BodyType<Blob>;params?: UploadAdminRecipeMediaParams}> = (props) => {
+          const {data,params} = props ?? {};
+
+          return  uploadAdminRecipeMedia(data,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadAdminRecipeMediaMutationResult = NonNullable<Awaited<ReturnType<typeof uploadAdminRecipeMedia>>>
+    export type UploadAdminRecipeMediaMutationBody = BodyType<Blob>
+    export type UploadAdminRecipeMediaMutationError = ErrorType<void>
+
+    /**
+ * @summary Upload an image to recipe media storage
+ */
+export const useUploadAdminRecipeMedia = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadAdminRecipeMedia>>, TError,{data: BodyType<Blob>;params?: UploadAdminRecipeMediaParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadAdminRecipeMedia>>,
+        TError,
+        {data: BodyType<Blob>;params?: UploadAdminRecipeMediaParams},
+        TContext
+      > => {
+      return useMutation(getUploadAdminRecipeMediaMutationOptions(options));
+    }
+
 export const getListAdminRecipesUrl = (params?: ListAdminRecipesParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -1541,9 +1709,9 @@ export const getListAdminRecipesUrl = (params?: ListAdminRecipesParams,) => {
 /**
  * @summary List recipes for admin
  */
-export const listAdminRecipes = async (params?: ListAdminRecipesParams, options?: Parameters<typeof customFetch>[1]): Promise<RecipeListResponse> => {
+export const listAdminRecipes = async (params?: ListAdminRecipesParams, options?: Parameters<typeof customFetch>[1]): Promise<AdminRecipeListResponse> => {
 
-  return customFetch<RecipeListResponse>(getListAdminRecipesUrl(params),
+  return customFetch<AdminRecipeListResponse>(getListAdminRecipesUrl(params),
   {
     ...options,
     method: 'GET'

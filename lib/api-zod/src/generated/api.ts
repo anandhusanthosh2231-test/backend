@@ -73,6 +73,28 @@ export const GetRecipeParams = zod.object({
   "slug": zod.coerce.string()
 })
 
+export const getRecipeResponseTwoLayoutConfigOneBlocksItemIdMax = 100;
+
+export const getRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax = 200;
+
+export const getRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax = 500;
+
+export const getRecipeResponseTwoLayoutConfigOneBlocksItemTitleMax = 300;
+
+export const getRecipeResponseTwoLayoutConfigOneBlocksItemDescriptionMax = 4000;
+
+export const getRecipeResponseTwoLayoutConfigOneBlocksItemContentMax = 20000;
+
+export const getRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax = 2048;
+
+export const getRecipeResponseTwoLayoutConfigOneBlocksItemAltMax = 500;
+
+export const getRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const getRecipeResponseTwoLayoutConfigOneBlocksMax = 50;
+
+
+
 export const GetRecipeResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
@@ -172,7 +194,28 @@ export const GetRecipeResponse = zod.object({
   "version": zod.string().optional(),
   "testedWith": zod.array(zod.string()).optional()
 }).optional()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "layoutMode": zod.enum(['normal', 'custom']),
+  "layoutConfig": zod.union([zod.object({
+  "version": zod.literal(1),
+  "blocks": zod.array(zod.object({
+  "id": zod.string().min(1).max(getRecipeResponseTwoLayoutConfigOneBlocksItemIdMax),
+  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "visible": zod.boolean(),
+  "heading": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax).optional(),
+  "subtitle": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax).optional(),
+  "align": zod.enum(['left', 'center']).optional(),
+  "width": zod.enum(['standard', 'wide']).optional(),
+  "background": zod.enum(['plain', 'tint', 'dark']).optional(),
+  "title": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemTitleMax).optional(),
+  "description": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemDescriptionMax).optional(),
+  "content": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemContentMax).optional(),
+  "imageUrl": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax).optional(),
+  "alt": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemAltMax).optional(),
+  "caption": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax).optional(),
+  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+})).max(getRecipeResponseTwoLayoutConfigOneBlocksMax)
+}),zod.null()])
 }))
 
 
@@ -580,6 +623,46 @@ export const GetAdminSummaryResponse = zod.object({
 
 
 /**
+ * @summary List uploaded recipe images
+ */
+
+
+
+export const ListAdminRecipeMediaQueryParams = zod.object({
+  "recipeId": zod.coerce.number().int().min(1).optional()
+})
+
+export const ListAdminRecipeMediaResponse = zod.object({
+  "configured": zod.boolean(),
+  "items": zod.array(zod.object({
+  "key": zod.string(),
+  "url": zod.url(),
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/avif']),
+  "size": zod.int()
+}))
+})
+
+
+/**
+ * @summary Upload an image to recipe media storage
+ */
+
+
+
+export const UploadAdminRecipeMediaQueryParams = zod.object({
+  "recipeId": zod.coerce.number().int().min(1).optional(),
+  "purpose": zod.enum(['cover', 'sections']).optional()
+})
+
+export const UploadAdminRecipeMediaResponse = zod.object({
+  "key": zod.string(),
+  "url": zod.url(),
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/avif']),
+  "size": zod.int()
+})
+
+
+/**
  * @summary List recipes for admin
  */
 export const listAdminRecipesQueryPageDefault = 1;
@@ -591,6 +674,28 @@ export const ListAdminRecipesQueryParams = zod.object({
   "status": zod.coerce.string().optional(),
   "page": zod.coerce.number().min(1).default(listAdminRecipesQueryPageDefault)
 })
+
+export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemIdMax = 100;
+
+export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemHeadingMax = 200;
+
+export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemSubtitleMax = 500;
+
+export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemTitleMax = 300;
+
+export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemDescriptionMax = 4000;
+
+export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemContentMax = 20000;
+
+export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemImageUrlMax = 2048;
+
+export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemAltMax = 500;
+
+export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksMax = 50;
+
+
 
 export const ListAdminRecipesResponse = zod.object({
   "items": zod.array(zod.object({
@@ -611,7 +716,110 @@ export const ListAdminRecipesResponse = zod.object({
   "viewCount": zod.number(),
   "copyCount": zod.number(),
   "saveCount": zod.number()
-})),
+}).and(zod.object({
+  "problem": zod.string(),
+  "subcategory": zod.string(),
+  "aiTools": zod.array(zod.string()),
+  "requiredInputs": zod.array(zod.string()),
+  "steps": zod.array(zod.string()),
+  "prompt": zod.string(),
+  "exampleInput": zod.string(),
+  "exampleOutput": zod.string(),
+  "refinementPrompts": zod.array(zod.string()),
+  "verificationNotes": zod.string(),
+  "status": zod.string(),
+  "version": zod.string(),
+  "testedAt": zod.coerce.date().nullish(),
+  "testedWith": zod.array(zod.string()),
+  "seoTitle": zod.string(),
+  "seoDescription": zod.string(),
+  "updatedAt": zod.coerce.date().optional(),
+  "publishedAt": zod.coerce.date().nullish(),
+  "guide": zod.union([zod.object({
+  "snapshot": zod.object({
+  "bestFor": zod.string().optional(),
+  "worksBestWhen": zod.string().optional(),
+  "timeToResult": zod.string().optional(),
+  "output": zod.string().optional(),
+  "bestWith": zod.array(zod.string()).optional(),
+  "skillLevel": zod.string().optional()
+}).optional(),
+  "useCases": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})).optional(),
+  "whenNotToUse": zod.array(zod.string()).optional(),
+  "inputs": zod.object({
+  "required": zod.array(zod.string()).optional(),
+  "optional": zod.array(zod.string()).optional()
+}).optional(),
+  "situations": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "promptModifier": zod.string()
+})).optional(),
+  "tools": zod.array(zod.object({
+  "name": zod.string(),
+  "support": zod.enum(['compatible', 'good', 'excellent']),
+  "notes": zod.string().optional()
+})).optional(),
+  "promptVariables": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "placeholder": zod.string().optional(),
+  "required": zod.boolean().optional()
+})).optional(),
+  "expectedOutput": zod.object({
+  "description": zod.string().optional(),
+  "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "examples": zod.array(zod.object({
+  "scenario": zod.string(),
+  "input": zod.string(),
+  "output": zod.string(),
+  "whyItWorks": zod.array(zod.string()).optional()
+})).optional(),
+  "bestFor": zod.object({
+  "people": zod.array(zod.string()).optional(),
+  "tasks": zod.array(zod.string()).optional(),
+  "channels": zod.array(zod.string()).optional()
+}).optional(),
+  "timeToResult": zod.string().optional(),
+  "effort": zod.string().optional(),
+  "typicalIterations": zod.string().optional(),
+  "commonMistakes": zod.array(zod.string()).optional(),
+  "betterApproach": zod.string().optional(),
+  "proTips": zod.array(zod.string()).optional(),
+  "safetyNotes": zod.array(zod.string()).optional(),
+  "quality": zod.object({
+  "status": zod.enum(['untested', 'in_testing', 'tested']).optional(),
+  "lastTested": zod.coerce.date().nullish(),
+  "version": zod.string().optional(),
+  "testedWith": zod.array(zod.string()).optional()
+}).optional()
+}),zod.null()]).optional(),
+  "layoutMode": zod.enum(['normal', 'custom']),
+  "layoutConfig": zod.union([zod.object({
+  "version": zod.literal(1),
+  "blocks": zod.array(zod.object({
+  "id": zod.string().min(1).max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemIdMax),
+  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "visible": zod.boolean(),
+  "heading": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemHeadingMax).optional(),
+  "subtitle": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemSubtitleMax).optional(),
+  "align": zod.enum(['left', 'center']).optional(),
+  "width": zod.enum(['standard', 'wide']).optional(),
+  "background": zod.enum(['plain', 'tint', 'dark']).optional(),
+  "title": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemTitleMax).optional(),
+  "description": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemDescriptionMax).optional(),
+  "content": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemContentMax).optional(),
+  "imageUrl": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemImageUrlMax).optional(),
+  "alt": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemAltMax).optional(),
+  "caption": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemCaptionMax).optional(),
+  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+})).max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksMax)
+}),zod.null()])
+}))),
   "page": zod.number(),
   "pageSize": zod.number(),
   "total": zod.number(),
@@ -631,6 +839,26 @@ export const createAdminRecipeBodyShortDescriptionMin = 10;
 export const createAdminRecipeBodyProblemMin = 10;
 
 export const createAdminRecipeBodyPromptMin = 20;
+
+export const createAdminRecipeBodyLayoutConfigOneBlocksItemIdMax = 100;
+
+export const createAdminRecipeBodyLayoutConfigOneBlocksItemHeadingMax = 200;
+
+export const createAdminRecipeBodyLayoutConfigOneBlocksItemSubtitleMax = 500;
+
+export const createAdminRecipeBodyLayoutConfigOneBlocksItemTitleMax = 300;
+
+export const createAdminRecipeBodyLayoutConfigOneBlocksItemDescriptionMax = 4000;
+
+export const createAdminRecipeBodyLayoutConfigOneBlocksItemContentMax = 20000;
+
+export const createAdminRecipeBodyLayoutConfigOneBlocksItemImageUrlMax = 2048;
+
+export const createAdminRecipeBodyLayoutConfigOneBlocksItemAltMax = 500;
+
+export const createAdminRecipeBodyLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const createAdminRecipeBodyLayoutConfigOneBlocksMax = 50;
 
 
 
@@ -725,8 +953,51 @@ export const CreateAdminRecipeBody = zod.object({
   "version": zod.string().optional(),
   "testedWith": zod.array(zod.string()).optional()
 }).optional()
-}).optional()
+}).optional(),
+  "layoutMode": zod.enum(['normal', 'custom']).optional(),
+  "layoutConfig": zod.union([zod.object({
+  "version": zod.literal(1),
+  "blocks": zod.array(zod.object({
+  "id": zod.string().min(1).max(createAdminRecipeBodyLayoutConfigOneBlocksItemIdMax),
+  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "visible": zod.boolean(),
+  "heading": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemHeadingMax).optional(),
+  "subtitle": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemSubtitleMax).optional(),
+  "align": zod.enum(['left', 'center']).optional(),
+  "width": zod.enum(['standard', 'wide']).optional(),
+  "background": zod.enum(['plain', 'tint', 'dark']).optional(),
+  "title": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemTitleMax).optional(),
+  "description": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemDescriptionMax).optional(),
+  "content": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemContentMax).optional(),
+  "imageUrl": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemImageUrlMax).optional(),
+  "alt": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemAltMax).optional(),
+  "caption": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemCaptionMax).optional(),
+  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+})).max(createAdminRecipeBodyLayoutConfigOneBlocksMax)
+}),zod.null()]).optional()
 })
+
+export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax = 100;
+
+export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax = 200;
+
+export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax = 500;
+
+export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemTitleMax = 300;
+
+export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemDescriptionMax = 4000;
+
+export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemContentMax = 20000;
+
+export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax = 2048;
+
+export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax = 500;
+
+export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const createAdminRecipeResponseTwoLayoutConfigOneBlocksMax = 50;
+
+
 
 export const CreateAdminRecipeResponse = zod.object({
   "id": zod.number(),
@@ -827,7 +1098,28 @@ export const CreateAdminRecipeResponse = zod.object({
   "version": zod.string().optional(),
   "testedWith": zod.array(zod.string()).optional()
 }).optional()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "layoutMode": zod.enum(['normal', 'custom']),
+  "layoutConfig": zod.union([zod.object({
+  "version": zod.literal(1),
+  "blocks": zod.array(zod.object({
+  "id": zod.string().min(1).max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax),
+  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "visible": zod.boolean(),
+  "heading": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax).optional(),
+  "subtitle": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax).optional(),
+  "align": zod.enum(['left', 'center']).optional(),
+  "width": zod.enum(['standard', 'wide']).optional(),
+  "background": zod.enum(['plain', 'tint', 'dark']).optional(),
+  "title": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemTitleMax).optional(),
+  "description": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemDescriptionMax).optional(),
+  "content": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemContentMax).optional(),
+  "imageUrl": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax).optional(),
+  "alt": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax).optional(),
+  "caption": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax).optional(),
+  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+})).max(createAdminRecipeResponseTwoLayoutConfigOneBlocksMax)
+}),zod.null()])
 }))
 
 
@@ -871,6 +1163,26 @@ export const updateAdminRecipeBodyOneShortDescriptionMin = 10;
 export const updateAdminRecipeBodyOneProblemMin = 10;
 
 export const updateAdminRecipeBodyOnePromptMin = 20;
+
+export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemIdMax = 100;
+
+export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemHeadingMax = 200;
+
+export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemSubtitleMax = 500;
+
+export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemTitleMax = 300;
+
+export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemDescriptionMax = 4000;
+
+export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemContentMax = 20000;
+
+export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemImageUrlMax = 2048;
+
+export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemAltMax = 500;
+
+export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const updateAdminRecipeBodyOneLayoutConfigOneBlocksMax = 50;
 
 
 
@@ -965,8 +1277,51 @@ export const UpdateAdminRecipeBody = zod.object({
   "version": zod.string().optional(),
   "testedWith": zod.array(zod.string()).optional()
 }).optional()
-}).optional()
+}).optional(),
+  "layoutMode": zod.enum(['normal', 'custom']).optional(),
+  "layoutConfig": zod.union([zod.object({
+  "version": zod.literal(1),
+  "blocks": zod.array(zod.object({
+  "id": zod.string().min(1).max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemIdMax),
+  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "visible": zod.boolean(),
+  "heading": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemHeadingMax).optional(),
+  "subtitle": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemSubtitleMax).optional(),
+  "align": zod.enum(['left', 'center']).optional(),
+  "width": zod.enum(['standard', 'wide']).optional(),
+  "background": zod.enum(['plain', 'tint', 'dark']).optional(),
+  "title": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemTitleMax).optional(),
+  "description": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemDescriptionMax).optional(),
+  "content": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemContentMax).optional(),
+  "imageUrl": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemImageUrlMax).optional(),
+  "alt": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemAltMax).optional(),
+  "caption": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemCaptionMax).optional(),
+  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+})).max(updateAdminRecipeBodyOneLayoutConfigOneBlocksMax)
+}),zod.null()]).optional()
 }).describe('Full replacement payload for an admin recipe.')
+
+export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax = 100;
+
+export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax = 200;
+
+export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax = 500;
+
+export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemTitleMax = 300;
+
+export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemDescriptionMax = 4000;
+
+export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemContentMax = 20000;
+
+export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax = 2048;
+
+export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax = 500;
+
+export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksMax = 50;
+
+
 
 export const UpdateAdminRecipeResponse = zod.object({
   "id": zod.number(),
@@ -1067,7 +1422,28 @@ export const UpdateAdminRecipeResponse = zod.object({
   "version": zod.string().optional(),
   "testedWith": zod.array(zod.string()).optional()
 }).optional()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "layoutMode": zod.enum(['normal', 'custom']),
+  "layoutConfig": zod.union([zod.object({
+  "version": zod.literal(1),
+  "blocks": zod.array(zod.object({
+  "id": zod.string().min(1).max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax),
+  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "visible": zod.boolean(),
+  "heading": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax).optional(),
+  "subtitle": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax).optional(),
+  "align": zod.enum(['left', 'center']).optional(),
+  "width": zod.enum(['standard', 'wide']).optional(),
+  "background": zod.enum(['plain', 'tint', 'dark']).optional(),
+  "title": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemTitleMax).optional(),
+  "description": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemDescriptionMax).optional(),
+  "content": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemContentMax).optional(),
+  "imageUrl": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax).optional(),
+  "alt": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax).optional(),
+  "caption": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax).optional(),
+  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+})).max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksMax)
+}),zod.null()])
 }))
 
 
@@ -1087,6 +1463,28 @@ export const DeleteAdminRecipeResponse = zod.void()
 export const DuplicateAdminRecipeParams = zod.object({
   "id": zod.coerce.number()
 })
+
+export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax = 100;
+
+export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax = 200;
+
+export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax = 500;
+
+export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemTitleMax = 300;
+
+export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemDescriptionMax = 4000;
+
+export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemContentMax = 20000;
+
+export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax = 2048;
+
+export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax = 500;
+
+export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksMax = 50;
+
+
 
 export const DuplicateAdminRecipeResponse = zod.object({
   "id": zod.number(),
@@ -1187,7 +1585,28 @@ export const DuplicateAdminRecipeResponse = zod.object({
   "version": zod.string().optional(),
   "testedWith": zod.array(zod.string()).optional()
 }).optional()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "layoutMode": zod.enum(['normal', 'custom']),
+  "layoutConfig": zod.union([zod.object({
+  "version": zod.literal(1),
+  "blocks": zod.array(zod.object({
+  "id": zod.string().min(1).max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax),
+  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "visible": zod.boolean(),
+  "heading": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax).optional(),
+  "subtitle": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax).optional(),
+  "align": zod.enum(['left', 'center']).optional(),
+  "width": zod.enum(['standard', 'wide']).optional(),
+  "background": zod.enum(['plain', 'tint', 'dark']).optional(),
+  "title": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemTitleMax).optional(),
+  "description": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemDescriptionMax).optional(),
+  "content": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemContentMax).optional(),
+  "imageUrl": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax).optional(),
+  "alt": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax).optional(),
+  "caption": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax).optional(),
+  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+})).max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksMax)
+}),zod.null()])
 }))
 
 
@@ -1213,6 +1632,26 @@ export const generateDraftRecipeResponseShortDescriptionMin = 10;
 export const generateDraftRecipeResponseProblemMin = 10;
 
 export const generateDraftRecipeResponsePromptMin = 20;
+
+export const generateDraftRecipeResponseLayoutConfigOneBlocksItemIdMax = 100;
+
+export const generateDraftRecipeResponseLayoutConfigOneBlocksItemHeadingMax = 200;
+
+export const generateDraftRecipeResponseLayoutConfigOneBlocksItemSubtitleMax = 500;
+
+export const generateDraftRecipeResponseLayoutConfigOneBlocksItemTitleMax = 300;
+
+export const generateDraftRecipeResponseLayoutConfigOneBlocksItemDescriptionMax = 4000;
+
+export const generateDraftRecipeResponseLayoutConfigOneBlocksItemContentMax = 20000;
+
+export const generateDraftRecipeResponseLayoutConfigOneBlocksItemImageUrlMax = 2048;
+
+export const generateDraftRecipeResponseLayoutConfigOneBlocksItemAltMax = 500;
+
+export const generateDraftRecipeResponseLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const generateDraftRecipeResponseLayoutConfigOneBlocksMax = 50;
 
 
 
@@ -1307,7 +1746,28 @@ export const GenerateDraftRecipeResponse = zod.object({
   "version": zod.string().optional(),
   "testedWith": zod.array(zod.string()).optional()
 }).optional()
-}).optional()
+}).optional(),
+  "layoutMode": zod.enum(['normal', 'custom']).optional(),
+  "layoutConfig": zod.union([zod.object({
+  "version": zod.literal(1),
+  "blocks": zod.array(zod.object({
+  "id": zod.string().min(1).max(generateDraftRecipeResponseLayoutConfigOneBlocksItemIdMax),
+  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "visible": zod.boolean(),
+  "heading": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemHeadingMax).optional(),
+  "subtitle": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemSubtitleMax).optional(),
+  "align": zod.enum(['left', 'center']).optional(),
+  "width": zod.enum(['standard', 'wide']).optional(),
+  "background": zod.enum(['plain', 'tint', 'dark']).optional(),
+  "title": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemTitleMax).optional(),
+  "description": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemDescriptionMax).optional(),
+  "content": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemContentMax).optional(),
+  "imageUrl": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemImageUrlMax).optional(),
+  "alt": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemAltMax).optional(),
+  "caption": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemCaptionMax).optional(),
+  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+})).max(generateDraftRecipeResponseLayoutConfigOneBlocksMax)
+}),zod.null()]).optional()
 })
 
 

@@ -84,3 +84,30 @@ pnpm run build
 # Start dev server
 pnpm run dev
 ```
+
+## Automated browser tests
+
+The browser-based functionality suite lives in `tests/e2e` and uses Playwright
+with mocked API responses, so it does not need a running database or live
+credentials. Install Chromium once on a new machine:
+
+```bash
+pnpm exec playwright install chromium
+```
+
+`pnpm run build` type-checks the workspace, builds all packages, and runs the
+browser suite against the built frontend. To rerun the suite after a build:
+
+```bash
+pnpm run test:e2e
+```
+
+## Admin UI URL
+
+The admin UI route is configured with matching `ADMIN_PATH` (API server) and
+`VITE_ADMIN_PATH` (frontend build) values. Set both to the same random,
+dedicated path in local `.env` and in the corresponding deployment
+environments. `VITE_ADMIN_PATH` is included in the public frontend bundle, so
+this only obscures the URL; it is not a security boundary. Keep the existing
+admin authentication and IP restrictions enabled. The old `/admin` UI route
+is not an admin entry point.

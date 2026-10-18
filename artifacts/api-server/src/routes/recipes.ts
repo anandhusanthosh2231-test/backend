@@ -45,8 +45,11 @@ import {
 } from "@workspace/db";
 import { requireAdmin, requireAuth, type AuthenticatedRequest } from "../middlewares/auth";
 import { mapRecipeCsvRecord, normalizeRecipeCsvHeader, parseRecipeCsv } from "../lib/recipe-csv-import";
+import { validateRecipeLayout } from "../lib/recipe-layout";
+import { getRecipeMediaConfig, getRecipeMediaMaxBytes, listRecipeMedia, uploadRecipeMedia } from "../lib/recipe-media";
 
 const router: IRouter = Router();
+const allowedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 
 const cardColumns = {
   id: recipesTable.id,
@@ -406,6 +409,61 @@ router.get("/admin/summary", requireAdmin, async (_req, res): Promise<void> => {
   res.json(GetAdminSummaryResponse.parse(Object.fromEntries(Object.entries({ ...totals, ...submissionCount }).map(([key, value]) => [key, Number(value)]))));
 });
 
+router.get("/admin/media", requireAdmin, async (req, res): Promise<void> => {
+  const recipeId = req.query.recipeId === undefined ? undefined : Number(req.query.recipeId);
+  if (recipeId !== undefined && (!Number.isSafeInteger(recipeId) || recipeId <= 0)) {
+    res.status(400).json({ error: "Invalid recipe ID." });
+    return;
+  }
+  if (!getRecipeMediaConfig()) {
+    res.json({ configured: false, items: [] });
+    return;
+  }
+  const items = await listRecipeMedia(recipeId ? `recipes/${recipeId}/` : "recipes/");
+  res.json({ configured: true, items });
+});
+
+const parseRecipeImage = express.raw({ type: allowedImageTypes, limit: getRecipeMediaMaxBytes() });
+router.post("/admin/media/upload", requireAdmin, (req, res, next) => {
+  parseRecipeImage(req, res, (error?: NodeJS.ErrnoException & { status?: number }) => {
+    if (error) {
+      res.status(error.status === 413 ? 413 : 400).json({ error: error.status === 413 ? "Image exceeds the configured size limit." : "Image upload could not be read." });
+      return;
+    }
+    next();
+  });
+}, async (req, res): Promise<void> => {
+  const recipeId = req.query.recipeId === undefined ? undefined : Number(req.query.recipeId);
+  const purpose = req.query.purpose === "cover" ? "cover" : req.query.purpose === undefined || req.query.purpose === "sections" ? "sections" : undefined;
+  const contentType = req.get("content-type")?.split(";")[0]?.trim().toLowerCase() ?? "";
+  if (recipeId !== undefined && (!Number.isSafeInteger(recipeId) || recipeId <= 0)) {
+    res.status(400).json({ error: "Invalid recipe ID." });
+    return;
+  }
+  if (!purpose || !allowedImageTypes.includes(contentType) || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+    res.status(400).json({ error: "Upload a JPEG, PNG, WebP, or AVIF image and choose a valid purpose." });
+    return;
+  }
+  if (!getRecipeMediaConfig()) {
+    res.status(503).json({ error: "Recipe image storage is not configured." });
+    return;
+  }
+  try {
+    const item = await uploadRecipeMedia({ bytes: req.body, contentType, recipeId, purpose });
+    if (!item) {
+      res.status(503).json({ error: "Recipe image storage is not configured." });
+      return;
+    }
+    res.status(201).json(item);
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("Image content")) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
+});
+
 router.get("/admin/recipes", requireAdmin, async (req, res): Promise<void> => {
   const parsed = ListAdminRecipesQueryParams.safeParse(req.query);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
@@ -417,6 +475,8 @@ router.get("/admin/recipes", requireAdmin, async (req, res): Promise<void> => {
 router.post("/admin/recipes", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateAdminRecipeBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const layoutError = validateRecipeLayout(parsed.data.layoutMode, parsed.data.layoutConfig);
+  if (layoutError) { res.status(400).json({ error: layoutError }); return; }
   const [created] = await db.insert(recipesTable).values({
     ...parsed.data,
     testedAt: parsed.data.testedAt ? parsed.data.testedAt.toISOString().slice(0, 10) : null,
@@ -535,6 +595,8 @@ router.patch("/admin/recipes/:id", requireAdmin, async (req, res): Promise<void>
   const params = UpdateAdminRecipeParams.safeParse(req.params);
   const parsed = UpdateAdminRecipeBody.safeParse(req.body);
   if (!params.success || !parsed.success) { res.status(400).json({ error: "Invalid recipe data." }); return; }
+  const layoutError = validateRecipeLayout(parsed.data.layoutMode, parsed.data.layoutConfig);
+  if (layoutError) { res.status(400).json({ error: layoutError }); return; }
   const [updated] = await db.update(recipesTable).set({
     ...parsed.data,
     testedAt: parsed.data.testedAt ? parsed.data.testedAt.toISOString().slice(0, 10) : null,

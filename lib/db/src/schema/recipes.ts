@@ -64,6 +64,8 @@ export const recipesTable = pgTable(
     testedWith: text("tested_with").array().notNull().default([]),
     seoTitle: text("seo_title").notNull(),
     seoDescription: text("seo_description").notNull(),
+    layoutMode: text("layout_mode").notNull().default("normal"),
+    layoutConfig: jsonb("layout_config"),
     viewCount: integer("view_count").notNull().default(0),
     copyCount: integer("copy_count").notNull().default(0),
     saveCount: integer("save_count").notNull().default(0),
