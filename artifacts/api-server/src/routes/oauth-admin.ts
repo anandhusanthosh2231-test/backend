@@ -21,6 +21,19 @@ import {
 import { logger } from "../lib/logger";
 
 const router = Router();
+const configuredAdminPath = process.env.ADMIN_PATH?.trim();
+const adminPath = configuredAdminPath
+  ? `/${configuredAdminPath.replace(/^\/+|\/+$/g, "")}`
+  : "/__admin_path_not_configured__";
+
+if (
+  adminPath === "/" ||
+  adminPath === "/admin" ||
+  adminPath.startsWith("/admin/") ||
+  /[?#\s]/.test(adminPath)
+) {
+  throw new Error("ADMIN_PATH must be a dedicated path other than /admin.");
+}
 
 // Rate limiter for auth endpoints (IP -> request timestamps)
 const rateLimitMap = new Map<string, number[]>();
@@ -71,7 +84,7 @@ router.get("/auth/google", (req: Request, res: Response) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
     logger.warn("FAIL-CLOSED: GOOGLE_CLIENT_ID environment variable missing");
-    res.redirect("/admin?error=google_unconfigured");
+    res.redirect(`${adminPath}?error=google_unconfigured`);
     return;
   }
 
@@ -101,14 +114,14 @@ router.get("/auth/google/callback", async (req: Request, res: Response, next: Ne
 
     if (error || !code || !state || typeof code !== "string" || typeof state !== "string") {
       auditLog({ provider: "google", allowed: false, ip, reason: "OAuth cancelled or code missing" });
-      res.redirect("/admin?error=cancelled");
+      res.redirect(`${adminPath}?error=cancelled`);
       return;
     }
 
     const { valid, codeVerifier } = consumeOAuthState(state, "google");
     if (!valid || !codeVerifier) {
       auditLog({ provider: "google", allowed: false, ip, reason: "Invalid or expired OAuth state" });
-      res.redirect("/admin?error=cancelled");
+      res.redirect(`${adminPath}?error=cancelled`);
       return;
     }
 
@@ -116,7 +129,7 @@ router.get("/auth/google/callback", async (req: Request, res: Response, next: Ne
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     if (!clientId || !clientSecret) {
       auditLog({ provider: "google", allowed: false, ip, reason: "Google client secrets missing" });
-      res.redirect("/admin?error=not_allowed");
+      res.redirect(`${adminPath}?error=not_allowed`);
       return;
     }
 
@@ -140,7 +153,7 @@ router.get("/auth/google/callback", async (req: Request, res: Response, next: Ne
       const errText = await tokenRes.text();
       logger.error(`Google token exchange error: ${errText}`);
       auditLog({ provider: "google", allowed: false, ip, reason: "Token exchange failed" });
-      res.redirect("/admin?error=cancelled");
+      res.redirect(`${adminPath}?error=cancelled`);
       return;
     }
 
@@ -149,7 +162,7 @@ router.get("/auth/google/callback", async (req: Request, res: Response, next: Ne
 
     if (!idToken) {
       auditLog({ provider: "google", allowed: false, ip, reason: "Missing ID token" });
-      res.redirect("/admin?error=cancelled");
+      res.redirect(`${adminPath}?error=cancelled`);
       return;
     }
 
@@ -157,7 +170,7 @@ router.get("/auth/google/callback", async (req: Request, res: Response, next: Ne
     const parts = idToken.split(".");
     if (parts.length !== 3) {
       auditLog({ provider: "google", allowed: false, ip, reason: "Malformed ID token" });
-      res.redirect("/admin?error=cancelled");
+      res.redirect(`${adminPath}?error=cancelled`);
       return;
     }
 
@@ -177,7 +190,7 @@ router.get("/auth/google/callback", async (req: Request, res: Response, next: Ne
         ip,
         reason: `ID token verification failed (aud:${validAud}, iss:${validIss}, exp:${validExp}, verified:${emailVerified})`,
       });
-      res.redirect("/admin?error=not_allowed");
+      res.redirect(`${adminPath}?error=not_allowed`);
       return;
     }
 
@@ -185,7 +198,7 @@ router.get("/auth/google/callback", async (req: Request, res: Response, next: Ne
 
     if (!isEmailAllowed(normalizedEmail)) {
       auditLog({ provider: "google", allowed: false, ip, reason: "Email not on allow-list" });
-      res.redirect("/admin?error=not_allowed");
+      res.redirect(`${adminPath}?error=not_allowed`);
       return;
     }
 
@@ -193,7 +206,7 @@ router.get("/auth/google/callback", async (req: Request, res: Response, next: Ne
     auditLog({ provider: "google", allowed: true, ip });
     const sessionToken = createSession(normalizedEmail, "google");
     setAdminSessionCookie(res, sessionToken);
-    res.redirect("/admin");
+    res.redirect(adminPath);
   } catch (err) {
     logger.error({ err }, "Error in Google callback");
     next(err);
@@ -213,7 +226,7 @@ router.get("/auth/github", (req: Request, res: Response) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
   if (!clientId) {
     logger.warn("FAIL-CLOSED: GITHUB_CLIENT_ID environment variable missing");
-    res.redirect("/admin?error=github_unconfigured");
+    res.redirect(`${adminPath}?error=github_unconfigured`);
     return;
   }
 
@@ -240,14 +253,14 @@ router.get("/auth/github/callback", async (req: Request, res: Response, next: Ne
 
     if (error || !code || !state || typeof code !== "string" || typeof state !== "string") {
       auditLog({ provider: "github", allowed: false, ip, reason: "OAuth cancelled or code missing" });
-      res.redirect("/admin?error=cancelled");
+      res.redirect(`${adminPath}?error=cancelled`);
       return;
     }
 
     const { valid } = consumeOAuthState(state, "github");
     if (!valid) {
       auditLog({ provider: "github", allowed: false, ip, reason: "Invalid or expired OAuth state" });
-      res.redirect("/admin?error=cancelled");
+      res.redirect(`${adminPath}?error=cancelled`);
       return;
     }
 
@@ -255,7 +268,7 @@ router.get("/auth/github/callback", async (req: Request, res: Response, next: Ne
     const clientSecret = process.env.GITHUB_CLIENT_SECRET;
     if (!clientId || !clientSecret) {
       auditLog({ provider: "github", allowed: false, ip, reason: "GitHub client secrets missing" });
-      res.redirect("/admin?error=not_allowed");
+      res.redirect(`${adminPath}?error=not_allowed`);
       return;
     }
 
@@ -278,7 +291,7 @@ router.get("/auth/github/callback", async (req: Request, res: Response, next: Ne
 
     if (!tokenRes.ok) {
       auditLog({ provider: "github", allowed: false, ip, reason: "Token exchange failed" });
-      res.redirect("/admin?error=cancelled");
+      res.redirect(`${adminPath}?error=cancelled`);
       return;
     }
 
@@ -286,7 +299,7 @@ router.get("/auth/github/callback", async (req: Request, res: Response, next: Ne
     const accessToken = tokens.access_token;
     if (!accessToken) {
       auditLog({ provider: "github", allowed: false, ip, reason: "Access token missing" });
-      res.redirect("/admin?error=cancelled");
+      res.redirect(`${adminPath}?error=cancelled`);
       return;
     }
 
@@ -301,7 +314,7 @@ router.get("/auth/github/callback", async (req: Request, res: Response, next: Ne
 
     if (!emailsRes.ok) {
       auditLog({ provider: "github", allowed: false, ip, reason: "Failed to fetch GitHub user emails" });
-      res.redirect("/admin?error=not_allowed");
+      res.redirect(`${adminPath}?error=not_allowed`);
       return;
     }
 
@@ -310,7 +323,7 @@ router.get("/auth/github/callback", async (req: Request, res: Response, next: Ne
 
     if (!primaryVerified || !primaryVerified.email) {
       auditLog({ provider: "github", allowed: false, ip, reason: "No verified email found on GitHub account" });
-      res.redirect("/admin?error=not_allowed");
+      res.redirect(`${adminPath}?error=not_allowed`);
       return;
     }
 
@@ -318,7 +331,7 @@ router.get("/auth/github/callback", async (req: Request, res: Response, next: Ne
 
     if (!isEmailAllowed(normalizedEmail)) {
       auditLog({ provider: "github", allowed: false, ip, reason: "Email not on allow-list" });
-      res.redirect("/admin?error=not_allowed");
+      res.redirect(`${adminPath}?error=not_allowed`);
       return;
     }
 
@@ -326,7 +339,7 @@ router.get("/auth/github/callback", async (req: Request, res: Response, next: Ne
     auditLog({ provider: "github", allowed: true, ip });
     const sessionToken = createSession(normalizedEmail, "github");
     setAdminSessionCookie(res, sessionToken);
-    res.redirect("/admin");
+    res.redirect(adminPath);
   } catch (err) {
     logger.error({ err }, "Error in GitHub callback");
     next(err);
