@@ -1,8 +1,10 @@
-import { and, asc, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, count, countDistinct, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import express, { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
 import {
   CreateAdminRecipeBody,
+  CreateAdminCategoryBody,
+  CreateAdminAudienceBody,
   CreateSubmissionBody,
   DeleteAdminRecipeParams,
   DuplicateAdminRecipeParams,
@@ -30,6 +32,10 @@ import {
   UpdateAdminRecipeBody,
   UpdateAdminRecipeParams,
   UpdateAdminSubmissionBody,
+  UpdateAdminCategoryBody,
+  UpdateAdminCategoryParams,
+  UpdateAdminAudienceBody,
+  UpdateAdminAudienceParams,
 } from "@workspace/api-zod";
 import {
   audiencesTable,
@@ -39,12 +45,19 @@ import {
   feedbackTable,
   historyTable,
   recipesTable,
+  recipeAudiencesTable,
   savedRecipesTable,
   submissionsTable,
   suggestionsTable,
 } from "@workspace/db";
 import { requireAdmin, requireAuth, type AuthenticatedRequest } from "../middlewares/auth";
-import { mapRecipeCsvRecord, normalizeRecipeCsvHeader, parseRecipeCsv } from "../lib/recipe-csv-import";
+import {
+  mapRecipeCsvRecord,
+  normalizeRecipeCsvHeader,
+  parseRecipeCsv,
+  recipeTaxonomySlug,
+  splitRecipeCsvAudiences,
+} from "../lib/recipe-csv-import";
 import { validateRecipeLayout } from "../lib/recipe-layout";
 import { getRecipeMediaConfig, getRecipeMediaMaxBytes, listRecipeMedia, uploadRecipeMedia } from "../lib/recipe-media";
 
@@ -104,6 +117,25 @@ function recipeResponse(recipe: typeof recipesTable.$inferSelect, category: type
   };
 }
 
+async function replaceRecipeAudiences(recipeId: number, audienceIds: number[]) {
+  const uniqueIds = [...new Set(audienceIds)];
+  await db.delete(recipeAudiencesTable).where(eq(recipeAudiencesTable.recipeId, recipeId));
+  if (uniqueIds.length) {
+    await db.insert(recipeAudiencesTable)
+      .values(uniqueIds.map((audienceId) => ({ recipeId, audienceId })))
+      .onConflictDoNothing();
+  }
+}
+
+async function addRecipeAudiences(recipeId: number, audienceIds: number[]) {
+  const uniqueIds = [...new Set(audienceIds)];
+  if (uniqueIds.length) {
+    await db.insert(recipeAudiencesTable)
+      .values(uniqueIds.map((audienceId) => ({ recipeId, audienceId })))
+      .onConflictDoNothing();
+  }
+}
+
 async function findRecipe(slug: string) {
   const [row] = await db
     .select({ recipe: recipesTable, category: categoriesTable, audience: audiencesTable })
@@ -130,7 +162,13 @@ router.get("/recipes", async (req, res): Promise<void> => {
   const filters = [
     eq(recipesTable.status, "PUBLISHED"),
     category ? eq(categoriesTable.slug, category) : undefined,
-    audience ? eq(audiencesTable.slug, audience) : undefined,
+    audience ? inArray(
+      recipesTable.id,
+      db.select({ recipeId: recipeAudiencesTable.recipeId })
+        .from(recipeAudiencesTable)
+        .innerJoin(audiencesTable, eq(recipeAudiencesTable.audienceId, audiencesTable.id))
+        .where(eq(audiencesTable.slug, audience)),
+    ) : undefined,
     difficulty ? eq(recipesTable.difficulty, difficulty) : undefined,
     tool ? sql`${recipesTable.aiTools}::text ILIKE ${`%${tool}%`}` : undefined,
     language ? eq(recipesTable.language, language) : undefined,
@@ -269,7 +307,7 @@ router.get("/home", async (_req, res): Promise<void> => {
     fetchCards({ where: eq(recipesTable.status, "PUBLISHED"), orderBy: desc(sql`${recipesTable.viewCount} + ${recipesTable.copyCount} * 3 + ${recipesTable.saveCount} * 4`), limit: 6 }),
     fetchCards({ where: eq(recipesTable.status, "PUBLISHED"), orderBy: desc(recipesTable.copyCount), limit: 6 }),
     db.select({ id: categoriesTable.id, name: categoriesTable.name, slug: categoriesTable.slug, description: categoriesTable.description, recipeCount: count(recipesTable.id) }).from(categoriesTable).leftJoin(recipesTable, and(eq(recipesTable.categoryId, categoriesTable.id), eq(recipesTable.status, "PUBLISHED"))).groupBy(categoriesTable.id).orderBy(asc(categoriesTable.name)),
-    db.select({ id: audiencesTable.id, name: audiencesTable.name, slug: audiencesTable.slug, description: audiencesTable.description, recipeCount: count(recipesTable.id) }).from(audiencesTable).leftJoin(recipesTable, and(eq(recipesTable.audienceId, audiencesTable.id), eq(recipesTable.status, "PUBLISHED"))).groupBy(audiencesTable.id).orderBy(asc(audiencesTable.name)),
+    db.select({ id: audiencesTable.id, name: audiencesTable.name, slug: audiencesTable.slug, description: audiencesTable.description, recipeCount: countDistinct(recipesTable.id) }).from(audiencesTable).leftJoin(recipeAudiencesTable, eq(recipeAudiencesTable.audienceId, audiencesTable.id)).leftJoin(recipesTable, and(eq(recipeAudiencesTable.recipeId, recipesTable.id), eq(recipesTable.status, "PUBLISHED"))).groupBy(audiencesTable.id).orderBy(asc(audiencesTable.name)),
   ]);
   const normalizedCategories = categories.map((item) => ({ ...item, recipeCount: Number(item.recipeCount) }));
   const normalizedAudiences = audiences.map((item) => ({ ...item, recipeCount: Number(item.recipeCount) }));
@@ -297,7 +335,7 @@ router.get("/categories/:slug", async (req, res): Promise<void> => {
 });
 
 router.get("/audiences", async (_req, res): Promise<void> => {
-  const rows = await db.select({ id: audiencesTable.id, name: audiencesTable.name, slug: audiencesTable.slug, description: audiencesTable.description, recipeCount: count(recipesTable.id) }).from(audiencesTable).leftJoin(recipesTable, and(eq(recipesTable.audienceId, audiencesTable.id), eq(recipesTable.status, "PUBLISHED"))).groupBy(audiencesTable.id).orderBy(asc(audiencesTable.name));
+  const rows = await db.select({ id: audiencesTable.id, name: audiencesTable.name, slug: audiencesTable.slug, description: audiencesTable.description, recipeCount: countDistinct(recipesTable.id) }).from(audiencesTable).leftJoin(recipeAudiencesTable, eq(recipeAudiencesTable.audienceId, audiencesTable.id)).leftJoin(recipesTable, and(eq(recipeAudiencesTable.recipeId, recipesTable.id), eq(recipesTable.status, "PUBLISHED"))).groupBy(audiencesTable.id).orderBy(asc(audiencesTable.name));
   res.json(ListAudiencesResponse.parse(rows.map((row) => ({ ...row, recipeCount: Number(row.recipeCount) }))));
 });
 
@@ -306,7 +344,18 @@ router.get("/audiences/:slug", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const [audience] = await db.select().from(audiencesTable).where(eq(audiencesTable.slug, params.data.slug));
   if (!audience) { res.status(404).json({ error: "Audience not found" }); return; }
-  const recipes = await fetchCards({ where: and(eq(recipesTable.audienceId, audience.id), eq(recipesTable.status, "PUBLISHED")), limit: 50 });
+  const recipes = await fetchCards({
+    where: and(
+      inArray(
+        recipesTable.id,
+        db.select({ recipeId: recipeAudiencesTable.recipeId })
+          .from(recipeAudiencesTable)
+          .where(eq(recipeAudiencesTable.audienceId, audience.id)),
+      ),
+      eq(recipesTable.status, "PUBLISHED"),
+    ),
+    limit: 50,
+  });
   res.json({ name: audience.name, slug: audience.slug, description: audience.description, recipes });
 });
 
@@ -464,6 +513,101 @@ router.post("/admin/media/upload", requireAdmin, (req, res, next) => {
   }
 });
 
+router.post("/admin/categories", requireAdmin, async (req, res): Promise<void> => {
+  const parsed = CreateAdminCategoryBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  try {
+    const [category] = await db.insert(categoriesTable).values(parsed.data).returning();
+    res.status(201).json({ ...category, recipeCount: 0 });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") {
+      res.status(409).json({ error: "A category with this slug already exists." });
+      return;
+    }
+    throw error;
+  }
+});
+
+router.patch("/admin/categories/:id", requireAdmin, async (req, res): Promise<void> => {
+  const params = UpdateAdminCategoryParams.safeParse(req.params);
+  const parsed = UpdateAdminCategoryBody.safeParse(req.body);
+  if (!params.success || !parsed.success) {
+    res.status(400).json({ error: "Invalid category data." });
+    return;
+  }
+  try {
+    const [category] = await db.update(categoriesTable)
+      .set(parsed.data)
+      .where(eq(categoriesTable.id, params.data.id))
+      .returning();
+    if (!category) {
+      res.status(404).json({ error: "Category not found." });
+      return;
+    }
+    const [result] = await db.select({ recipeCount: count(recipesTable.id) })
+      .from(recipesTable)
+      .where(and(eq(recipesTable.categoryId, category.id), eq(recipesTable.status, "PUBLISHED")));
+    res.json({ ...category, recipeCount: Number(result?.recipeCount ?? 0) });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") {
+      res.status(409).json({ error: "A category with this slug already exists." });
+      return;
+    }
+    throw error;
+  }
+});
+
+router.post("/admin/audiences", requireAdmin, async (req, res): Promise<void> => {
+  const parsed = CreateAdminAudienceBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  try {
+    const [audience] = await db.insert(audiencesTable).values(parsed.data).returning();
+    res.status(201).json({ ...audience, recipeCount: 0 });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") {
+      res.status(409).json({ error: "An audience with this slug already exists." });
+      return;
+    }
+    throw error;
+  }
+});
+
+router.patch("/admin/audiences/:id", requireAdmin, async (req, res): Promise<void> => {
+  const params = UpdateAdminAudienceParams.safeParse(req.params);
+  const parsed = UpdateAdminAudienceBody.safeParse(req.body);
+  if (!params.success || !parsed.success) {
+    res.status(400).json({ error: "Invalid audience data." });
+    return;
+  }
+  try {
+    const [audience] = await db.update(audiencesTable)
+      .set(parsed.data)
+      .where(eq(audiencesTable.id, params.data.id))
+      .returning();
+    if (!audience) {
+      res.status(404).json({ error: "Audience not found." });
+      return;
+    }
+    const [result] = await db.select({ recipeCount: countDistinct(recipesTable.id) })
+      .from(recipeAudiencesTable)
+      .innerJoin(recipesTable, eq(recipeAudiencesTable.recipeId, recipesTable.id))
+      .where(and(eq(recipeAudiencesTable.audienceId, audience.id), eq(recipesTable.status, "PUBLISHED")));
+    res.json({ ...audience, recipeCount: Number(result?.recipeCount ?? 0) });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") {
+      res.status(409).json({ error: "An audience with this slug already exists." });
+      return;
+    }
+    throw error;
+  }
+});
+
 router.get("/admin/recipes", requireAdmin, async (req, res): Promise<void> => {
   const parsed = ListAdminRecipesQueryParams.safeParse(req.query);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
@@ -481,6 +625,7 @@ router.post("/admin/recipes", requireAdmin, async (req, res): Promise<void> => {
     ...parsed.data,
     testedAt: parsed.data.testedAt ? parsed.data.testedAt.toISOString().slice(0, 10) : null,
   }).returning();
+  await addRecipeAudiences(created.id, [created.audienceId]);
   const [category] = await db.select().from(categoriesTable).where(eq(categoriesTable.id, created.categoryId));
   const [audience] = await db.select().from(audiencesTable).where(eq(audiencesTable.id, created.audienceId));
   res.status(201).json(recipeResponse(created, category, audience));
@@ -517,6 +662,57 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
     return;
   }
 
+  const rowData = records.map((record) => ({
+    record,
+    categoryKey: normalizeRecipeCsvHeader(record.category ?? ""),
+    audienceKeys: splitRecipeCsvAudiences(record["target audience"] ?? record.audience ?? "")
+      .map(normalizeRecipeCsvHeader),
+  }));
+  const categoryNames = new Map<string, string>();
+  const audienceNames = new Map<string, string>();
+  for (const row of rowData) {
+    const rawCategory = row.record.category?.trim().replace(/\s+/g, " ") ?? "";
+    if (rawCategory) categoryNames.set(normalizeRecipeCsvHeader(rawCategory), rawCategory);
+    for (const rawAudience of splitRecipeCsvAudiences(row.record["target audience"] ?? row.record.audience ?? "")) {
+      audienceNames.set(normalizeRecipeCsvHeader(rawAudience), rawAudience);
+    }
+  }
+
+  const [existingCategories, existingAudiences] = await Promise.all([
+    db.select().from(categoriesTable),
+    db.select().from(audiencesTable),
+  ]);
+  const knownCategoryKeys = new Set(existingCategories.flatMap((item) => [
+    normalizeRecipeCsvHeader(item.name),
+    normalizeRecipeCsvHeader(item.slug),
+  ]));
+  const knownAudienceKeys = new Set(existingAudiences.flatMap((item) => [
+    normalizeRecipeCsvHeader(item.name),
+    normalizeRecipeCsvHeader(item.slug),
+  ]));
+  const displayTaxonomyName = (name: string) => name.charAt(0).toLocaleUpperCase() + name.slice(1);
+  const newCategories = [...categoryNames.entries()]
+    .filter(([key]) => !knownCategoryKeys.has(key))
+    .map(([, name]) => ({
+      name: displayTaxonomyName(name),
+      slug: recipeTaxonomySlug(name),
+      description: `AI recipes for ${displayTaxonomyName(name)}.`,
+    }))
+    .filter((item) => item.slug);
+  const newAudiences = [...audienceNames.entries()]
+    .filter(([key]) => !knownAudienceKeys.has(key))
+    .map(([, name]) => ({
+      name: displayTaxonomyName(name),
+      slug: recipeTaxonomySlug(name),
+      description: `AI recipes for ${displayTaxonomyName(name)}.`,
+    }))
+    .filter((item) => item.slug);
+  if (newCategories.length) {
+    await db.insert(categoriesTable).values(newCategories).onConflictDoNothing();
+  }
+  if (newAudiences.length) {
+    await db.insert(audiencesTable).values(newAudiences).onConflictDoNothing();
+  }
   const [categories, audiences] = await Promise.all([
     db.select().from(categoriesTable),
     db.select().from(audiencesTable),
@@ -530,11 +726,6 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
     [normalizeRecipeCsvHeader(item.slug), item] as const,
   ]));
 
-  const rowData = records.map((record) => ({
-    record,
-    categoryKey: normalizeRecipeCsvHeader(record.category ?? ""),
-    audienceKey: normalizeRecipeCsvHeader(record["target audience"] ?? record.audience ?? ""),
-  }));
   const mappedSlugs = rowData.map(({ record }) =>
     normalizeRecipeCsvHeader(record["url slug"] ?? record.slug ?? "").replace(/ /g, "-"),
   ).filter(Boolean);
@@ -560,14 +751,22 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
     seenSlugs.add(slug);
 
     const category = categoryByNameOrSlug.get(row.categoryKey);
-    const audience = audienceByNameOrSlug.get(row.audienceKey);
-    if (!category || !audience) {
-      const missing = [!category ? `category "${row.record.category ?? ""}"` : "", !audience ? `target audience "${row.record["target audience"] ?? row.record.audience ?? ""}"` : ""].filter(Boolean).join(" and ");
-      results.push({ row: rowNumber, slug, status: "failed", message: `Unknown ${missing}; use an existing name or slug.` });
+    const rowAudiences = row.audienceKeys
+      .map((key) => audienceByNameOrSlug.get(key))
+      .filter((item): item is (typeof audiences)[number] => item !== undefined);
+    if (!category || !row.audienceKeys.length || rowAudiences.length !== row.audienceKeys.length) {
+      const unknownAudiences = row.audienceKeys.filter((key) => !audienceByNameOrSlug.has(key));
+      const missing = [
+        !category ? `category "${row.record.category ?? ""}"` : "",
+        ...unknownAudiences.map((key) => `target audience "${audienceNames.get(key) ?? key}"`),
+        !row.audienceKeys.length ? "target audience is empty" : "",
+      ].filter(Boolean).join(" and ");
+      results.push({ row: rowNumber, slug, status: "failed", message: `Could not resolve ${missing}.` });
       continue;
     }
 
-    const parsed = CreateAdminRecipeBody.safeParse(mapRecipeCsvRecord(row.record, category.id, audience.id));
+    const primaryAudience = rowAudiences[0];
+    const parsed = CreateAdminRecipeBody.safeParse(mapRecipeCsvRecord(row.record, category.id, primaryAudience.id));
     if (!parsed.success) {
       const message = parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; ");
       results.push({ row: rowNumber, slug, status: "failed", message });
@@ -575,12 +774,18 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
     }
 
     try {
-      const [created] = await db.insert(recipesTable).values({
-        ...parsed.data,
-        slug,
-        testedAt: parsed.data.testedAt ? parsed.data.testedAt.toISOString().slice(0, 10) : null,
-        publishedAt: parsed.data.status === "PUBLISHED" ? new Date() : null,
-      }).returning();
+      const [created] = await db.transaction(async (tx) => {
+        const [recipe] = await tx.insert(recipesTable).values({
+          ...parsed.data,
+          slug,
+          testedAt: parsed.data.testedAt ? parsed.data.testedAt.toISOString().slice(0, 10) : null,
+          publishedAt: parsed.data.status === "PUBLISHED" ? new Date() : null,
+        }).returning();
+        await tx.insert(recipeAudiencesTable)
+          .values(rowAudiences.map((item) => ({ recipeId: recipe.id, audienceId: item.id })))
+          .onConflictDoNothing();
+        return [recipe];
+      });
       results.push({ row: rowNumber, slug: created.slug, status: "created", message: created.status });
     } catch {
       results.push({ row: rowNumber, slug, status: "failed", message: "Recipe could not be saved; check required fields and database constraints." });
@@ -597,6 +802,9 @@ router.patch("/admin/recipes/:id", requireAdmin, async (req, res): Promise<void>
   if (!params.success || !parsed.success) { res.status(400).json({ error: "Invalid recipe data." }); return; }
   const layoutError = validateRecipeLayout(parsed.data.layoutMode, parsed.data.layoutConfig);
   if (layoutError) { res.status(400).json({ error: layoutError }); return; }
+  const [previous] = await db.select({ audienceId: recipesTable.audienceId })
+    .from(recipesTable)
+    .where(eq(recipesTable.id, params.data.id));
   const [updated] = await db.update(recipesTable).set({
     ...parsed.data,
     testedAt: parsed.data.testedAt ? parsed.data.testedAt.toISOString().slice(0, 10) : null,
@@ -604,6 +812,9 @@ router.patch("/admin/recipes/:id", requireAdmin, async (req, res): Promise<void>
     publishedAt: parsed.data.status === "PUBLISHED" ? new Date() : undefined,
   }).where(eq(recipesTable.id, params.data.id)).returning();
   if (!updated) { res.status(404).json({ error: "Recipe not found" }); return; }
+  if (previous && previous.audienceId !== updated.audienceId) {
+    await replaceRecipeAudiences(updated.id, [updated.audienceId]);
+  }
   const [category] = await db.select().from(categoriesTable).where(eq(categoriesTable.id, updated.categoryId));
   const [audience] = await db.select().from(audiencesTable).where(eq(audiencesTable.id, updated.audienceId));
   res.json(recipeResponse(updated, category, audience));
@@ -615,6 +826,12 @@ router.post("/admin/recipes/:id/duplicate", requireAdmin, async (req, res): Prom
   const [source] = await db.select().from(recipesTable).where(eq(recipesTable.id, params.data.id));
   if (!source) { res.status(404).json({ error: "Recipe not found" }); return; }
   const [created] = await db.insert(recipesTable).values({ ...source, id: undefined, title: `${source.title} — copy`, slug: `${source.slug}-copy-${Date.now()}`, status: "DRAFT", featured: false, trending: false, recipeOfDay: false, version: "1.0", publishedAt: null, viewCount: 0, copyCount: 0, saveCount: 0, shareCount: 0, positiveFeedbackCount: 0, negativeFeedbackCount: 0, createdAt: undefined, updatedAt: undefined }).returning();
+  const sourceAudiences = await db.select({ audienceId: recipeAudiencesTable.audienceId })
+    .from(recipeAudiencesTable)
+    .where(eq(recipeAudiencesTable.recipeId, source.id));
+  await addRecipeAudiences(created.id, sourceAudiences.map(({ audienceId }) => audienceId).length
+    ? sourceAudiences.map(({ audienceId }) => audienceId)
+    : [created.audienceId]);
   const [category] = await db.select().from(categoriesTable).where(eq(categoriesTable.id, created.categoryId));
   const [audience] = await db.select().from(audiencesTable).where(eq(audiencesTable.id, created.audienceId));
   res.status(201).json(recipeResponse(created, category, audience));

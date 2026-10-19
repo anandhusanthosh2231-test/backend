@@ -57,6 +57,27 @@ function splitList(value: string): string[] {
   return trimmed.split(/(?:,|;|\||\r?\n)+/).map((item) => item.trim()).filter(Boolean);
 }
 
+export function splitRecipeCsvAudiences(value: string): string[] {
+  const seen = new Set<string>();
+  return splitList(value).flatMap((name) => {
+    const normalized = name.replace(/\s+/g, " ").trim();
+    const key = normalizeRecipeCsvHeader(normalized);
+    if (!key || seen.has(key)) return [];
+    seen.add(key);
+    return [normalized];
+  });
+}
+
+export function recipeTaxonomySlug(name: string): string {
+  return name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function parseObjectArray(value: string): unknown[] | undefined {
   if (!value.trim().startsWith("[")) return undefined;
   try {

@@ -738,36 +738,3 @@ html[data-mobile-mode="true"] main {
     gap: 8px;
   }
 }
-/* ==========================================================================
-   FOOTER MOBILE OPTIMIZATION
-   ========================================================================== */
-@media (max-width: 768px) {
-  .site-footer {
-    margin-top: 40px !important;
-    padding: 30px 0 100px !important;
-  }
-  .footer-grid {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 20px 15px !important;
-  }
-  .footer-grid > div:first-child {
-    grid-column: span 2 !important;
-  }
-  .footer-note {
-    display: none !important; /* Hide description to save space */
-  }
-  .footer-signal {
-    grid-column: span 2 !important;
-    text-align: left !important;
-    margin-top: 0px !important;
-    font-size: 11px !important;
-    line-height: 1.4 !important;
-  }
-  .footer-bottom {
-    margin-top: 20px !important;
-    padding-top: 15px !important;
-    flex-direction: row !important;
-    justify-content: space-between !important;
-    font-size: 8px !important;
-  }
-}

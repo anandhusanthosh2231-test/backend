@@ -1148,6 +1148,126 @@ export const ImportAdminRecipesCsvResponse = zod.object({
 
 
 /**
+ * @summary Create a recipe category
+ */
+export const createAdminCategoryBodyNameMax = 100;
+
+export const createAdminCategoryBodySlugMax = 120;
+
+
+export const createAdminCategoryBodySlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+export const createAdminCategoryBodyDescriptionMax = 500;
+
+
+
+export const CreateAdminCategoryBody = zod.object({
+  "name": zod.string().min(1).max(createAdminCategoryBodyNameMax),
+  "slug": zod.string().min(1).max(createAdminCategoryBodySlugMax).regex(createAdminCategoryBodySlugRegExp),
+  "description": zod.string().min(1).max(createAdminCategoryBodyDescriptionMax)
+})
+
+export const CreateAdminCategoryResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string(),
+  "recipeCount": zod.number()
+})
+
+
+/**
+ * @summary Update a recipe category
+ */
+export const UpdateAdminCategoryParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateAdminCategoryBodyNameMax = 100;
+
+export const updateAdminCategoryBodySlugMax = 120;
+
+
+export const updateAdminCategoryBodySlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+export const updateAdminCategoryBodyDescriptionMax = 500;
+
+
+
+export const UpdateAdminCategoryBody = zod.object({
+  "name": zod.string().min(1).max(updateAdminCategoryBodyNameMax),
+  "slug": zod.string().min(1).max(updateAdminCategoryBodySlugMax).regex(updateAdminCategoryBodySlugRegExp),
+  "description": zod.string().min(1).max(updateAdminCategoryBodyDescriptionMax)
+})
+
+export const UpdateAdminCategoryResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string(),
+  "recipeCount": zod.number()
+})
+
+
+/**
+ * @summary Create a recipe audience
+ */
+export const createAdminAudienceBodyNameMax = 100;
+
+export const createAdminAudienceBodySlugMax = 120;
+
+
+export const createAdminAudienceBodySlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+export const createAdminAudienceBodyDescriptionMax = 500;
+
+
+
+export const CreateAdminAudienceBody = zod.object({
+  "name": zod.string().min(1).max(createAdminAudienceBodyNameMax),
+  "slug": zod.string().min(1).max(createAdminAudienceBodySlugMax).regex(createAdminAudienceBodySlugRegExp),
+  "description": zod.string().min(1).max(createAdminAudienceBodyDescriptionMax)
+})
+
+export const CreateAdminAudienceResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string(),
+  "recipeCount": zod.number()
+})
+
+
+/**
+ * @summary Update a recipe audience
+ */
+export const UpdateAdminAudienceParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateAdminAudienceBodyNameMax = 100;
+
+export const updateAdminAudienceBodySlugMax = 120;
+
+
+export const updateAdminAudienceBodySlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+export const updateAdminAudienceBodyDescriptionMax = 500;
+
+
+
+export const UpdateAdminAudienceBody = zod.object({
+  "name": zod.string().min(1).max(updateAdminAudienceBodyNameMax),
+  "slug": zod.string().min(1).max(updateAdminAudienceBodySlugMax).regex(updateAdminAudienceBodySlugRegExp),
+  "description": zod.string().min(1).max(updateAdminAudienceBodyDescriptionMax)
+})
+
+export const UpdateAdminAudienceResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string(),
+  "recipeCount": zod.number()
+})
+
+
+/**
  * @summary Update an admin recipe
  */
 export const UpdateAdminRecipeParams = zod.object({

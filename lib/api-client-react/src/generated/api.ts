@@ -51,6 +51,7 @@ import type {
   SubmissionInput,
   SubmissionStatusUpdate,
   SuggestionInput,
+  TaxonomyInput,
   UploadAdminRecipeMediaParams
 } from './api.schemas';
 
@@ -1916,6 +1917,292 @@ export const useImportAdminRecipesCsv = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getImportAdminRecipesCsvMutationOptions(options));
+    }
+
+export const getCreateAdminCategoryUrl = () => {
+
+
+
+
+  return `/api/admin/categories`
+}
+
+/**
+ * @summary Create a recipe category
+ */
+export const createAdminCategory = async (taxonomyInput: TaxonomyInput, options?: Parameters<typeof customFetch>[1]): Promise<Category> => {
+
+  return customFetch<Category>(getCreateAdminCategoryUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(taxonomyInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminCategoryMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminCategory>>, TError,{data: BodyType<TaxonomyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminCategory>>, TError,{data: BodyType<TaxonomyInput>}, TContext> => {
+
+const mutationKey = ['createAdminCategory'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminCategory>>, {data: BodyType<TaxonomyInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminCategory(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminCategoryMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminCategory>>>
+    export type CreateAdminCategoryMutationBody = BodyType<TaxonomyInput>
+    export type CreateAdminCategoryMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a recipe category
+ */
+export const useCreateAdminCategory = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminCategory>>, TError,{data: BodyType<TaxonomyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminCategory>>,
+        TError,
+        {data: BodyType<TaxonomyInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminCategoryMutationOptions(options));
+    }
+
+export const getUpdateAdminCategoryUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/categories/${id}`
+}
+
+/**
+ * @summary Update a recipe category
+ */
+export const updateAdminCategory = async (id: number,
+    taxonomyInput: TaxonomyInput, options?: Parameters<typeof customFetch>[1]): Promise<Category> => {
+
+  return customFetch<Category>(getUpdateAdminCategoryUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(taxonomyInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminCategoryMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminCategory>>, TError,{id: number;data: BodyType<TaxonomyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminCategory>>, TError,{id: number;data: BodyType<TaxonomyInput>}, TContext> => {
+
+const mutationKey = ['updateAdminCategory'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminCategory>>, {id: number;data: BodyType<TaxonomyInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminCategory(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminCategoryMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminCategory>>>
+    export type UpdateAdminCategoryMutationBody = BodyType<TaxonomyInput>
+    export type UpdateAdminCategoryMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a recipe category
+ */
+export const useUpdateAdminCategory = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminCategory>>, TError,{id: number;data: BodyType<TaxonomyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminCategory>>,
+        TError,
+        {id: number;data: BodyType<TaxonomyInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminCategoryMutationOptions(options));
+    }
+
+export const getCreateAdminAudienceUrl = () => {
+
+
+
+
+  return `/api/admin/audiences`
+}
+
+/**
+ * @summary Create a recipe audience
+ */
+export const createAdminAudience = async (taxonomyInput: TaxonomyInput, options?: Parameters<typeof customFetch>[1]): Promise<Audience> => {
+
+  return customFetch<Audience>(getCreateAdminAudienceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(taxonomyInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminAudienceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAudience>>, TError,{data: BodyType<TaxonomyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminAudience>>, TError,{data: BodyType<TaxonomyInput>}, TContext> => {
+
+const mutationKey = ['createAdminAudience'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminAudience>>, {data: BodyType<TaxonomyInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminAudience(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminAudienceMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminAudience>>>
+    export type CreateAdminAudienceMutationBody = BodyType<TaxonomyInput>
+    export type CreateAdminAudienceMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a recipe audience
+ */
+export const useCreateAdminAudience = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminAudience>>, TError,{data: BodyType<TaxonomyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminAudience>>,
+        TError,
+        {data: BodyType<TaxonomyInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminAudienceMutationOptions(options));
+    }
+
+export const getUpdateAdminAudienceUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/audiences/${id}`
+}
+
+/**
+ * @summary Update a recipe audience
+ */
+export const updateAdminAudience = async (id: number,
+    taxonomyInput: TaxonomyInput, options?: Parameters<typeof customFetch>[1]): Promise<Audience> => {
+
+  return customFetch<Audience>(getUpdateAdminAudienceUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(taxonomyInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminAudienceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminAudience>>, TError,{id: number;data: BodyType<TaxonomyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminAudience>>, TError,{id: number;data: BodyType<TaxonomyInput>}, TContext> => {
+
+const mutationKey = ['updateAdminAudience'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminAudience>>, {id: number;data: BodyType<TaxonomyInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminAudience(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminAudienceMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminAudience>>>
+    export type UpdateAdminAudienceMutationBody = BodyType<TaxonomyInput>
+    export type UpdateAdminAudienceMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a recipe audience
+ */
+export const useUpdateAdminAudience = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminAudience>>, TError,{id: number;data: BodyType<TaxonomyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminAudience>>,
+        TError,
+        {id: number;data: BodyType<TaxonomyInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminAudienceMutationOptions(options));
     }
 
 export const getUpdateAdminRecipeUrl = (id: number,) => {

@@ -102,6 +102,20 @@ browser suite against the built frontend. To rerun the suite after a build:
 pnpm run test:e2e
 ```
 
+## Production deployment
+
+Commit your changes on `main`, then run the root deployment script from
+PowerShell:
+
+```powershell
+.\deploy.ps1
+```
+
+The script builds and tests the workspace, pushes `main` to trigger Render,
+waits for the API release to become healthy, and deploys the frontend Worker
+to Cloudflare. It requires a clean `main` worktree, plus authenticated Git,
+Render auto-deploy, and Wrangler CLI access.
+
 ## Admin UI URL
 
 The admin UI route is configured with matching `ADMIN_PATH` (API server) and
@@ -111,3 +125,19 @@ environments. `VITE_ADMIN_PATH` is included in the public frontend bundle, so
 this only obscures the URL; it is not a security boundary. Keep the existing
 admin authentication and IP restrictions enabled. The old `/admin` UI route
 is not an admin entry point.
+
+## CSV taxonomy imports
+
+Apply the migration before running `deploy.ps1`; the script also verifies that
+the production audiences endpoint works before it publishes the frontend.
+
+Admin recipe CSV imports create missing categories and audiences from the
+spreadsheet. Semicolon-, comma-, pipe-, and newline-separated audience cells
+are split into individual audiences, and imported recipes appear under every
+assigned audience. Existing recipes retain their primary audience for API and
+editor compatibility.
+
+Before deploying this behavior, apply
+`lib/db/migrations/0003_recipe_audiences.sql` to the production database. It
+creates the recipe-to-audience relation and backfills each existing recipe's
+current audience.

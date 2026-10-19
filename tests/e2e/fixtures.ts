@@ -88,14 +88,23 @@ export interface ApiMockState {
   submissionRequests: SubmissionInput[];
   feedbackRequests: unknown[];
   adminRequests: string[];
+  taxonomyRequests: Array<{ method: string; pathname: string; body: unknown }>;
 }
 
-export async function mockApi(page: Page): Promise<ApiMockState> {
+interface MockApiOptions {
+  adminAuthenticated?: boolean;
+}
+
+export async function mockApi(
+  page: Page,
+  options: MockApiOptions = {},
+): Promise<ApiMockState> {
   const state: ApiMockState = {
     recipeListRequests: [],
     submissionRequests: [],
     feedbackRequests: [],
     adminRequests: [],
+    taxonomyRequests: [],
   };
 
   await page.route('https://**/*', (route) =>
@@ -146,7 +155,52 @@ export async function mockApi(page: Page): Promise<ApiMockState> {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ authenticated: false, user: null }),
+        body: JSON.stringify(options.adminAuthenticated
+          ? {
+              authenticated: true,
+              user: { emailMasked: 'a***@example.com', provider: 'google' },
+            }
+          : { authenticated: false, user: null }),
+      });
+      return;
+    }
+
+    if (request.method() === 'GET' && pathname === '/api/admin/recipes') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ items: [], total: 0, page: 1, pageSize: 20 }),
+      });
+      return;
+    }
+
+    if (request.method() === 'GET' && pathname === '/api/admin/submissions') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+      return;
+    }
+
+    if (
+      ['POST', 'PATCH'].includes(request.method()) &&
+      /^\/api\/admin\/(categories|audiences)(\/\d+)?$/.test(pathname)
+    ) {
+      const body = request.postDataJSON();
+      state.taxonomyRequests.push({
+        method: request.method(),
+        pathname,
+        body,
+      });
+      await route.fulfill({
+        status: request.method() === 'POST' ? 201 : 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 1,
+          ...(body as Record<string, unknown>),
+          recipeCount: 1,
+        }),
       });
       return;
     }

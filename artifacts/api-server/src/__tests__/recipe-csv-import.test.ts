@@ -1,6 +1,22 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mapRecipeCsvRecord, parseRecipeCsv } from "../lib/recipe-csv-import.ts";
+import {
+  mapRecipeCsvRecord,
+  parseRecipeCsv,
+  recipeTaxonomySlug,
+  splitRecipeCsvAudiences,
+} from "../lib/recipe-csv-import.ts";
+
+test("splits and deduplicates semicolon-separated audience names", () => {
+  assert.deepEqual(
+    splitRecipeCsvAudiences("Content creators; photographers; content creators"),
+    ["Content creators", "photographers"],
+  );
+});
+
+test("creates readable URL-safe taxonomy slugs", () => {
+  assert.equal(recipeTaxonomySlug("Design & Media"), "design-media");
+});
 
 test("parses quoted CSV cells containing commas and line breaks", () => {
   const records = parseRecipeCsv('Recipe Title,The Copyable Prompt\n"Reply to customers","Write a clear, kind reply.\nKeep it short."');

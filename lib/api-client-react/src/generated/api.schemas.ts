@@ -33,6 +33,25 @@ export interface Audience {
   recipeCount: number;
 }
 
+export interface TaxonomyInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     * @pattern ^[a-z0-9]+(?:-[a-z0-9]+)*$
+     */
+  slug: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  description: string;
+}
+
 export interface RecipeCard {
   id: number;
   title: string;

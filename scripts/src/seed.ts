@@ -1,4 +1,4 @@
-import { db, audiencesTable, categoriesTable, recipesTable } from "@workspace/db";
+import { db, audiencesTable, categoriesTable, recipeAudiencesTable, recipesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const categoryData = [
@@ -90,7 +90,7 @@ async function main() {
     const slug = slugify(item.title);
     const existing = await db.select({ id: recipesTable.id }).from(recipesTable).where(eq(recipesTable.slug, slug));
     if (existing.length > 0) continue;
-    await db.insert(recipesTable).values({
+    const [created] = await db.insert(recipesTable).values({
       title: item.title,
       slug,
       shortDescription: item.description,
@@ -120,7 +120,10 @@ async function main() {
       seoTitle: `${item.title} | AI Recipes`,
       seoDescription: item.description,
       publishedAt: new Date(),
-    });
+    }).returning({ id: recipesTable.id });
+    await db.insert(recipeAudiencesTable)
+      .values({ recipeId: created.id, audienceId: audience.id })
+      .onConflictDoNothing();
   }
 }
 

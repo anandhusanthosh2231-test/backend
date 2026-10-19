@@ -147,6 +147,69 @@ test('mobile bottom navigation opens the categories page', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Start with the work.' })).toBeVisible();
 });
 
+test('minimal footer stays responsive and robot animates once with reduced-motion support', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/');
+
+  const footer = page.locator('.site-footer');
+  const track = page.locator('.footer-robot-track');
+  const robot = page.locator('.footer-robot');
+  await expect(footer.getByRole('link', { name: 'Explore' })).toHaveAttribute('href', '/recipes');
+  await expect(footer.getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about');
+  await expect(footer.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
+  await expect(footer.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/terms');
+  await expect(footer.getByText('© 2026 AI Recipes')).toBeVisible();
+  await expect(footer.getByText('A practical field guide to doing better work with AI.')).toBeVisible();
+  await expect(footer.getByText('Made for curious minds')).toBeVisible();
+  await expect(robot).toHaveCSS('height', '24px');
+  await expect.poll(() => track.evaluate((element) => {
+    const robotElement = element.querySelector('svg');
+    return Number.parseFloat(getComputedStyle(element).getPropertyValue('--robot-travel'))
+      === element.clientWidth - (robotElement?.getBoundingClientRect().width ?? 0);
+  })).toBe(true);
+  const desktopFooterHeight = await footer.evaluate((element) => element.getBoundingClientRect().height);
+  expect(desktopFooterHeight).toBeGreaterThanOrEqual(100);
+  expect(desktopFooterHeight).toBeLessThanOrEqual(150);
+
+  for (const width of [360, 768, 1440, 2560]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
+
+  await track.scrollIntoViewIfNeeded();
+  await expect(robot).toHaveClass(/is-started/);
+  await expect(robot).toHaveCSS('animation-name', 'footer-robot-walk');
+  await page.waitForTimeout(8200);
+  const completedWalkTime = await robot.evaluate((element) => {
+    const animation = element.getAnimations().find((item) => item.animationName === 'footer-robot-walk');
+    return Number(animation?.currentTime ?? 0);
+  });
+  expect(completedWalkTime).toBeGreaterThanOrEqual(5000);
+  await expect.poll(() => track.evaluate((element) => {
+    const robotElement = element.querySelector('svg');
+    if (!robotElement) return false;
+    const target = Number.parseFloat(getComputedStyle(element).getPropertyValue('--robot-travel'));
+    return Math.abs(robotElement.getBoundingClientRect().left - element.getBoundingClientRect().left - target) < 1;
+  })).toBe(true);
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await track.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(100);
+  await expect.poll(() => robot.evaluate((element) => {
+    const animation = element.getAnimations().find((item) => item.animationName === 'footer-robot-walk');
+    return Number(animation?.currentTime ?? 0);
+  })).toBeGreaterThanOrEqual(completedWalkTime);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const mobileFooterHeight = await footer.evaluate((element) => element.getBoundingClientRect().height);
+  expect(mobileFooterHeight).toBeGreaterThan(desktopFooterHeight);
+  await expect.poll(() => track.evaluate((element) => element.clientWidth)).toBeGreaterThan(250);
+  await track.scrollIntoViewIfNeeded();
+  await expect(robot).toHaveCSS('animation-name', 'none');
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
 test('admin route presents the authorization gateway and explains denied access', async ({
   page,
 }) => {
@@ -167,6 +230,79 @@ test('admin route presents the authorization gateway and explains denied access'
     'noindex, nofollow',
   );
   expect(api.adminRequests).toEqual([]);
+});
+
+test('recipe editor links to the visible CSV import action', async ({ page }) => {
+  await mockApi(page, { adminAuthenticated: true });
+  const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
+  await page.goto(`${adminPath}/recipes/new`);
+  await expect(
+    page.getByRole('heading', { name: 'Choose a recipe layout' }),
+  ).toBeVisible();
+
+  await page.getByTestId('link-editor-import-csv').click();
+  await expect(page).toHaveURL(/\/recipes#import-csv$/);
+  await expect(page.getByTestId('button-admin-recipes-import-csv')).toBeVisible();
+});
+
+test('admin can create and edit categories and audiences', async ({ page }) => {
+  const api = await mockApi(page, { adminAuthenticated: true });
+  const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
+
+  await page.goto(`${adminPath}/categories`);
+  await page.getByTestId('button-add-category').click();
+  await page.getByTestId('input-taxonomy-name').fill('Design & Media');
+  await page.getByTestId('input-taxonomy-description').fill('Visual design and media workflows.');
+  await page.getByTestId('button-save-taxonomy').click();
+  await expect.poll(() => api.taxonomyRequests.length).toBe(1);
+  expect(api.taxonomyRequests[0]).toMatchObject({
+    method: 'POST',
+    pathname: '/api/admin/categories',
+    body: {
+      name: 'Design & Media',
+      slug: 'design-media',
+      description: 'Visual design and media workflows.',
+    },
+  });
+
+  await page.getByTestId('button-edit-category-1').click();
+  await page.getByTestId('input-taxonomy-description').fill('Updated writing workflows.');
+  await page.getByTestId('button-save-taxonomy').click();
+  await expect.poll(() => api.taxonomyRequests.length).toBe(2);
+  expect(api.taxonomyRequests[1]).toMatchObject({
+    method: 'PATCH',
+    pathname: '/api/admin/categories/1',
+  });
+
+  await page.goto(`${adminPath}/audiences`);
+  await page.getByTestId('button-add-audience').click();
+  await page.getByTestId('input-taxonomy-name').fill('Independent creators');
+  await page.getByTestId('input-taxonomy-description').fill('Workflows for independent creators.');
+  await page.getByTestId('button-save-taxonomy').click();
+  await expect.poll(() => api.taxonomyRequests.length).toBe(3);
+  expect(api.taxonomyRequests[2]).toMatchObject({
+    method: 'POST',
+    pathname: '/api/admin/audiences',
+    body: {
+      name: 'Independent creators',
+      slug: 'independent-creators',
+      description: 'Workflows for independent creators.',
+    },
+  });
+
+  await page.getByTestId('button-edit-audience-1').click();
+  await page.getByTestId('input-taxonomy-name').fill('Content creators');
+  await page.getByTestId('input-taxonomy-slug').fill('content-creators');
+  await page.getByTestId('button-save-taxonomy').click();
+  await expect.poll(() => api.taxonomyRequests.length).toBe(4);
+  expect(api.taxonomyRequests[3]).toMatchObject({
+    method: 'PATCH',
+    pathname: '/api/admin/audiences/1',
+    body: {
+      name: 'Content creators',
+      slug: 'content-creators',
+    },
+  });
 });
 
 test('old admin URL is no longer an admin entry point', async ({ page }) => {

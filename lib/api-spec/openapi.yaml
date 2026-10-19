@@ -380,6 +380,92 @@ paths:
         "400": { description: Invalid CSV or import size }
         "401": { description: Authentication required }
         "403": { description: Admin access required }
+  /admin/categories:
+    post:
+      operationId: createAdminCategory
+      tags: [admin]
+      summary: Create a recipe category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaxonomyInput" }
+      responses:
+        "201":
+          description: Created category
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Category" }
+        "400": { description: Invalid category data }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "409": { description: Category name or slug already exists }
+  /admin/categories/{id}:
+    patch:
+      operationId: updateAdminCategory
+      tags: [admin]
+      summary: Update a recipe category
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaxonomyInput" }
+      responses:
+        "200":
+          description: Updated category
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Category" }
+        "400": { description: Invalid category data }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: Category not found }
+        "409": { description: Category name or slug already exists }
+  /admin/audiences:
+    post:
+      operationId: createAdminAudience
+      tags: [admin]
+      summary: Create a recipe audience
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaxonomyInput" }
+      responses:
+        "201":
+          description: Created audience
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Audience" }
+        "400": { description: Invalid audience data }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "409": { description: Audience name or slug already exists }
+  /admin/audiences/{id}:
+    patch:
+      operationId: updateAdminAudience
+      tags: [admin]
+      summary: Update a recipe audience
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaxonomyInput" }
+      responses:
+        "200":
+          description: Updated audience
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Audience" }
+        "400": { description: Invalid audience data }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: Audience not found }
+        "409": { description: Audience name or slug already exists }
   /admin/recipes/{id}:
     patch:
       operationId: updateAdminRecipe
@@ -522,6 +608,13 @@ components:
         description: { type: string }
         recipeCount: { type: number }
       required: [id, name, slug, description, recipeCount]
+    TaxonomyInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        slug: { type: string, minLength: 1, maxLength: 120, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+        description: { type: string, minLength: 1, maxLength: 500 }
+      required: [name, slug, description]
     RecipeCard:
       type: object
       properties:
@@ -938,4 +1031,3 @@ components:
               reason: { type: string }
             required: [recipe, reason]
       required: [popularSearches, searchGaps, contentHealth]
-

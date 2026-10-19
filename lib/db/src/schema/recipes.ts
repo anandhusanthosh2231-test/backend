@@ -6,6 +6,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -80,6 +81,22 @@ export const recipesTable = pgTable(
     index("recipes_category_idx").on(table.categoryId),
     index("recipes_audience_idx").on(table.audienceId),
     index("recipes_status_idx").on(table.status),
+  ],
+);
+
+export const recipeAudiencesTable = pgTable(
+  "recipe_audiences",
+  {
+    recipeId: integer("recipe_id")
+      .notNull()
+      .references(() => recipesTable.id, { onDelete: "cascade" }),
+    audienceId: integer("audience_id")
+      .notNull()
+      .references(() => audiencesTable.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.recipeId, table.audienceId] }),
+    index("recipe_audiences_audience_idx").on(table.audienceId),
   ],
 );
 

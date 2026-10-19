@@ -15,14 +15,15 @@ import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation, use
 import {
   getGetAudienceQueryKey, getGetCategoryQueryKey, getGetRecipeQueryKey, getGetRelatedRecipesQueryKey,
   getGetAdminSummaryQueryKey, getGetHomeQueryKey, getListAdminRecipesQueryKey, getListAdminSubmissionsQueryKey, getListAudiencesQueryKey, getListCategoriesQueryKey, getListRecipesQueryKey, getListSavedRecipesQueryKey,
-  useCreateAdminRecipe, useCreateSubmission, useDeleteAdminRecipe, useDuplicateAdminRecipe,
+  useCreateAdminAudience, useCreateAdminCategory, useCreateAdminRecipe, useCreateSubmission, useDeleteAdminRecipe, useDuplicateAdminRecipe,
   useGenerateDraftRecipe, useGetAdminAnalytics, useGetAdminSummary, useGetAudience, useGetCategory,
   useGetHome, useGetMe, useGetRecipe, useGetRelatedRecipes, useListAdminRecipes,
   useImportAdminRecipesCsv, useListAdminSubmissions, useListAudiences, useListCategories, useListHistory, useListRecipes,
   useListSavedRecipes, useSaveRecipe, useSubmitFeedback, useTrackEvent, useUnsaveRecipe,
+  useUpdateAdminAudience, useUpdateAdminCategory,
   useUpdateAdminRecipe, useUpdateAdminSubmission,
 } from '@workspace/api-client-react';
-import type { EventInput, ImportAdminRecipesResponse, Recipe, RecipeCard, RecipeGuide, RecipeInput } from '@workspace/api-client-react';
+import type { EventInput, ImportAdminRecipesResponse, Recipe, RecipeCard, RecipeGuide, RecipeInput, TaxonomyInput } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -134,12 +135,95 @@ function Header() {
 }
 
 function Footer() {
-  return <footer className="site-footer"><div className="shell footer-grid">
-    <div><Logo /><p className="footer-note">A practical field guide to doing better work with AI.</p></div>
-    <div><span className="footer-label">Explore</span><Link href="/recipes">All recipes</Link><Link href="/categories">Categories</Link><Link href="/audiences">For every kind of work</Link></div>
-    <div><span className="footer-label">The project</span><Link href="/about">About AI Recipes</Link><Link href="/submit">Share a workflow</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></div>
-    <div className="footer-signal"><span className="signal-dot" />Tested in the real world<br /><span>Built for India, useful everywhere.</span></div>
-  </div><div className="shell footer-bottom"><span>© 2025 AI Recipes</span><span>Practical beats impressive.</span></div></footer>;
+  const footerRef = useRef<HTMLElement>(null);
+  const robotTrackRef = useRef<HTMLDivElement>(null);
+  const robotRef = useRef<SVGSVGElement>(null);
+  const [hasStarted, setHasStarted] = useState(false);
+
+  useEffect(() => {
+    const footer = footerRef.current;
+    const track = robotTrackRef.current;
+    const robot = robotRef.current;
+    if (!footer || !track || !robot) return;
+
+    const updateTravel = () => {
+      const travel = Math.max(0, track.clientWidth - robot.getBoundingClientRect().width);
+      track.style.setProperty('--robot-travel', `${travel}px`);
+    };
+    updateTravel();
+
+    const resizeObserver = 'ResizeObserver' in window
+      ? new ResizeObserver(updateTravel)
+      : null;
+    resizeObserver?.observe(track);
+    resizeObserver?.observe(robot);
+    if (!resizeObserver) window.addEventListener('resize', updateTravel);
+
+    let intersectionObserver: IntersectionObserver | null = null;
+    if ('IntersectionObserver' in window) {
+      intersectionObserver = new IntersectionObserver(([entry]) => {
+        if (!entry.isIntersecting) return;
+        setHasStarted(true);
+        intersectionObserver?.disconnect();
+      }, { threshold: 0.05 });
+      intersectionObserver.observe(footer);
+    } else {
+      setHasStarted(true);
+    }
+
+    return () => {
+      resizeObserver?.disconnect();
+      if (!resizeObserver) window.removeEventListener('resize', updateTravel);
+      intersectionObserver?.disconnect();
+    };
+  }, []);
+
+  return <footer ref={footerRef} className="site-footer">
+    <div className="shell footer-inner">
+      <div className="footer-main">
+        <div className="footer-brand-area">
+          <div className="footer-brand-copy">
+            <Logo />
+            <p className="footer-tagline">A practical field guide to doing better work with AI.</p>
+          </div>
+          <div className="footer-robot-track" ref={robotTrackRef} aria-hidden="true">
+            <svg ref={robotRef} className={`footer-robot${hasStarted ? ' is-started' : ''}`} viewBox="0 0 24 24" role="presentation">
+              <g className="footer-robot-body">
+                <g className="footer-robot-head">
+                  <rect x="5" y="2" width="14" height="11" rx="4" fill="none" stroke="currentColor" strokeWidth="1.25" />
+                  <g className="footer-robot-eyes" fill="currentColor">
+                    <circle cx="8" cy="7.5" r=".8" />
+                    <circle cx="16" cy="7.5" r=".8" />
+                  </g>
+                  <path d="M9 10h6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                  <path d="M12 2V.8m-.8 0h1.6" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+                </g>
+                <path d="M12 13v1.5m-5 0h10a2 2 0 0 1 2 2V21H5v-4.5a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
+                <g className="footer-robot-arm">
+                  <path d="m19 15 2 3" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+                  <circle cx="21" cy="18" r="1" fill="currentColor" />
+                </g>
+                <g className="footer-robot-legs" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round">
+                  <path className="footer-robot-leg-left" d="M9 21v2" />
+                  <path className="footer-robot-leg-right" d="M15 21v2" />
+                </g>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <nav className="footer-nav" aria-label="Footer navigation">
+          <Link href="/recipes">Explore</Link>
+          <Link href="/about">About</Link>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+        </nav>
+      </div>
+      <div className="footer-bottom">
+        <span>© 2026 AI Recipes</span>
+        <span>Made for curious minds</span>
+      </div>
+    </div>
+  </footer>;
 }
 
 function SiteShell({ children }: { children: ReactNode }) {
@@ -2113,6 +2197,7 @@ function AdminRecipes() {
             className="button button-outline"
             onClick={() => csvInputRef.current?.click()}
             disabled={importCsv.isPending}
+            id="import-csv"
             data-testid="button-admin-recipes-import-csv"
           >
             <Upload size={16} /> {importCsv.isPending ? 'Importing...' : 'Import CSV'}
@@ -2788,7 +2873,16 @@ function AdminRecipeEditor() {
       {editorTab === 'edit' && (
         <form className="editor-form" onSubmit={submit}>
           <section className="editor-layout-mode" aria-labelledby="editor-layout-title">
-            <div><span className="kicker">Page presentation</span><h2 id="editor-layout-title">Choose a recipe layout</h2></div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div><span className="kicker">Page presentation</span><h2 id="editor-layout-title">Choose a recipe layout</h2></div>
+              <Link
+                href={`${getAdminPath('/recipes')}#import-csv`}
+                className="button button-small button-outline"
+                data-testid="link-editor-import-csv"
+              >
+                <Upload size={15} /> Import recipes from CSV
+              </Link>
+            </div>
             <div className="editor-layout-options">
               <button type="button" className={`editor-layout-option ${form.layoutMode !== 'custom' ? 'selected' : ''}`} aria-pressed={form.layoutMode !== 'custom'} onClick={() => setForm((current) => ({ ...current, layoutMode: 'normal' }))}>
                 <strong>Normal Layout</strong><span>Use the existing recipe template and fields.</span>
@@ -3541,7 +3635,63 @@ function AdminSubmissions() {
 
 function AdminCollections({ type }: { type: 'categories' | 'audiences' }) {
   const query = type === 'categories' ? useListCategories() : useListAudiences();
+  const createCategory = useCreateAdminCategory();
+  const updateCategory = useUpdateAdminCategory();
+  const createAudience = useCreateAdminAudience();
+  const updateAudience = useUpdateAdminAudience();
+  const queryClient = useQueryClient();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<{ id: number; name: string; slug: string; description: string } | null>(null);
+  const [form, setForm] = useState<TaxonomyInput>({ name: '', slug: '', description: '' });
+  const [slugEdited, setSlugEdited] = useState(false);
+  const [formError, setFormError] = useState('');
+  const isCategory = type === 'categories';
+  const title = isCategory ? 'Category' : 'Audience';
+  const entityKey = isCategory ? 'category' : 'audience';
+  const isPending = isCategory
+    ? createCategory.isPending || updateCategory.isPending
+    : createAudience.isPending || updateAudience.isPending;
+
   usePageMeta(`Manage ${type} — AI Recipes`, `Manage recipe ${type}.`);
+
+  const openCreateForm = () => {
+    setIsFormOpen(true);
+    setEditingItem(null);
+    setForm({ name: '', slug: '', description: '' });
+    setSlugEdited(false);
+    setFormError('');
+  };
+  const openEditForm = (item: { id: number; name: string; slug: string; description: string }) => {
+    setIsFormOpen(true);
+    setEditingItem(item);
+    setForm({ name: item.name, slug: item.slug, description: item.description });
+    setSlugEdited(true);
+    setFormError('');
+  };
+  const closeForm = () => {
+    setIsFormOpen(false);
+    setEditingItem(null);
+    setFormError('');
+  };
+  const saveTaxonomy = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setFormError('');
+    const onSuccess = () => {
+      void queryClient.invalidateQueries({ queryKey: isCategory ? getListCategoriesQueryKey() : getListAudiencesQueryKey() });
+      void queryClient.invalidateQueries({ queryKey: getGetHomeQueryKey() });
+      closeForm();
+    };
+    const onError = (error: Error) => setFormError(error.message || `Could not save ${title.toLowerCase()}.`);
+    if (isCategory) {
+      if (editingItem) updateCategory.mutate({ id: editingItem.id, data: form }, { onSuccess, onError });
+      else createCategory.mutate({ data: form }, { onSuccess, onError });
+    } else if (editingItem) {
+      updateAudience.mutate({ id: editingItem.id, data: form }, { onSuccess, onError });
+    } else {
+      createAudience.mutate({ data: form }, { onSuccess, onError });
+    }
+  };
+
   if (query.isLoading) return <LoadingState />;
   if (query.isError || !query.data) return <ErrorState retry={() => query.refetch()} />;
   return (
@@ -3551,17 +3701,100 @@ function AdminCollections({ type }: { type: 'categories' | 'audiences' }) {
           <span className="kicker">Taxonomy</span>
           <h1>{type === 'categories' ? 'Categories.' : 'Audiences.'}</h1>
         </div>
+        <button type="button" className="button button-dark" onClick={openCreateForm} data-testid={`button-add-${entityKey}`}>
+          <Plus size={16} /> Add {title}
+        </button>
       </div>
       <div className="admin-collection-grid">
         {query.data.map((item) => (
           <div className="admin-collection-card" key={item.id}>
             <span className="category-index">{String(item.id).padStart(2, '0')}</span>
             <h2>{item.name}</h2>
+            <code>{item.slug}</code>
             <p>{item.description}</p>
-            <strong>{item.recipeCount} recipes</strong>
+            <div className="flex items-center justify-between gap-3">
+              <strong>{item.recipeCount} recipes</strong>
+              <button
+                type="button"
+                className="button button-small button-outline"
+                onClick={() => openEditForm(item)}
+                data-testid={`button-edit-${entityKey}-${item.id}`}
+              >
+                Edit
+              </button>
+            </div>
           </div>
         ))}
       </div>
+      {isFormOpen && (
+        <div className="modal-backdrop" onClick={closeForm}>
+          <div
+            className="modal-container"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="taxonomy-form-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <form className="modal-body grid gap-4" onSubmit={saveTaxonomy}>
+              <div className="modal-header">
+                <h2 id="taxonomy-form-title">{editingItem ? `Edit ${title}` : `Add ${title}`}</h2>
+              </div>
+              {formError && <div className="gateway-error-banner" role="alert">{formError}</div>}
+              <label>
+                Name
+                <input
+                  required
+                  maxLength={100}
+                  value={form.name}
+                  onChange={(event) => {
+                    const name = event.target.value;
+                    setForm((current) => ({
+                      ...current,
+                      name,
+                      ...(!editingItem && !slugEdited
+                        ? { slug: name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') }
+                        : {}),
+                    }));
+                  }}
+                  data-testid="input-taxonomy-name"
+                />
+              </label>
+              <label>
+                URL slug
+                <input
+                  required
+                  maxLength={120}
+                  pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                  value={form.slug}
+                  onChange={(event) => {
+                    setSlugEdited(true);
+                    setForm((current) => ({ ...current, slug: event.target.value }));
+                  }}
+                  data-testid="input-taxonomy-slug"
+                />
+              </label>
+              <label>
+                Description
+                <textarea
+                  required
+                  maxLength={500}
+                  value={form.description}
+                  onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                  data-testid="input-taxonomy-description"
+                />
+              </label>
+              <div className="modal-actions">
+                <button type="button" className="button button-outline" onClick={closeForm} disabled={isPending}>
+                  Cancel
+                </button>
+                <button type="submit" className="button button-dark" disabled={isPending} data-testid="button-save-taxonomy">
+                  {isPending ? 'Saving...' : editingItem ? 'Save changes' : `Create ${title.toLowerCase()}`}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
