@@ -16,7 +16,8 @@ try {
     throw 'Deploy from the main branch.'
   }
 
-  if ((git status --porcelain) -ne '') {
+  $worktreeStatus = git status --porcelain
+  if ($worktreeStatus) {
     throw 'Commit or stash all changes before deploying.'
   }
 
