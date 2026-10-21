@@ -93,6 +93,7 @@ export interface ApiMockState {
 
 interface MockApiOptions {
   adminAuthenticated?: boolean;
+  feedbackStatus?: number;
 }
 
 export async function mockApi(
@@ -139,9 +140,11 @@ export async function mockApi(
     if (request.method() === 'POST' && pathname === '/api/feedback') {
       state.feedbackRequests.push(request.postDataJSON());
       await route.fulfill({
-        status: 201,
+        status: options.feedbackStatus ?? 201,
         contentType: 'application/json',
-        body: JSON.stringify({ message: 'Feedback received' }),
+        body: JSON.stringify(options.feedbackStatus && options.feedbackStatus >= 400
+          ? { error: 'Feedback service unavailable' }
+          : { message: 'Feedback received' }),
       });
       return;
     }

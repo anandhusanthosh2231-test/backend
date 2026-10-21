@@ -403,6 +403,7 @@ function RecipePage() {
   const feedback = useSubmitFeedback();
   const [copied, setCopied] = useState(false);
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const [feedbackError, setFeedbackError] = useState('');
   const [feedbackReasonsOpen, setFeedbackReasonsOpen] = useState(false);
   const [situationSelection, setSituationSelection] = useState<{ slug: string; value: string } | null>(null);
   const [selectedRefinement, setSelectedRefinement] = useState('');
@@ -413,6 +414,8 @@ function RecipePage() {
   useEffect(() => {
     setVariableValues({});
     setFeedbackSent(false);
+    setFeedbackError('');
+    setFeedbackReasonsOpen(false);
     setSelectedRefinement('');
     try {
       setSituationSelection({ slug, value: localStorage.getItem(`recipe-situation:${slug}`) ?? '' });
@@ -573,11 +576,20 @@ function RecipePage() {
     ...(guide.bestFor?.channels ?? []),
   ];
   const sendFeedback = (helpful: boolean, note?: string) => {
+    setFeedbackError('');
     feedback.mutate(
       { data: { recipeId: recipe.id, helpful, note } },
-      { onSuccess: () => setFeedbackSent(true) },
+      {
+        onSuccess: () => {
+          setFeedbackSent(true);
+          setFeedbackReasonsOpen(false);
+          trackGuideEvent("recipe_feedback");
+        },
+        onError: (error) => {
+          setFeedbackError(error instanceof Error ? error.message : "Feedback could not be saved. Please try again.");
+        },
+      },
     );
-    trackGuideEvent("recipe_feedback");
   };
   if (recipe.layoutMode === 'custom' && isValidRecipeLayout(recipe.layoutConfig)) {
     return <SiteShell><div className="shell custom-recipe-page"><RecipeLayoutRenderer recipe={recipe} config={recipe.layoutConfig} related={related.data ?? []} /></div></SiteShell>;
@@ -813,10 +825,12 @@ function RecipePage() {
           <section className="recipe-privacy-card"><span className="kicker">Before you paste</span><p>{privacyNote}</p>{!!guide.safetyNotes?.length && <ul>{guide.safetyNotes.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>}</section>
           <section className="feedback-box">
             <span>Was this useful?</span>
-            <button type="button" onClick={() => sendFeedback(true)} data-testid="button-feedback-yes"><Check size={15} /> Yes</button>
-            <button type="button" onClick={() => setFeedbackReasonsOpen((open) => !open)} data-testid="button-feedback-no"><X size={15} /> Not yet</button>
-            {feedbackReasonsOpen && <div className="feedback-reasons" aria-label="Why was this not useful?">{["Too generic", "Prompt didn't work", "Missing example", "Missing information", "Too complicated", "Other"].map((reason) => <button type="button" key={reason} onClick={() => sendFeedback(false, reason)}>{reason}</button>)}</div>}
-            {feedbackSent && <small>Thanks — your note helps us improve this recipe.</small>}
+            <button type="button" onClick={() => sendFeedback(true)} disabled={feedback.isPending || feedbackSent} data-testid="button-feedback-yes"><Check size={15} /> Yes</button>
+            <button type="button" onClick={() => setFeedbackReasonsOpen((open) => !open)} disabled={feedback.isPending || feedbackSent} data-testid="button-feedback-no"><X size={15} /> Not yet</button>
+            {feedbackReasonsOpen && <div className="feedback-reasons" aria-label="Why was this not useful?">{["Too generic", "Prompt didn't work", "Missing example", "Missing information", "Too complicated", "Other"].map((reason) => <button type="button" key={reason} disabled={feedback.isPending} data-testid={`button-feedback-reason-${reason.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`} onClick={() => sendFeedback(false, reason)}>{reason}</button>)}</div>}
+            {feedback.isPending && <small role="status">Saving your feedback…</small>}
+            {feedbackError && <small role="alert">{feedbackError} You can try again.</small>}
+            {feedbackSent && <small role="status">Thanks — your note helps us improve this recipe.</small>}
           </section>
         </div>
         <aside className="recipe-aside">

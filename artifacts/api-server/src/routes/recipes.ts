@@ -378,9 +378,19 @@ router.post("/events", async (req, res): Promise<void> => {
 router.post("/feedback", async (req, res): Promise<void> => {
   const parsed = SubmitFeedbackBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  await db.insert(feedbackTable).values({ recipeId: parsed.data.recipeId, helpful: parsed.data.helpful, note: parsed.data.note ?? null });
-  const field = parsed.data.helpful ? recipesTable.positiveFeedbackCount : recipesTable.negativeFeedbackCount;
-  await db.update(recipesTable).set({ [field.name]: sql`${field} + 1` }).where(eq(recipesTable.id, parsed.data.recipeId));
+  const counterUpdate = parsed.data.helpful
+    ? { positiveFeedbackCount: sql`${recipesTable.positiveFeedbackCount} + 1` }
+    : { negativeFeedbackCount: sql`${recipesTable.negativeFeedbackCount} + 1` };
+  await db.transaction(async (tx) => {
+    await tx.insert(feedbackTable).values({
+      recipeId: parsed.data.recipeId,
+      helpful: parsed.data.helpful,
+      note: parsed.data.note ?? null,
+    });
+    await tx.update(recipesTable)
+      .set(counterUpdate)
+      .where(eq(recipesTable.id, parsed.data.recipeId));
+  });
   res.status(201).json({ message: "Thanks for the feedback." });
 });
 

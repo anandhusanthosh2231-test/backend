@@ -74,6 +74,7 @@ test('recipe prompt copy and helpful feedback work', async ({ page }) => {
   await page.getByTestId('button-quick-copy').click();
   await expect(page.getByTestId('button-quick-copy')).toContainText('Copied');
   await page.getByTestId('button-feedback-yes').click();
+  await expect(page.getByRole('status').getByText('Thanks — your note helps us improve this recipe.')).toBeVisible();
   await expect
     .poll(() => api.feedbackRequests.length)
     .toBe(1);
@@ -81,6 +82,48 @@ test('recipe prompt copy and helpful feedback work', async ({ page }) => {
     recipeId: 1,
     helpful: true,
   });
+  await expect(page.getByTestId('button-feedback-yes')).toBeDisabled();
+});
+
+test('negative feedback reasons are all sent and saved with the recipe feedback', async ({ page }) => {
+  const api = await mockApi(page);
+  const reasons = [
+    ['too-generic', 'Too generic'],
+    ['prompt-didn-t-work', "Prompt didn't work"],
+    ['missing-example', 'Missing example'],
+    ['missing-information', 'Missing information'],
+    ['too-complicated', 'Too complicated'],
+    ['other', 'Other'],
+  ];
+
+  for (const [testId, reason] of reasons) {
+    await page.goto('/recipes/brief-to-project-plan');
+    await page.getByTestId('button-feedback-no').click();
+    await page.getByTestId(`button-feedback-reason-${testId}`).click();
+    await expect(page.getByRole('status').getByText('Thanks — your note helps us improve this recipe.')).toBeVisible();
+  }
+
+  expect(api.feedbackRequests).toHaveLength(reasons.length);
+  for (const [index, [, reason]] of reasons.entries()) {
+    expect(api.feedbackRequests[index]).toMatchObject({
+      recipeId: 1,
+      helpful: false,
+      note: reason,
+    });
+  }
+});
+
+test('feedback failures are shown and the user can retry', async ({ page }) => {
+  const api = await mockApi(page, { feedbackStatus: 503 });
+  await page.goto('/recipes/brief-to-project-plan');
+  await page.getByTestId('button-feedback-no').click();
+  await page.getByTestId('button-feedback-reason-too-generic').click();
+
+  await expect(page.getByRole('alert').getByText(/feedback service unavailable/i)).toBeVisible();
+  const retryReason = page.getByTestId('button-feedback-reason-too-generic');
+  await expect(retryReason).toBeEnabled();
+  await retryReason.click();
+  await expect.poll(() => api.feedbackRequests.length).toBe(2);
 });
 
 test('submitting a workflow validates required fields and shows success', async ({
