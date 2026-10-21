@@ -25,6 +25,17 @@
 
 body { background: var(--cream); }
 
+/* ---------- Authentication layouts ---------- */
+.auth-page { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.auth-card { width: 100%; min-width: 0; box-sizing: border-box; }
+.auth-card > div { width: 100%; min-width: 0; }
+
+@media (max-width: 680px) {
+  .auth-page { grid-template-columns: minmax(0, 1fr); width: 100%; }
+  .auth-card { padding: 25px 16px; }
+  .auth-card [class*="cl-cardBox"] { width: 100%; max-width: 440px; }
+}
+
 /* ---------- Header ---------- */
 .site-header {
   height: 72px;

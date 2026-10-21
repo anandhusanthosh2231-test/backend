@@ -147,6 +147,30 @@ test('mobile bottom navigation opens the categories page', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Start with the work.' })).toBeVisible();
 });
 
+test('sign-up card stays within narrow mobile viewports', async ({ page }) => {
+  await mockApi(page);
+  for (const width of [320, 360, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto('/sign-up');
+    const authPage = page.locator('.auth-page');
+    const authCard = page.locator('.auth-card');
+    await expect(authPage).toBeVisible();
+    await expect.poll(() => authCard.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return bounds.left >= 0
+        && bounds.right <= window.innerWidth
+        && document.documentElement.scrollWidth <= window.innerWidth;
+    })).toBe(true);
+    const clerkCard = page.locator('.auth-card [class*="cl-cardBox"]');
+    if (await clerkCard.count()) {
+      await expect.poll(() => clerkCard.evaluate((element) => {
+        const bounds = element.getBoundingClientRect();
+        return bounds.left >= 0 && bounds.right <= window.innerWidth;
+      })).toBe(true);
+    }
+  }
+});
+
 test('minimal footer stays responsive and robot animates once with reduced-motion support', async ({ page }) => {
   await mockApi(page);
   await page.goto('/');
