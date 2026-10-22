@@ -31,6 +31,7 @@ body { background: var(--cream); }
 .auth-card > div { width: 100%; min-width: 0; }
 .auth-brand { position: absolute; top: 38px; left: max(40px, calc((100vw - 1180px) / 2)); display: block; width: min(360px, calc(100% - 80px)); }
 .auth-brand img { display: block; width: 100%; height: auto; object-fit: contain; }
+.auth-workflow-canvas { display: none; }
 
 .recipe-hero .breadcrumbs { min-width: 0; }
 .recipe-hero .breadcrumbs > a,
@@ -2982,4 +2983,181 @@ body { background: var(--cream); }
     transition: none !important;
     transform: none !important;
   }
+}
+
+@media (min-width: 1024px) {
+  .auth-page {
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+    min-height: calc(100dvh - 180px);
+    background: #faf8f3;
+  }
+
+  .auth-aside {
+    min-width: 0;
+    padding: 86px clamp(38px, 6vw, 112px) 42px;
+    background:
+      radial-gradient(ellipse at 15% 88%, rgba(234, 178, 64, .08), transparent 40%),
+      #272235;
+  }
+
+  .auth-aside .auth-brand {
+    top: 28px;
+    left: clamp(38px, 6vw, 112px);
+    width: min(300px, calc(100% - 76px));
+  }
+
+  .auth-aside .kicker {
+    margin-top: 30px;
+    color: #e7bf70;
+    letter-spacing: .16em;
+  }
+
+  .auth-aside h1 {
+    max-width: 620px;
+    margin: 16px 0 14px;
+    font-size: clamp(48px, 5.2vw, 76px);
+    letter-spacing: -.055em;
+    line-height: .94;
+  }
+
+  .auth-aside p {
+    max-width: 440px;
+    margin: 0;
+    color: #d0c9d1;
+    font-size: clamp(14px, 1.15vw, 16px);
+    line-height: 1.65;
+  }
+
+  .auth-workflow-canvas {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(8px, 1vw, 14px);
+    width: min(100%, 630px);
+    margin-top: clamp(24px, 3vw, 38px);
+  }
+
+  .auth-workflow-card {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    min-width: 0;
+    min-height: 112px;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 12px 11px;
+    border: 1px solid rgba(231, 191, 112, .28);
+    border-radius: 9px;
+    background: rgba(255, 253, 247, .97);
+    box-shadow: 0 10px 24px rgba(12, 10, 17, .16);
+    color: #272235;
+    animation: auth-card-drift 6s ease-in-out infinite;
+  }
+
+  .auth-workflow-card--two { animation-delay: -2s; }
+  .auth-workflow-card--three { animation-delay: -4s; }
+
+  .auth-workflow-card > span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #766f7d;
+    font-family: var(--app-font-mono);
+    font-size: 8px;
+    letter-spacing: .08em;
+  }
+
+  .auth-workflow-card i {
+    color: #9b742c;
+    font-size: 9px;
+    font-style: normal;
+  }
+
+  .auth-workflow-card strong {
+    display: block;
+    font-family: var(--app-font-serif);
+    font-size: clamp(15px, 1.45vw, 19px);
+    font-weight: 400;
+    letter-spacing: -.025em;
+    line-height: 1.05;
+  }
+
+  .auth-workflow-card small {
+    overflow: hidden;
+    color: #766f7d;
+    font-size: clamp(8px, .78vw, 10px);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .auth-workflow-connector {
+    position: absolute;
+    z-index: 0;
+    top: 19px;
+    width: 8%;
+    border-top: 1px dashed rgba(231, 191, 112, .7);
+  }
+
+  .auth-workflow-connector::after {
+    position: absolute;
+    top: -3px;
+    right: -1px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #e7bf70;
+    content: "";
+  }
+
+  .auth-workflow-connector--one { left: 29%; }
+  .auth-workflow-connector--two { left: 63%; }
+
+  .auth-quote {
+    max-width: 430px;
+    margin-top: clamp(20px, 2.5vw, 32px);
+    padding-top: 13px;
+    color: #e7bf70;
+    font-size: clamp(18px, 1.8vw, 23px);
+  }
+
+  .auth-card {
+    min-width: 0;
+    padding: clamp(24px, 4vw, 64px);
+  }
+
+  .auth-card [class*="cl-cardBox"] {
+    width: 100%;
+    max-width: 440px;
+    border: 1px solid #e8e0d4;
+    border-radius: 18px;
+    background: #fffdf7;
+    box-shadow: 0 18px 44px -28px rgba(39, 34, 53, .32);
+  }
+
+  .auth-card [class*="cl-formFieldInput"] {
+    min-height: 48px;
+    border: 1px solid #ded6ca;
+    border-radius: 9px;
+    background: #fffdf7;
+  }
+
+  .auth-card [class*="cl-formButtonPrimary"],
+  .auth-card [class*="cl-socialButtonsBlockButton"] {
+    min-height: 48px;
+    border-radius: 9px;
+  }
+
+  .auth-card [class*="cl-formButtonPrimary"] {
+    background: #332b43;
+    box-shadow: 0 5px 12px rgba(39, 34, 53, .14);
+  }
+}
+
+@keyframes auth-card-drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-workflow-card { animation: none; }
 }

@@ -4348,11 +4348,35 @@ function AuthBrand() {
   </Link>;
 }
 
+function AuthWorkflowCanvas() {
+  return (
+    <div className="auth-workflow-canvas" aria-hidden="true">
+      <span className="auth-workflow-connector auth-workflow-connector--one" />
+      <span className="auth-workflow-connector auth-workflow-connector--two" />
+      <article className="auth-workflow-card auth-workflow-card--one">
+        <span><i>01</i> WRITING</span>
+        <strong>Shape a customer reply</strong>
+        <small>Tone · Context · Review</small>
+      </article>
+      <article className="auth-workflow-card auth-workflow-card--two">
+        <span><i>02</i> PLANNING</span>
+        <strong>Turn a brief into a plan</strong>
+        <small>Milestones · Owners · Dates</small>
+      </article>
+      <article className="auth-workflow-card auth-workflow-card--three">
+        <span><i>03</i> RESEARCH</span>
+        <strong>Compare the useful details</strong>
+        <small>Sources · Signals · Summary</small>
+      </article>
+    </div>
+  );
+}
+
 function SignInPage() {
-  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">A better starting point</span><h1>Keep the useful stuff close.</h1><p>Save workflows, retrace your steps, and build a shelf that knows what kind of work you do.</p><div className="auth-quote">“The right recipe is the one that gets you moving.”</div></div><div className="auth-card"><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></div></div></SiteShell>;
+  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">A better starting point</span><h1>Keep the useful stuff close.</h1><p>Save workflows, retrace your steps, and build a shelf that knows what kind of work you do.</p><AuthWorkflowCanvas /><div className="auth-quote">“The right recipe is the one that gets you moving.”</div></div><div className="auth-card"><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></div></div></SiteShell>;
 }
 function SignUpPage() {
-  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">Start with one useful thing</span><h1>Your work, a little lighter.</h1><p>Join a growing shelf of practical AI workflows made for real people doing real work.</p><div className="auth-quote">No prompt theatre. Just recipes you can run.</div></div><div className="auth-card"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></div></div></SiteShell>;
+  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">Start with one useful thing</span><h1>Your work, a little lighter.</h1><p>Join a growing shelf of practical AI workflows made for real people doing real work.</p><AuthWorkflowCanvas /><div className="auth-quote">No prompt theatre. Just recipes you can run.</div></div><div className="auth-card"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></div></div></SiteShell>;
 }
 
 function Router() {

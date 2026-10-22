@@ -61,7 +61,50 @@ test('mobile auth uses the light wordmark and keeps the bottom menu available', 
   await expect(page.getByTestId('mobile-nav-account')).toBeVisible();
   await expect(page.getByTestId('mobile-link-submit')).not.toContainText('Create');
   await expect(page.locator('.auth-page')).toBeVisible();
+  await expect(page.locator('.auth-workflow-canvas')).toBeHidden();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test('desktop auth presents the workflow canvas without clipping', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 1024, height: 700 });
+  await page.goto('/sign-in');
+
+  for (const width of [1024, 1280, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 700 });
+
+    const canvas = page.locator('.auth-workflow-canvas');
+    await expect(canvas).toBeVisible();
+    await expect(canvas.locator('.auth-workflow-card')).toHaveCount(3);
+    const layoutFits = await page.evaluate(() => {
+      const aside = document.querySelector('.auth-aside')!.getBoundingClientRect();
+      const card = document.querySelector('.auth-card')!.getBoundingClientRect();
+      const canvasBounds = document.querySelector('.auth-workflow-canvas')!.getBoundingClientRect();
+      return document.documentElement.scrollWidth <= window.innerWidth
+        && aside.left >= 0
+        && card.right <= window.innerWidth
+        && canvasBounds.left >= aside.left
+        && canvasBounds.right <= aside.right
+        && document.documentElement.scrollHeight >= card.bottom;
+    });
+    expect(layoutFits).toBe(true);
+  }
+
+  await page.setViewportSize({ width: 1024, height: 700 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/sign-up');
+  await expect(page.locator('.auth-workflow-canvas')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+  await expect.poll(() => page.locator('.auth-workflow-card').first().evaluate((element) =>
+    getComputedStyle(element).animationName,
+  )).toBe('none');
+
+  for (const width of [768, 900]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.locator('.auth-workflow-canvas')).toBeHidden();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
 });
 
 test('new category names get distinct, relevant mobile icons', async ({ page }) => {
