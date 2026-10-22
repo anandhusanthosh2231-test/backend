@@ -1,6 +1,6 @@
 {
-  "name": "AI Recipes — Practical AI Workflows",
-  "short_name": "AI Recipes",
+  "name": "TaskBakeAI — Practical AI Workflows",
+  "short_name": "TaskBakeAI",
   "description": "A trusted, Indian-first field guide to practical AI workflows you can copy, run, and make your own.",
   "start_url": "/",
   "scope": "/",
@@ -10,15 +10,15 @@
   "theme_color": "#211d27",
   "icons": [
     {
-      "src": "/favicon.svg",
-      "sizes": "180x180 192x192 512x512",
-      "type": "image/svg+xml",
+      "src": "/taskbakeai-mark.png",
+      "sizes": "768x768",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/logo.svg",
-      "sizes": "220x64",
-      "type": "image/svg+xml",
+      "src": "/taskbakeai-wordmark.png",
+      "sizes": "2172x724",
+      "type": "image/png",
       "purpose": "any"
     }
   ],

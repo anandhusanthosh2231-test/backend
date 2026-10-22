@@ -58,7 +58,9 @@ import {
   recipeTaxonomySlug,
   splitRecipeCsvAudiences,
 } from "../lib/recipe-csv-import";
+import { buildRecipeCsvExport } from "../lib/recipe-csv-export";
 import { validateRecipeLayout } from "../lib/recipe-layout";
+import { validateRecipePromptConfiguration } from "../lib/recipe-inputs";
 import { getRecipeMediaConfig, getRecipeMediaMaxBytes, listRecipeMedia, uploadRecipeMedia } from "../lib/recipe-media";
 
 const router: IRouter = Router();
@@ -626,11 +628,43 @@ router.get("/admin/recipes", requireAdmin, async (req, res): Promise<void> => {
   res.json({ items: filtered.map(({ recipe, category, audience }) => recipeResponse(recipe, category, audience)), page: parsed.data.page, pageSize: 50, total: filtered.length, query: parsed.data.q ?? "" });
 });
 
+router.get("/admin/recipes/export-csv", requireAdmin, async (_req, res): Promise<void> => {
+  const [rows, audienceRows] = await Promise.all([
+    db.select({
+      recipe: recipesTable,
+      category: categoriesTable.name,
+      audience: audiencesTable.name,
+    }).from(recipesTable)
+      .innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id))
+      .innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id))
+      .orderBy(asc(recipesTable.id)),
+    db.select({ recipeId: recipeAudiencesTable.recipeId, audience: audiencesTable.name })
+      .from(recipeAudiencesTable)
+      .innerJoin(audiencesTable, eq(recipeAudiencesTable.audienceId, audiencesTable.id)),
+  ]);
+  const audienceNamesByRecipe = new Map<number, string[]>();
+  for (const item of audienceRows) {
+    audienceNamesByRecipe.set(item.recipeId, [...(audienceNamesByRecipe.get(item.recipeId) ?? []), item.audience]);
+  }
+  const csv = buildRecipeCsvExport(rows.map(({ recipe, category, audience }) => ({
+    recipe,
+    category,
+    audience,
+    audiences: audienceNamesByRecipe.get(recipe.id) ?? [],
+  })));
+  res.status(200)
+    .setHeader("Content-Disposition", 'attachment; filename="ai-recipes-v2.csv"')
+    .type("text/csv; charset=utf-8")
+    .send(csv);
+});
+
 router.post("/admin/recipes", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateAdminRecipeBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const layoutError = validateRecipeLayout(parsed.data.layoutMode, parsed.data.layoutConfig);
   if (layoutError) { res.status(400).json({ error: layoutError }); return; }
+  const promptConfigurationError = validateRecipePromptConfiguration(parsed.data.guide, parsed.data.prompt);
+  if (promptConfigurationError) { res.status(400).json({ error: promptConfigurationError }); return; }
   const [created] = await db.insert(recipesTable).values({
     ...parsed.data,
     testedAt: parsed.data.testedAt ? parsed.data.testedAt.toISOString().slice(0, 10) : null,
@@ -654,6 +688,7 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
 }, async (req, res): Promise<void> => {
   const parsedBody = ImportAdminRecipesCsvBody.safeParse(req.body);
   const csvText = typeof req.body === "string" ? req.body : parsedBody.success ? parsedBody.data.csv : "";
+  const preview = parsedBody.success && parsedBody.data.preview === true;
   if (!csvText.trim()) {
     res.status(400).json({ error: "Upload a CSV file with a header row and at least one recipe." });
     return;
@@ -672,138 +707,225 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
     return;
   }
 
-  const rowData = records.map((record) => ({
+  const rows = records.map((record, index) => ({
     record,
-    categoryKey: normalizeRecipeCsvHeader(record.category ?? ""),
-    audienceKeys: splitRecipeCsvAudiences(record["target audience"] ?? record.audience ?? "")
-      .map(normalizeRecipeCsvHeader),
+    rowNumber: index + 2,
+    categoryName: (record.category ?? "").trim().replace(/\s+/g, " "),
+    audienceNames: splitRecipeCsvAudiences(record["target audience"] ?? record.audience ?? ""),
+    slug: (record["url slug"] ?? record.slug ?? "").trim().toLowerCase()
+      .replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, ""),
   }));
-  const categoryNames = new Map<string, string>();
-  const audienceNames = new Map<string, string>();
-  for (const row of rowData) {
-    const rawCategory = row.record.category?.trim().replace(/\s+/g, " ") ?? "";
-    if (rawCategory) categoryNames.set(normalizeRecipeCsvHeader(rawCategory), rawCategory);
-    for (const rawAudience of splitRecipeCsvAudiences(row.record["target audience"] ?? row.record.audience ?? "")) {
-      audienceNames.set(normalizeRecipeCsvHeader(rawAudience), rawAudience);
+  const [existingCategories, existingAudiences, existingRecipes] = await Promise.all([
+    db.select().from(categoriesTable),
+    db.select().from(audiencesTable),
+    db.select({ id: recipesTable.id, slug: recipesTable.slug }).from(recipesTable),
+  ]);
+  const displayTaxonomyName = (name: string) => name.charAt(0).toLocaleUpperCase() + name.slice(1);
+  const categoryByNameOrSlug = new Map(existingCategories.flatMap((item) => [
+    [normalizeRecipeCsvHeader(item.name), item] as const,
+    [normalizeRecipeCsvHeader(item.slug), item] as const,
+  ]));
+  const audienceByNameOrSlug = new Map(existingAudiences.flatMap((item) => [
+    [normalizeRecipeCsvHeader(item.name), item] as const,
+    [normalizeRecipeCsvHeader(item.slug), item] as const,
+  ]));
+  const newCategories = new Map<string, { name: string; slug: string; description: string }>();
+  const newAudiences = new Map<string, { name: string; slug: string; description: string }>();
+  for (const row of rows) {
+    const key = normalizeRecipeCsvHeader(row.categoryName);
+    if (key && !categoryByNameOrSlug.has(key)) {
+      const name = displayTaxonomyName(row.categoryName);
+      const slug = recipeTaxonomySlug(row.categoryName);
+      if (slug) {
+        const candidate = { id: 1, name, slug, description: `AI recipes for ${name}.` };
+        categoryByNameOrSlug.set(key, candidate);
+        categoryByNameOrSlug.set(normalizeRecipeCsvHeader(slug), candidate);
+        newCategories.set(key, candidate);
+      }
+    }
+    for (const audienceName of row.audienceNames) {
+      const audienceKey = normalizeRecipeCsvHeader(audienceName);
+      if (!audienceKey || audienceByNameOrSlug.has(audienceKey)) continue;
+      const name = displayTaxonomyName(audienceName);
+      const slug = recipeTaxonomySlug(audienceName);
+      if (slug) {
+        const candidate = { id: 1, name, slug, description: `AI recipes for ${name}.` };
+        audienceByNameOrSlug.set(audienceKey, candidate);
+        audienceByNameOrSlug.set(normalizeRecipeCsvHeader(slug), candidate);
+        newAudiences.set(audienceKey, candidate);
+      }
     }
   }
 
-  const [existingCategories, existingAudiences] = await Promise.all([
-    db.select().from(categoriesTable),
-    db.select().from(audiencesTable),
-  ]);
-  const knownCategoryKeys = new Set(existingCategories.flatMap((item) => [
-    normalizeRecipeCsvHeader(item.name),
-    normalizeRecipeCsvHeader(item.slug),
-  ]));
-  const knownAudienceKeys = new Set(existingAudiences.flatMap((item) => [
-    normalizeRecipeCsvHeader(item.name),
-    normalizeRecipeCsvHeader(item.slug),
-  ]));
-  const displayTaxonomyName = (name: string) => name.charAt(0).toLocaleUpperCase() + name.slice(1);
-  const newCategories = [...categoryNames.entries()]
-    .filter(([key]) => !knownCategoryKeys.has(key))
-    .map(([, name]) => ({
-      name: displayTaxonomyName(name),
-      slug: recipeTaxonomySlug(name),
-      description: `AI recipes for ${displayTaxonomyName(name)}.`,
-    }))
-    .filter((item) => item.slug);
-  const newAudiences = [...audienceNames.entries()]
-    .filter(([key]) => !knownAudienceKeys.has(key))
-    .map(([, name]) => ({
-      name: displayTaxonomyName(name),
-      slug: recipeTaxonomySlug(name),
-      description: `AI recipes for ${displayTaxonomyName(name)}.`,
-    }))
-    .filter((item) => item.slug);
-  if (newCategories.length) {
-    await db.insert(categoriesTable).values(newCategories).onConflictDoNothing();
-  }
-  if (newAudiences.length) {
-    await db.insert(audiencesTable).values(newAudiences).onConflictDoNothing();
-  }
-  const [categories, audiences] = await Promise.all([
-    db.select().from(categoriesTable),
-    db.select().from(audiencesTable),
-  ]);
-  const categoryByNameOrSlug = new Map(categories.flatMap((item) => [
-    [normalizeRecipeCsvHeader(item.name), item] as const,
-    [normalizeRecipeCsvHeader(item.slug), item] as const,
-  ]));
-  const audienceByNameOrSlug = new Map(audiences.flatMap((item) => [
-    [normalizeRecipeCsvHeader(item.name), item] as const,
-    [normalizeRecipeCsvHeader(item.slug), item] as const,
-  ]));
-
-  const mappedSlugs = rowData.map(({ record }) =>
-    normalizeRecipeCsvHeader(record["url slug"] ?? record.slug ?? "").replace(/ /g, "-"),
-  ).filter(Boolean);
-  const existingSlugs = new Set(mappedSlugs.length
-    ? (await db.select({ slug: recipesTable.slug }).from(recipesTable).where(inArray(recipesTable.slug, mappedSlugs))).map(({ slug }) => slug)
-    : []);
+  const existingRecipesBySlug = new Map(existingRecipes.map((recipe) => [recipe.slug, recipe]));
   const seenSlugs = new Set<string>();
-  const results: Array<{ row: number; slug: string; status: "created" | "failed"; message: string }> = [];
+  const plannedRows: Array<{
+    row: number;
+    slug: string;
+    data: ReturnType<typeof CreateAdminRecipeBody.parse>;
+    categoryKey: string;
+    audienceKeys: string[];
+    action: "create" | "update";
+    existingRecipeId?: number;
+  }> = [];
+  const results: Array<{ row: number; slug: string; status: "planned" | "created" | "updated" | "failed"; message: string; warnings?: string[] }> = [];
 
-  for (const [index, row] of rowData.entries()) {
-    const rawSlug = row.record["url slug"] ?? row.record.slug ?? "";
-    const slug = rawSlug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
-    const rowNumber = index + 2;
-
+  for (const row of rows) {
+    const slug = row.slug;
     if (!slug) {
-      results.push({ row: rowNumber, slug: rawSlug, status: "failed", message: "URL Slug is required." });
+      results.push({ row: row.rowNumber, slug: row.record["url slug"] ?? "", status: "failed", message: "URL Slug is required and must contain letters, numbers, or hyphens." });
       continue;
     }
-    if (existingSlugs.has(slug) || seenSlugs.has(slug)) {
-      results.push({ row: rowNumber, slug, status: "failed", message: "This slug already exists; existing recipes are never overwritten." });
+    const actionValue = normalizeRecipeCsvHeader(row.record["csv action"]?.trim() || "create");
+    const action = actionValue === "update" ? "update" : actionValue === "create" ? "create" : undefined;
+    const existingRecipe = existingRecipesBySlug.get(slug);
+    if (!action) {
+      results.push({ row: row.rowNumber, slug, status: "failed", message: 'CSV Action must be either "create" or "update".' });
+      continue;
+    }
+    if ((action === "create" && existingRecipe) || (action === "update" && !existingRecipe) || seenSlugs.has(slug)) {
+      results.push({
+        row: row.rowNumber,
+        slug,
+        status: "failed",
+        message: seenSlugs.has(slug)
+          ? "This slug appears more than once in the CSV."
+          : action === "create"
+            ? "This slug already exists; set CSV Action to update to explicitly replace its recipe content."
+            : "CSV Action is update, but no existing recipe has this slug.",
+      });
       continue;
     }
     seenSlugs.add(slug);
 
-    const category = categoryByNameOrSlug.get(row.categoryKey);
-    const rowAudiences = row.audienceKeys
-      .map((key) => audienceByNameOrSlug.get(key))
-      .filter((item): item is (typeof audiences)[number] => item !== undefined);
-    if (!category || !row.audienceKeys.length || rowAudiences.length !== row.audienceKeys.length) {
-      const unknownAudiences = row.audienceKeys.filter((key) => !audienceByNameOrSlug.has(key));
+    const categoryKey = normalizeRecipeCsvHeader(row.categoryName);
+    const audienceKeys = row.audienceNames.map(normalizeRecipeCsvHeader);
+    const category = categoryByNameOrSlug.get(categoryKey);
+    const rowAudiences = audienceKeys.map((key) => audienceByNameOrSlug.get(key));
+    if (!category || !audienceKeys.length || rowAudiences.some((item) => !item)) {
       const missing = [
-        !category ? `category "${row.record.category ?? ""}"` : "",
-        ...unknownAudiences.map((key) => `target audience "${audienceNames.get(key) ?? key}"`),
-        !row.audienceKeys.length ? "target audience is empty" : "",
+        !category ? `category "${row.categoryName}"` : "",
+        ...row.audienceNames.filter((_, index) => !rowAudiences[index]).map((name) => `target audience "${name}"`),
+        !audienceKeys.length ? "target audience is empty" : "",
       ].filter(Boolean).join(" and ");
-      results.push({ row: rowNumber, slug, status: "failed", message: `Could not resolve ${missing}.` });
-      continue;
-    }
-
-    const primaryAudience = rowAudiences[0];
-    const parsed = CreateAdminRecipeBody.safeParse(mapRecipeCsvRecord(row.record, category.id, primaryAudience.id));
-    if (!parsed.success) {
-      const message = parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; ");
-      results.push({ row: rowNumber, slug, status: "failed", message });
+      results.push({ row: row.rowNumber, slug, status: "failed", message: `Could not resolve ${missing}.` });
       continue;
     }
 
     try {
-      const [created] = await db.transaction(async (tx) => {
-        const [recipe] = await tx.insert(recipesTable).values({
-          ...parsed.data,
-          slug,
-          testedAt: parsed.data.testedAt ? parsed.data.testedAt.toISOString().slice(0, 10) : null,
-          publishedAt: parsed.data.status === "PUBLISHED" ? new Date() : null,
-        }).returning();
-        await tx.insert(recipeAudiencesTable)
-          .values(rowAudiences.map((item) => ({ recipeId: recipe.id, audienceId: item.id })))
-          .onConflictDoNothing();
-        return [recipe];
+      const input = mapRecipeCsvRecord(row.record, category.id, rowAudiences[0]!.id);
+      const parsed = CreateAdminRecipeBody.safeParse(input);
+      if (!parsed.success) {
+        const message = parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; ");
+        results.push({ row: row.rowNumber, slug, status: "failed", message });
+        continue;
+      }
+      const layoutError = validateRecipeLayout(parsed.data.layoutMode, parsed.data.layoutConfig);
+      const inputError = validateRecipePromptConfiguration(parsed.data.guide, parsed.data.prompt);
+      if (layoutError || inputError) {
+        results.push({ row: row.rowNumber, slug, status: "failed", message: [layoutError, inputError].filter(Boolean).join("; ") });
+        continue;
+      }
+      plannedRows.push({
+        row: row.rowNumber,
+        slug,
+        data: parsed.data,
+        categoryKey,
+        audienceKeys,
+        action,
+        existingRecipeId: existingRecipe?.id,
       });
-      results.push({ row: rowNumber, slug: created.slug, status: "created", message: created.status });
-    } catch {
-      results.push({ row: rowNumber, slug, status: "failed", message: "Recipe could not be saved; check required fields and database constraints." });
+      results.push({ row: row.rowNumber, slug, status: "planned", message: `${action === "update" ? "Update" : "Create"} · ${parsed.data.status}` });
+    } catch (error) {
+      results.push({
+        row: row.rowNumber,
+        slug,
+        status: "failed",
+        message: error instanceof Error ? error.message : "The recipe row could not be parsed.",
+      });
     }
   }
 
-  const createdCount = results.filter((result) => result.status === "created").length;
-  res.json({ createdCount, failedCount: results.length - createdCount, results });
+  const failedCount = results.filter((result) => result.status === "failed").length;
+  if (preview || failedCount > 0) {
+    res.json({
+      createdCount: 0,
+      failedCount,
+      preview,
+      results: failedCount ? results.map((result) => result.status === "planned"
+        ? { ...result, status: "failed" as const, message: "Not imported because another row needs correction." }
+        : result) : results,
+    });
+    return;
+  }
+
+  try {
+    await db.transaction(async (tx) => {
+      if (newCategories.size) {
+        await tx.insert(categoriesTable).values([...newCategories.values()]).onConflictDoNothing();
+      }
+      if (newAudiences.size) {
+        await tx.insert(audiencesTable).values([...newAudiences.values()]).onConflictDoNothing();
+      }
+      const categories = await tx.select().from(categoriesTable);
+      const audiences = await tx.select().from(audiencesTable);
+      const categoryMap = new Map(categories.flatMap((item) => [
+        [normalizeRecipeCsvHeader(item.name), item] as const,
+        [normalizeRecipeCsvHeader(item.slug), item] as const,
+      ]));
+      const audienceMap = new Map(audiences.flatMap((item) => [
+        [normalizeRecipeCsvHeader(item.name), item] as const,
+        [normalizeRecipeCsvHeader(item.slug), item] as const,
+      ]));
+      for (const row of plannedRows) {
+        const category = categoryMap.get(row.categoryKey);
+        const recipeAudiences = row.audienceKeys.map((key) => audienceMap.get(key));
+        if (!category || recipeAudiences.some((item) => !item)) {
+          throw new Error(`Could not resolve taxonomy for recipe "${row.slug}" during commit.`);
+        }
+        const values = {
+          ...row.data,
+          categoryId: category.id,
+          audienceId: recipeAudiences[0]!.id,
+          slug: row.slug,
+          testedAt: row.data.testedAt ? row.data.testedAt.toISOString().slice(0, 10) : null,
+          publishedAt: row.data.status === "PUBLISHED" ? new Date() : null,
+        };
+        let recipeId: number;
+        if (row.action === "update" && row.existingRecipeId) {
+          const [updated] = await tx.update(recipesTable).set({ ...values, updatedAt: new Date() })
+            .where(eq(recipesTable.id, row.existingRecipeId)).returning({ id: recipesTable.id });
+          if (!updated) throw new Error(`Recipe "${row.slug}" no longer exists.`);
+          recipeId = updated.id;
+          await tx.delete(recipeAudiencesTable).where(eq(recipeAudiencesTable.recipeId, recipeId));
+        } else {
+          const [created] = await tx.insert(recipesTable).values(values).returning({ id: recipesTable.id });
+          recipeId = created.id;
+        }
+        await tx.insert(recipeAudiencesTable)
+          .values(recipeAudiences.map((item) => ({ recipeId, audienceId: item!.id })))
+          .onConflictDoNothing();
+      }
+    });
+  } catch (error) {
+    res.status(409).json({
+      error: error instanceof Error
+        ? `CSV import was rolled back: ${error.message}`
+        : "CSV import was rolled back because the recipes could not be saved.",
+    });
+    return;
+  }
+
+  res.json({
+    createdCount: plannedRows.filter((row) => row.action === "create").length,
+    updatedCount: plannedRows.filter((row) => row.action === "update").length,
+    failedCount: 0,
+    preview: false,
+    results: results.map((result, index) => ({
+      ...result,
+      status: plannedRows[index]?.action === "update" ? "updated" as const : "created" as const,
+    })),
+  });
 });
 
 router.patch("/admin/recipes/:id", requireAdmin, async (req, res): Promise<void> => {
@@ -812,6 +934,8 @@ router.patch("/admin/recipes/:id", requireAdmin, async (req, res): Promise<void>
   if (!params.success || !parsed.success) { res.status(400).json({ error: "Invalid recipe data." }); return; }
   const layoutError = validateRecipeLayout(parsed.data.layoutMode, parsed.data.layoutConfig);
   if (layoutError) { res.status(400).json({ error: layoutError }); return; }
+  const promptConfigurationError = validateRecipePromptConfiguration(parsed.data.guide, parsed.data.prompt);
+  if (promptConfigurationError) { res.status(400).json({ error: promptConfigurationError }); return; }
   const [previous] = await db.select({ audienceId: recipesTable.audienceId })
     .from(recipesTable)
     .where(eq(recipesTable.id, params.data.id));

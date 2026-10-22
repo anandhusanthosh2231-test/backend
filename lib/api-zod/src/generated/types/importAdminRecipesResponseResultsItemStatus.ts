@@ -10,6 +10,8 @@ export type ImportAdminRecipesResponseResultsItemStatus = typeof ImportAdminReci
 
 
 export const ImportAdminRecipesResponseResultsItemStatus = {
+  planned: 'planned',
   created: 'created',
+  updated: 'updated',
   failed: 'failed',
 } as const;

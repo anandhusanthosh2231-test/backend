@@ -5,10 +5,23 @@
  * API for AI Recipes, an Indian-first library of practical AI workflows.
  * OpenAPI spec version: 0.1.0
  */
+import type { RecipeGuidePromptVariablesItemType } from './recipeGuidePromptVariablesItemType';
+import type { RecipeGuidePromptVariablesItemValidation } from './recipeGuidePromptVariablesItemValidation';
 
 export type RecipeGuidePromptVariablesItem = {
   name: string;
   label: string;
   placeholder?: string;
   required?: boolean;
+  type?: RecipeGuidePromptVariablesItemType;
+  /** @maxLength 1000 */
+  helpText?: string;
+  /** @maxLength 10000 */
+  defaultValue?: string;
+  /**
+     * @maxItems 100
+     * @items.maxLength 500
+     */
+  options?: string[];
+  validation?: RecipeGuidePromptVariablesItemValidation;
 };

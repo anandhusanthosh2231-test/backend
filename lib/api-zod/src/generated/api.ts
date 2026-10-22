@@ -73,6 +73,45 @@ export const GetRecipeParams = zod.object({
   "slug": zod.coerce.string()
 })
 
+export const getRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax = 1000;
+
+export const getRecipeResponseTwoGuideOnePromptVariablesItemDefaultValueMax = 10000;
+
+export const getRecipeResponseTwoGuideOnePromptVariablesItemOptionsItemMax = 500;
+
+export const getRecipeResponseTwoGuideOnePromptVariablesItemOptionsMax = 100;
+
+export const getRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMin = 0;
+export const getRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMax = 10000;
+
+export const getRecipeResponseTwoGuideOnePromptVariablesItemValidationMaxLengthMax = 10000;
+
+export const getRecipeResponseTwoGuideOnePromptVariablesItemValidationPatternMax = 500;
+
+export const getRecipeResponseTwoGuideOneOutputConfigDescriptionMax = 2000;
+
+export const getRecipeResponseTwoGuideOneOutputConfigFieldsItemMax = 200;
+
+export const getRecipeResponseTwoGuideOneOutputConfigFieldsMax = 50;
+
+export const getRecipeResponseTwoGuideOneCustomContentTroubleshootingItemMax = 2000;
+
+export const getRecipeResponseTwoGuideOneCustomContentTroubleshootingMax = 100;
+
+export const getRecipeResponseTwoGuideOneCustomContentVerificationChecklistItemMax = 2000;
+
+export const getRecipeResponseTwoGuideOneCustomContentVerificationChecklistMax = 100;
+
+export const getRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax = 20000;
+
+export const getRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax = 2048;
+
+export const getRecipeResponseTwoGuideOneCustomContentImagesItemAltMax = 500;
+
+export const getRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax = 500;
+
+export const getRecipeResponseTwoGuideOneCustomContentImagesMax = 20;
+
 export const getRecipeResponseTwoLayoutConfigOneBlocksItemIdMax = 100;
 
 export const getRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax = 200;
@@ -90,6 +129,8 @@ export const getRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax = 2048;
 export const getRecipeResponseTwoLayoutConfigOneBlocksItemAltMax = 500;
 
 export const getRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const getRecipeResponseTwoLayoutConfigOneBlocksItemFieldRefMax = 100;
 
 export const getRecipeResponseTwoLayoutConfigOneBlocksMax = 50;
 
@@ -164,11 +205,38 @@ export const GetRecipeResponse = zod.object({
   "name": zod.string(),
   "label": zod.string(),
   "placeholder": zod.string().optional(),
-  "required": zod.boolean().optional()
+  "required": zod.boolean().optional(),
+  "type": zod.enum(['text', 'textarea', 'number', 'url', 'date', 'select', 'dropdown', 'checkbox', 'file']).optional(),
+  "helpText": zod.string().max(getRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax).optional(),
+  "defaultValue": zod.string().max(getRecipeResponseTwoGuideOnePromptVariablesItemDefaultValueMax).optional(),
+  "options": zod.array(zod.string().max(getRecipeResponseTwoGuideOnePromptVariablesItemOptionsItemMax)).max(getRecipeResponseTwoGuideOnePromptVariablesItemOptionsMax).optional(),
+  "validation": zod.object({
+  "minLength": zod.int().min(getRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMin).max(getRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMax).optional(),
+  "maxLength": zod.int().min(1).max(getRecipeResponseTwoGuideOnePromptVariablesItemValidationMaxLengthMax).optional(),
+  "minimum": zod.number().optional(),
+  "maximum": zod.number().optional(),
+  "pattern": zod.string().max(getRecipeResponseTwoGuideOnePromptVariablesItemValidationPatternMax).optional()
+}).optional()
 })).optional(),
+  "outputConfig": zod.object({
+  "version": zod.literal(1),
+  "format": zod.enum(['text', 'list', 'table', 'json', 'steps']),
+  "description": zod.string().max(getRecipeResponseTwoGuideOneOutputConfigDescriptionMax).optional(),
+  "fields": zod.array(zod.string().max(getRecipeResponseTwoGuideOneOutputConfigFieldsItemMax)).max(getRecipeResponseTwoGuideOneOutputConfigFieldsMax).optional()
+}).optional(),
   "expectedOutput": zod.object({
   "description": zod.string().optional(),
   "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "customContent": zod.object({
+  "troubleshooting": zod.array(zod.string().max(getRecipeResponseTwoGuideOneCustomContentTroubleshootingItemMax)).max(getRecipeResponseTwoGuideOneCustomContentTroubleshootingMax).optional(),
+  "verificationChecklist": zod.array(zod.string().max(getRecipeResponseTwoGuideOneCustomContentVerificationChecklistItemMax)).max(getRecipeResponseTwoGuideOneCustomContentVerificationChecklistMax).optional(),
+  "workflowDiagram": zod.string().max(getRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax).optional(),
+  "images": zod.array(zod.object({
+  "url": zod.url().max(getRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax),
+  "alt": zod.string().max(getRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
+  "caption": zod.string().max(getRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional()
+})).max(getRecipeResponseTwoGuideOneCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
   "scenario": zod.string(),
@@ -200,7 +268,7 @@ export const GetRecipeResponse = zod.object({
   "version": zod.literal(1),
   "blocks": zod.array(zod.object({
   "id": zod.string().min(1).max(getRecipeResponseTwoLayoutConfigOneBlocksItemIdMax),
-  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "type": zod.enum(['hero', 'overview', 'richText', 'field', 'inputs', 'workflow', 'prompt', 'example', 'output', 'outcome', 'image', 'images', 'diagram', 'refinements', 'troubleshooting', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
   "visible": zod.boolean(),
   "heading": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax).optional(),
   "subtitle": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax).optional(),
@@ -213,7 +281,8 @@ export const GetRecipeResponse = zod.object({
   "imageUrl": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax).optional(),
   "alt": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemAltMax).optional(),
   "caption": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax).optional(),
-  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+  "variant": zod.enum(['tip', 'warning', 'info']).optional(),
+  "fieldRef": zod.string().max(getRecipeResponseTwoLayoutConfigOneBlocksItemFieldRefMax).optional()
 })).max(getRecipeResponseTwoLayoutConfigOneBlocksMax)
 }),zod.null()])
 }))
@@ -675,6 +744,45 @@ export const ListAdminRecipesQueryParams = zod.object({
   "page": zod.coerce.number().min(1).default(listAdminRecipesQueryPageDefault)
 })
 
+export const listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemHelpTextMax = 1000;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemDefaultValueMax = 10000;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemOptionsItemMax = 500;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemOptionsMax = 100;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemValidationMinLengthMin = 0;
+export const listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemValidationMinLengthMax = 10000;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemValidationMaxLengthMax = 10000;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemValidationPatternMax = 500;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOneOutputConfigDescriptionMax = 2000;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOneOutputConfigFieldsItemMax = 200;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOneOutputConfigFieldsMax = 50;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOneCustomContentTroubleshootingItemMax = 2000;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOneCustomContentTroubleshootingMax = 100;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOneCustomContentVerificationChecklistItemMax = 2000;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOneCustomContentVerificationChecklistMax = 100;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOneCustomContentWorkflowDiagramMax = 20000;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOneCustomContentImagesItemUrlMax = 2048;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOneCustomContentImagesItemAltMax = 500;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOneCustomContentImagesItemCaptionMax = 500;
+
+export const listAdminRecipesResponseItemsItemTwoGuideOneCustomContentImagesMax = 20;
+
 export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemIdMax = 100;
 
 export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemHeadingMax = 200;
@@ -692,6 +800,8 @@ export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemImageU
 export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemAltMax = 500;
 
 export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemFieldRefMax = 100;
 
 export const listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksMax = 50;
 
@@ -767,11 +877,38 @@ export const ListAdminRecipesResponse = zod.object({
   "name": zod.string(),
   "label": zod.string(),
   "placeholder": zod.string().optional(),
-  "required": zod.boolean().optional()
+  "required": zod.boolean().optional(),
+  "type": zod.enum(['text', 'textarea', 'number', 'url', 'date', 'select', 'dropdown', 'checkbox', 'file']).optional(),
+  "helpText": zod.string().max(listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemHelpTextMax).optional(),
+  "defaultValue": zod.string().max(listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemDefaultValueMax).optional(),
+  "options": zod.array(zod.string().max(listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemOptionsItemMax)).max(listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemOptionsMax).optional(),
+  "validation": zod.object({
+  "minLength": zod.int().min(listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemValidationMinLengthMin).max(listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemValidationMinLengthMax).optional(),
+  "maxLength": zod.int().min(1).max(listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemValidationMaxLengthMax).optional(),
+  "minimum": zod.number().optional(),
+  "maximum": zod.number().optional(),
+  "pattern": zod.string().max(listAdminRecipesResponseItemsItemTwoGuideOnePromptVariablesItemValidationPatternMax).optional()
+}).optional()
 })).optional(),
+  "outputConfig": zod.object({
+  "version": zod.literal(1),
+  "format": zod.enum(['text', 'list', 'table', 'json', 'steps']),
+  "description": zod.string().max(listAdminRecipesResponseItemsItemTwoGuideOneOutputConfigDescriptionMax).optional(),
+  "fields": zod.array(zod.string().max(listAdminRecipesResponseItemsItemTwoGuideOneOutputConfigFieldsItemMax)).max(listAdminRecipesResponseItemsItemTwoGuideOneOutputConfigFieldsMax).optional()
+}).optional(),
   "expectedOutput": zod.object({
   "description": zod.string().optional(),
   "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "customContent": zod.object({
+  "troubleshooting": zod.array(zod.string().max(listAdminRecipesResponseItemsItemTwoGuideOneCustomContentTroubleshootingItemMax)).max(listAdminRecipesResponseItemsItemTwoGuideOneCustomContentTroubleshootingMax).optional(),
+  "verificationChecklist": zod.array(zod.string().max(listAdminRecipesResponseItemsItemTwoGuideOneCustomContentVerificationChecklistItemMax)).max(listAdminRecipesResponseItemsItemTwoGuideOneCustomContentVerificationChecklistMax).optional(),
+  "workflowDiagram": zod.string().max(listAdminRecipesResponseItemsItemTwoGuideOneCustomContentWorkflowDiagramMax).optional(),
+  "images": zod.array(zod.object({
+  "url": zod.url().max(listAdminRecipesResponseItemsItemTwoGuideOneCustomContentImagesItemUrlMax),
+  "alt": zod.string().max(listAdminRecipesResponseItemsItemTwoGuideOneCustomContentImagesItemAltMax),
+  "caption": zod.string().max(listAdminRecipesResponseItemsItemTwoGuideOneCustomContentImagesItemCaptionMax).optional()
+})).max(listAdminRecipesResponseItemsItemTwoGuideOneCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
   "scenario": zod.string(),
@@ -803,7 +940,7 @@ export const ListAdminRecipesResponse = zod.object({
   "version": zod.literal(1),
   "blocks": zod.array(zod.object({
   "id": zod.string().min(1).max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemIdMax),
-  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "type": zod.enum(['hero', 'overview', 'richText', 'field', 'inputs', 'workflow', 'prompt', 'example', 'output', 'outcome', 'image', 'images', 'diagram', 'refinements', 'troubleshooting', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
   "visible": zod.boolean(),
   "heading": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemHeadingMax).optional(),
   "subtitle": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemSubtitleMax).optional(),
@@ -816,7 +953,8 @@ export const ListAdminRecipesResponse = zod.object({
   "imageUrl": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemImageUrlMax).optional(),
   "alt": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemAltMax).optional(),
   "caption": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemCaptionMax).optional(),
-  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+  "variant": zod.enum(['tip', 'warning', 'info']).optional(),
+  "fieldRef": zod.string().max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksItemFieldRefMax).optional()
 })).max(listAdminRecipesResponseItemsItemTwoLayoutConfigOneBlocksMax)
 }),zod.null()])
 }))),
@@ -840,6 +978,45 @@ export const createAdminRecipeBodyProblemMin = 10;
 
 export const createAdminRecipeBodyPromptMin = 20;
 
+export const createAdminRecipeBodyGuidePromptVariablesItemHelpTextMax = 1000;
+
+export const createAdminRecipeBodyGuidePromptVariablesItemDefaultValueMax = 10000;
+
+export const createAdminRecipeBodyGuidePromptVariablesItemOptionsItemMax = 500;
+
+export const createAdminRecipeBodyGuidePromptVariablesItemOptionsMax = 100;
+
+export const createAdminRecipeBodyGuidePromptVariablesItemValidationMinLengthMin = 0;
+export const createAdminRecipeBodyGuidePromptVariablesItemValidationMinLengthMax = 10000;
+
+export const createAdminRecipeBodyGuidePromptVariablesItemValidationMaxLengthMax = 10000;
+
+export const createAdminRecipeBodyGuidePromptVariablesItemValidationPatternMax = 500;
+
+export const createAdminRecipeBodyGuideOutputConfigDescriptionMax = 2000;
+
+export const createAdminRecipeBodyGuideOutputConfigFieldsItemMax = 200;
+
+export const createAdminRecipeBodyGuideOutputConfigFieldsMax = 50;
+
+export const createAdminRecipeBodyGuideCustomContentTroubleshootingItemMax = 2000;
+
+export const createAdminRecipeBodyGuideCustomContentTroubleshootingMax = 100;
+
+export const createAdminRecipeBodyGuideCustomContentVerificationChecklistItemMax = 2000;
+
+export const createAdminRecipeBodyGuideCustomContentVerificationChecklistMax = 100;
+
+export const createAdminRecipeBodyGuideCustomContentWorkflowDiagramMax = 20000;
+
+export const createAdminRecipeBodyGuideCustomContentImagesItemUrlMax = 2048;
+
+export const createAdminRecipeBodyGuideCustomContentImagesItemAltMax = 500;
+
+export const createAdminRecipeBodyGuideCustomContentImagesItemCaptionMax = 500;
+
+export const createAdminRecipeBodyGuideCustomContentImagesMax = 20;
+
 export const createAdminRecipeBodyLayoutConfigOneBlocksItemIdMax = 100;
 
 export const createAdminRecipeBodyLayoutConfigOneBlocksItemHeadingMax = 200;
@@ -857,6 +1034,8 @@ export const createAdminRecipeBodyLayoutConfigOneBlocksItemImageUrlMax = 2048;
 export const createAdminRecipeBodyLayoutConfigOneBlocksItemAltMax = 500;
 
 export const createAdminRecipeBodyLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const createAdminRecipeBodyLayoutConfigOneBlocksItemFieldRefMax = 100;
 
 export const createAdminRecipeBodyLayoutConfigOneBlocksMax = 50;
 
@@ -923,11 +1102,38 @@ export const CreateAdminRecipeBody = zod.object({
   "name": zod.string(),
   "label": zod.string(),
   "placeholder": zod.string().optional(),
-  "required": zod.boolean().optional()
+  "required": zod.boolean().optional(),
+  "type": zod.enum(['text', 'textarea', 'number', 'url', 'date', 'select', 'dropdown', 'checkbox', 'file']).optional(),
+  "helpText": zod.string().max(createAdminRecipeBodyGuidePromptVariablesItemHelpTextMax).optional(),
+  "defaultValue": zod.string().max(createAdminRecipeBodyGuidePromptVariablesItemDefaultValueMax).optional(),
+  "options": zod.array(zod.string().max(createAdminRecipeBodyGuidePromptVariablesItemOptionsItemMax)).max(createAdminRecipeBodyGuidePromptVariablesItemOptionsMax).optional(),
+  "validation": zod.object({
+  "minLength": zod.int().min(createAdminRecipeBodyGuidePromptVariablesItemValidationMinLengthMin).max(createAdminRecipeBodyGuidePromptVariablesItemValidationMinLengthMax).optional(),
+  "maxLength": zod.int().min(1).max(createAdminRecipeBodyGuidePromptVariablesItemValidationMaxLengthMax).optional(),
+  "minimum": zod.number().optional(),
+  "maximum": zod.number().optional(),
+  "pattern": zod.string().max(createAdminRecipeBodyGuidePromptVariablesItemValidationPatternMax).optional()
+}).optional()
 })).optional(),
+  "outputConfig": zod.object({
+  "version": zod.literal(1),
+  "format": zod.enum(['text', 'list', 'table', 'json', 'steps']),
+  "description": zod.string().max(createAdminRecipeBodyGuideOutputConfigDescriptionMax).optional(),
+  "fields": zod.array(zod.string().max(createAdminRecipeBodyGuideOutputConfigFieldsItemMax)).max(createAdminRecipeBodyGuideOutputConfigFieldsMax).optional()
+}).optional(),
   "expectedOutput": zod.object({
   "description": zod.string().optional(),
   "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "customContent": zod.object({
+  "troubleshooting": zod.array(zod.string().max(createAdminRecipeBodyGuideCustomContentTroubleshootingItemMax)).max(createAdminRecipeBodyGuideCustomContentTroubleshootingMax).optional(),
+  "verificationChecklist": zod.array(zod.string().max(createAdminRecipeBodyGuideCustomContentVerificationChecklistItemMax)).max(createAdminRecipeBodyGuideCustomContentVerificationChecklistMax).optional(),
+  "workflowDiagram": zod.string().max(createAdminRecipeBodyGuideCustomContentWorkflowDiagramMax).optional(),
+  "images": zod.array(zod.object({
+  "url": zod.url().max(createAdminRecipeBodyGuideCustomContentImagesItemUrlMax),
+  "alt": zod.string().max(createAdminRecipeBodyGuideCustomContentImagesItemAltMax),
+  "caption": zod.string().max(createAdminRecipeBodyGuideCustomContentImagesItemCaptionMax).optional()
+})).max(createAdminRecipeBodyGuideCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
   "scenario": zod.string(),
@@ -959,7 +1165,7 @@ export const CreateAdminRecipeBody = zod.object({
   "version": zod.literal(1),
   "blocks": zod.array(zod.object({
   "id": zod.string().min(1).max(createAdminRecipeBodyLayoutConfigOneBlocksItemIdMax),
-  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "type": zod.enum(['hero', 'overview', 'richText', 'field', 'inputs', 'workflow', 'prompt', 'example', 'output', 'outcome', 'image', 'images', 'diagram', 'refinements', 'troubleshooting', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
   "visible": zod.boolean(),
   "heading": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemHeadingMax).optional(),
   "subtitle": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemSubtitleMax).optional(),
@@ -972,10 +1178,50 @@ export const CreateAdminRecipeBody = zod.object({
   "imageUrl": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemImageUrlMax).optional(),
   "alt": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemAltMax).optional(),
   "caption": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemCaptionMax).optional(),
-  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+  "variant": zod.enum(['tip', 'warning', 'info']).optional(),
+  "fieldRef": zod.string().max(createAdminRecipeBodyLayoutConfigOneBlocksItemFieldRefMax).optional()
 })).max(createAdminRecipeBodyLayoutConfigOneBlocksMax)
 }),zod.null()]).optional()
 })
+
+export const createAdminRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax = 1000;
+
+export const createAdminRecipeResponseTwoGuideOnePromptVariablesItemDefaultValueMax = 10000;
+
+export const createAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsItemMax = 500;
+
+export const createAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsMax = 100;
+
+export const createAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMin = 0;
+export const createAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMax = 10000;
+
+export const createAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMaxLengthMax = 10000;
+
+export const createAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationPatternMax = 500;
+
+export const createAdminRecipeResponseTwoGuideOneOutputConfigDescriptionMax = 2000;
+
+export const createAdminRecipeResponseTwoGuideOneOutputConfigFieldsItemMax = 200;
+
+export const createAdminRecipeResponseTwoGuideOneOutputConfigFieldsMax = 50;
+
+export const createAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingItemMax = 2000;
+
+export const createAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingMax = 100;
+
+export const createAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistItemMax = 2000;
+
+export const createAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistMax = 100;
+
+export const createAdminRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax = 20000;
+
+export const createAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax = 2048;
+
+export const createAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax = 500;
+
+export const createAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax = 500;
+
+export const createAdminRecipeResponseTwoGuideOneCustomContentImagesMax = 20;
 
 export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax = 100;
 
@@ -994,6 +1240,8 @@ export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax = 
 export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax = 500;
 
 export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemFieldRefMax = 100;
 
 export const createAdminRecipeResponseTwoLayoutConfigOneBlocksMax = 50;
 
@@ -1068,11 +1316,38 @@ export const CreateAdminRecipeResponse = zod.object({
   "name": zod.string(),
   "label": zod.string(),
   "placeholder": zod.string().optional(),
-  "required": zod.boolean().optional()
+  "required": zod.boolean().optional(),
+  "type": zod.enum(['text', 'textarea', 'number', 'url', 'date', 'select', 'dropdown', 'checkbox', 'file']).optional(),
+  "helpText": zod.string().max(createAdminRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax).optional(),
+  "defaultValue": zod.string().max(createAdminRecipeResponseTwoGuideOnePromptVariablesItemDefaultValueMax).optional(),
+  "options": zod.array(zod.string().max(createAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsItemMax)).max(createAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsMax).optional(),
+  "validation": zod.object({
+  "minLength": zod.int().min(createAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMin).max(createAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMax).optional(),
+  "maxLength": zod.int().min(1).max(createAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMaxLengthMax).optional(),
+  "minimum": zod.number().optional(),
+  "maximum": zod.number().optional(),
+  "pattern": zod.string().max(createAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationPatternMax).optional()
+}).optional()
 })).optional(),
+  "outputConfig": zod.object({
+  "version": zod.literal(1),
+  "format": zod.enum(['text', 'list', 'table', 'json', 'steps']),
+  "description": zod.string().max(createAdminRecipeResponseTwoGuideOneOutputConfigDescriptionMax).optional(),
+  "fields": zod.array(zod.string().max(createAdminRecipeResponseTwoGuideOneOutputConfigFieldsItemMax)).max(createAdminRecipeResponseTwoGuideOneOutputConfigFieldsMax).optional()
+}).optional(),
   "expectedOutput": zod.object({
   "description": zod.string().optional(),
   "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "customContent": zod.object({
+  "troubleshooting": zod.array(zod.string().max(createAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingItemMax)).max(createAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingMax).optional(),
+  "verificationChecklist": zod.array(zod.string().max(createAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistItemMax)).max(createAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistMax).optional(),
+  "workflowDiagram": zod.string().max(createAdminRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax).optional(),
+  "images": zod.array(zod.object({
+  "url": zod.url().max(createAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax),
+  "alt": zod.string().max(createAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
+  "caption": zod.string().max(createAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional()
+})).max(createAdminRecipeResponseTwoGuideOneCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
   "scenario": zod.string(),
@@ -1104,7 +1379,7 @@ export const CreateAdminRecipeResponse = zod.object({
   "version": zod.literal(1),
   "blocks": zod.array(zod.object({
   "id": zod.string().min(1).max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax),
-  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "type": zod.enum(['hero', 'overview', 'richText', 'field', 'inputs', 'workflow', 'prompt', 'example', 'output', 'outcome', 'image', 'images', 'diagram', 'refinements', 'troubleshooting', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
   "visible": zod.boolean(),
   "heading": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax).optional(),
   "subtitle": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax).optional(),
@@ -1117,14 +1392,15 @@ export const CreateAdminRecipeResponse = zod.object({
   "imageUrl": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax).optional(),
   "alt": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax).optional(),
   "caption": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax).optional(),
-  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+  "variant": zod.enum(['tip', 'warning', 'info']).optional(),
+  "fieldRef": zod.string().max(createAdminRecipeResponseTwoLayoutConfigOneBlocksItemFieldRefMax).optional()
 })).max(createAdminRecipeResponseTwoLayoutConfigOneBlocksMax)
 }),zod.null()])
 }))
 
 
 /**
- * Imports up to 500 recipe rows. Headers are matched case-insensitively to the AI Recipes spreadsheet columns. List cells may use commas, semicolons, pipes, line breaks, or JSON arrays. Recipes default to DRAFT unless Publishing Status explicitly says Published or Live.
+ * Previews or imports up to 500 recipe rows. Set preview to true to validate without writing; any invalid row prevents the full batch from committing. CSV schema version 2 supports JSON-encoded dynamic inputs, workflow steps, output structures, and custom layout configuration. Existing slugs are create-only unless csv_action explicitly requests an update.
  * @summary Import recipes from a CSV spreadsheet
  */
 export const importAdminRecipesCsvBodyCsvMax = 5242880;
@@ -1132,19 +1408,29 @@ export const importAdminRecipesCsvBodyCsvMax = 5242880;
 
 
 export const ImportAdminRecipesCsvBody = zod.object({
-  "csv": zod.string().max(importAdminRecipesCsvBodyCsvMax)
+  "csv": zod.string().max(importAdminRecipesCsvBodyCsvMax),
+  "preview": zod.boolean().optional()
 })
 
 export const ImportAdminRecipesCsvResponse = zod.object({
   "createdCount": zod.int(),
+  "updatedCount": zod.int(),
   "failedCount": zod.int(),
+  "preview": zod.boolean(),
   "results": zod.array(zod.object({
   "row": zod.int(),
   "slug": zod.string(),
-  "status": zod.enum(['created', 'failed']),
-  "message": zod.string()
+  "status": zod.enum(['planned', 'created', 'updated', 'failed']),
+  "message": zod.string(),
+  "warnings": zod.array(zod.string()).optional()
 }))
 })
+
+
+/**
+ * @summary Export recipes using CSV schema version 2
+ */
+export const ExportAdminRecipesCsvResponse = zod.unknown()
 
 
 /**
@@ -1284,6 +1570,45 @@ export const updateAdminRecipeBodyOneProblemMin = 10;
 
 export const updateAdminRecipeBodyOnePromptMin = 20;
 
+export const updateAdminRecipeBodyOneGuidePromptVariablesItemHelpTextMax = 1000;
+
+export const updateAdminRecipeBodyOneGuidePromptVariablesItemDefaultValueMax = 10000;
+
+export const updateAdminRecipeBodyOneGuidePromptVariablesItemOptionsItemMax = 500;
+
+export const updateAdminRecipeBodyOneGuidePromptVariablesItemOptionsMax = 100;
+
+export const updateAdminRecipeBodyOneGuidePromptVariablesItemValidationMinLengthMin = 0;
+export const updateAdminRecipeBodyOneGuidePromptVariablesItemValidationMinLengthMax = 10000;
+
+export const updateAdminRecipeBodyOneGuidePromptVariablesItemValidationMaxLengthMax = 10000;
+
+export const updateAdminRecipeBodyOneGuidePromptVariablesItemValidationPatternMax = 500;
+
+export const updateAdminRecipeBodyOneGuideOutputConfigDescriptionMax = 2000;
+
+export const updateAdminRecipeBodyOneGuideOutputConfigFieldsItemMax = 200;
+
+export const updateAdminRecipeBodyOneGuideOutputConfigFieldsMax = 50;
+
+export const updateAdminRecipeBodyOneGuideCustomContentTroubleshootingItemMax = 2000;
+
+export const updateAdminRecipeBodyOneGuideCustomContentTroubleshootingMax = 100;
+
+export const updateAdminRecipeBodyOneGuideCustomContentVerificationChecklistItemMax = 2000;
+
+export const updateAdminRecipeBodyOneGuideCustomContentVerificationChecklistMax = 100;
+
+export const updateAdminRecipeBodyOneGuideCustomContentWorkflowDiagramMax = 20000;
+
+export const updateAdminRecipeBodyOneGuideCustomContentImagesItemUrlMax = 2048;
+
+export const updateAdminRecipeBodyOneGuideCustomContentImagesItemAltMax = 500;
+
+export const updateAdminRecipeBodyOneGuideCustomContentImagesItemCaptionMax = 500;
+
+export const updateAdminRecipeBodyOneGuideCustomContentImagesMax = 20;
+
 export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemIdMax = 100;
 
 export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemHeadingMax = 200;
@@ -1301,6 +1626,8 @@ export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemImageUrlMax = 2048
 export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemAltMax = 500;
 
 export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemFieldRefMax = 100;
 
 export const updateAdminRecipeBodyOneLayoutConfigOneBlocksMax = 50;
 
@@ -1367,11 +1694,38 @@ export const UpdateAdminRecipeBody = zod.object({
   "name": zod.string(),
   "label": zod.string(),
   "placeholder": zod.string().optional(),
-  "required": zod.boolean().optional()
+  "required": zod.boolean().optional(),
+  "type": zod.enum(['text', 'textarea', 'number', 'url', 'date', 'select', 'dropdown', 'checkbox', 'file']).optional(),
+  "helpText": zod.string().max(updateAdminRecipeBodyOneGuidePromptVariablesItemHelpTextMax).optional(),
+  "defaultValue": zod.string().max(updateAdminRecipeBodyOneGuidePromptVariablesItemDefaultValueMax).optional(),
+  "options": zod.array(zod.string().max(updateAdminRecipeBodyOneGuidePromptVariablesItemOptionsItemMax)).max(updateAdminRecipeBodyOneGuidePromptVariablesItemOptionsMax).optional(),
+  "validation": zod.object({
+  "minLength": zod.int().min(updateAdminRecipeBodyOneGuidePromptVariablesItemValidationMinLengthMin).max(updateAdminRecipeBodyOneGuidePromptVariablesItemValidationMinLengthMax).optional(),
+  "maxLength": zod.int().min(1).max(updateAdminRecipeBodyOneGuidePromptVariablesItemValidationMaxLengthMax).optional(),
+  "minimum": zod.number().optional(),
+  "maximum": zod.number().optional(),
+  "pattern": zod.string().max(updateAdminRecipeBodyOneGuidePromptVariablesItemValidationPatternMax).optional()
+}).optional()
 })).optional(),
+  "outputConfig": zod.object({
+  "version": zod.literal(1),
+  "format": zod.enum(['text', 'list', 'table', 'json', 'steps']),
+  "description": zod.string().max(updateAdminRecipeBodyOneGuideOutputConfigDescriptionMax).optional(),
+  "fields": zod.array(zod.string().max(updateAdminRecipeBodyOneGuideOutputConfigFieldsItemMax)).max(updateAdminRecipeBodyOneGuideOutputConfigFieldsMax).optional()
+}).optional(),
   "expectedOutput": zod.object({
   "description": zod.string().optional(),
   "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "customContent": zod.object({
+  "troubleshooting": zod.array(zod.string().max(updateAdminRecipeBodyOneGuideCustomContentTroubleshootingItemMax)).max(updateAdminRecipeBodyOneGuideCustomContentTroubleshootingMax).optional(),
+  "verificationChecklist": zod.array(zod.string().max(updateAdminRecipeBodyOneGuideCustomContentVerificationChecklistItemMax)).max(updateAdminRecipeBodyOneGuideCustomContentVerificationChecklistMax).optional(),
+  "workflowDiagram": zod.string().max(updateAdminRecipeBodyOneGuideCustomContentWorkflowDiagramMax).optional(),
+  "images": zod.array(zod.object({
+  "url": zod.url().max(updateAdminRecipeBodyOneGuideCustomContentImagesItemUrlMax),
+  "alt": zod.string().max(updateAdminRecipeBodyOneGuideCustomContentImagesItemAltMax),
+  "caption": zod.string().max(updateAdminRecipeBodyOneGuideCustomContentImagesItemCaptionMax).optional()
+})).max(updateAdminRecipeBodyOneGuideCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
   "scenario": zod.string(),
@@ -1403,7 +1757,7 @@ export const UpdateAdminRecipeBody = zod.object({
   "version": zod.literal(1),
   "blocks": zod.array(zod.object({
   "id": zod.string().min(1).max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemIdMax),
-  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "type": zod.enum(['hero', 'overview', 'richText', 'field', 'inputs', 'workflow', 'prompt', 'example', 'output', 'outcome', 'image', 'images', 'diagram', 'refinements', 'troubleshooting', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
   "visible": zod.boolean(),
   "heading": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemHeadingMax).optional(),
   "subtitle": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemSubtitleMax).optional(),
@@ -1416,10 +1770,50 @@ export const UpdateAdminRecipeBody = zod.object({
   "imageUrl": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemImageUrlMax).optional(),
   "alt": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemAltMax).optional(),
   "caption": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemCaptionMax).optional(),
-  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+  "variant": zod.enum(['tip', 'warning', 'info']).optional(),
+  "fieldRef": zod.string().max(updateAdminRecipeBodyOneLayoutConfigOneBlocksItemFieldRefMax).optional()
 })).max(updateAdminRecipeBodyOneLayoutConfigOneBlocksMax)
 }),zod.null()]).optional()
 }).describe('Full replacement payload for an admin recipe.')
+
+export const updateAdminRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax = 1000;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptVariablesItemDefaultValueMax = 10000;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsItemMax = 500;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsMax = 100;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMin = 0;
+export const updateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMax = 10000;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMaxLengthMax = 10000;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationPatternMax = 500;
+
+export const updateAdminRecipeResponseTwoGuideOneOutputConfigDescriptionMax = 2000;
+
+export const updateAdminRecipeResponseTwoGuideOneOutputConfigFieldsItemMax = 200;
+
+export const updateAdminRecipeResponseTwoGuideOneOutputConfigFieldsMax = 50;
+
+export const updateAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingItemMax = 2000;
+
+export const updateAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingMax = 100;
+
+export const updateAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistItemMax = 2000;
+
+export const updateAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistMax = 100;
+
+export const updateAdminRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax = 20000;
+
+export const updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax = 2048;
+
+export const updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax = 500;
+
+export const updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax = 500;
+
+export const updateAdminRecipeResponseTwoGuideOneCustomContentImagesMax = 20;
 
 export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax = 100;
 
@@ -1438,6 +1832,8 @@ export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax = 
 export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax = 500;
 
 export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemFieldRefMax = 100;
 
 export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksMax = 50;
 
@@ -1512,11 +1908,38 @@ export const UpdateAdminRecipeResponse = zod.object({
   "name": zod.string(),
   "label": zod.string(),
   "placeholder": zod.string().optional(),
-  "required": zod.boolean().optional()
+  "required": zod.boolean().optional(),
+  "type": zod.enum(['text', 'textarea', 'number', 'url', 'date', 'select', 'dropdown', 'checkbox', 'file']).optional(),
+  "helpText": zod.string().max(updateAdminRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax).optional(),
+  "defaultValue": zod.string().max(updateAdminRecipeResponseTwoGuideOnePromptVariablesItemDefaultValueMax).optional(),
+  "options": zod.array(zod.string().max(updateAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsItemMax)).max(updateAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsMax).optional(),
+  "validation": zod.object({
+  "minLength": zod.int().min(updateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMin).max(updateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMax).optional(),
+  "maxLength": zod.int().min(1).max(updateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMaxLengthMax).optional(),
+  "minimum": zod.number().optional(),
+  "maximum": zod.number().optional(),
+  "pattern": zod.string().max(updateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationPatternMax).optional()
+}).optional()
 })).optional(),
+  "outputConfig": zod.object({
+  "version": zod.literal(1),
+  "format": zod.enum(['text', 'list', 'table', 'json', 'steps']),
+  "description": zod.string().max(updateAdminRecipeResponseTwoGuideOneOutputConfigDescriptionMax).optional(),
+  "fields": zod.array(zod.string().max(updateAdminRecipeResponseTwoGuideOneOutputConfigFieldsItemMax)).max(updateAdminRecipeResponseTwoGuideOneOutputConfigFieldsMax).optional()
+}).optional(),
   "expectedOutput": zod.object({
   "description": zod.string().optional(),
   "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "customContent": zod.object({
+  "troubleshooting": zod.array(zod.string().max(updateAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingItemMax)).max(updateAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingMax).optional(),
+  "verificationChecklist": zod.array(zod.string().max(updateAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistItemMax)).max(updateAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistMax).optional(),
+  "workflowDiagram": zod.string().max(updateAdminRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax).optional(),
+  "images": zod.array(zod.object({
+  "url": zod.url().max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax),
+  "alt": zod.string().max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
+  "caption": zod.string().max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional()
+})).max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
   "scenario": zod.string(),
@@ -1548,7 +1971,7 @@ export const UpdateAdminRecipeResponse = zod.object({
   "version": zod.literal(1),
   "blocks": zod.array(zod.object({
   "id": zod.string().min(1).max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax),
-  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "type": zod.enum(['hero', 'overview', 'richText', 'field', 'inputs', 'workflow', 'prompt', 'example', 'output', 'outcome', 'image', 'images', 'diagram', 'refinements', 'troubleshooting', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
   "visible": zod.boolean(),
   "heading": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax).optional(),
   "subtitle": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax).optional(),
@@ -1561,7 +1984,8 @@ export const UpdateAdminRecipeResponse = zod.object({
   "imageUrl": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax).optional(),
   "alt": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax).optional(),
   "caption": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax).optional(),
-  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+  "variant": zod.enum(['tip', 'warning', 'info']).optional(),
+  "fieldRef": zod.string().max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemFieldRefMax).optional()
 })).max(updateAdminRecipeResponseTwoLayoutConfigOneBlocksMax)
 }),zod.null()])
 }))
@@ -1584,6 +2008,45 @@ export const DuplicateAdminRecipeParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax = 1000;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemDefaultValueMax = 10000;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsItemMax = 500;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsMax = 100;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMin = 0;
+export const duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMax = 10000;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMaxLengthMax = 10000;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationPatternMax = 500;
+
+export const duplicateAdminRecipeResponseTwoGuideOneOutputConfigDescriptionMax = 2000;
+
+export const duplicateAdminRecipeResponseTwoGuideOneOutputConfigFieldsItemMax = 200;
+
+export const duplicateAdminRecipeResponseTwoGuideOneOutputConfigFieldsMax = 50;
+
+export const duplicateAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingItemMax = 2000;
+
+export const duplicateAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingMax = 100;
+
+export const duplicateAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistItemMax = 2000;
+
+export const duplicateAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistMax = 100;
+
+export const duplicateAdminRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax = 20000;
+
+export const duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax = 2048;
+
+export const duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax = 500;
+
+export const duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax = 500;
+
+export const duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesMax = 20;
+
 export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax = 100;
 
 export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax = 200;
@@ -1601,6 +2064,8 @@ export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax
 export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax = 500;
 
 export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemFieldRefMax = 100;
 
 export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksMax = 50;
 
@@ -1675,11 +2140,38 @@ export const DuplicateAdminRecipeResponse = zod.object({
   "name": zod.string(),
   "label": zod.string(),
   "placeholder": zod.string().optional(),
-  "required": zod.boolean().optional()
+  "required": zod.boolean().optional(),
+  "type": zod.enum(['text', 'textarea', 'number', 'url', 'date', 'select', 'dropdown', 'checkbox', 'file']).optional(),
+  "helpText": zod.string().max(duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax).optional(),
+  "defaultValue": zod.string().max(duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemDefaultValueMax).optional(),
+  "options": zod.array(zod.string().max(duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsItemMax)).max(duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsMax).optional(),
+  "validation": zod.object({
+  "minLength": zod.int().min(duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMin).max(duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMax).optional(),
+  "maxLength": zod.int().min(1).max(duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMaxLengthMax).optional(),
+  "minimum": zod.number().optional(),
+  "maximum": zod.number().optional(),
+  "pattern": zod.string().max(duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationPatternMax).optional()
+}).optional()
 })).optional(),
+  "outputConfig": zod.object({
+  "version": zod.literal(1),
+  "format": zod.enum(['text', 'list', 'table', 'json', 'steps']),
+  "description": zod.string().max(duplicateAdminRecipeResponseTwoGuideOneOutputConfigDescriptionMax).optional(),
+  "fields": zod.array(zod.string().max(duplicateAdminRecipeResponseTwoGuideOneOutputConfigFieldsItemMax)).max(duplicateAdminRecipeResponseTwoGuideOneOutputConfigFieldsMax).optional()
+}).optional(),
   "expectedOutput": zod.object({
   "description": zod.string().optional(),
   "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "customContent": zod.object({
+  "troubleshooting": zod.array(zod.string().max(duplicateAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingItemMax)).max(duplicateAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingMax).optional(),
+  "verificationChecklist": zod.array(zod.string().max(duplicateAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistItemMax)).max(duplicateAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistMax).optional(),
+  "workflowDiagram": zod.string().max(duplicateAdminRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax).optional(),
+  "images": zod.array(zod.object({
+  "url": zod.url().max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax),
+  "alt": zod.string().max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
+  "caption": zod.string().max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional()
+})).max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
   "scenario": zod.string(),
@@ -1711,7 +2203,7 @@ export const DuplicateAdminRecipeResponse = zod.object({
   "version": zod.literal(1),
   "blocks": zod.array(zod.object({
   "id": zod.string().min(1).max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax),
-  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "type": zod.enum(['hero', 'overview', 'richText', 'field', 'inputs', 'workflow', 'prompt', 'example', 'output', 'outcome', 'image', 'images', 'diagram', 'refinements', 'troubleshooting', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
   "visible": zod.boolean(),
   "heading": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax).optional(),
   "subtitle": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax).optional(),
@@ -1724,7 +2216,8 @@ export const DuplicateAdminRecipeResponse = zod.object({
   "imageUrl": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax).optional(),
   "alt": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax).optional(),
   "caption": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax).optional(),
-  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+  "variant": zod.enum(['tip', 'warning', 'info']).optional(),
+  "fieldRef": zod.string().max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemFieldRefMax).optional()
 })).max(duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksMax)
 }),zod.null()])
 }))
@@ -1753,6 +2246,45 @@ export const generateDraftRecipeResponseProblemMin = 10;
 
 export const generateDraftRecipeResponsePromptMin = 20;
 
+export const generateDraftRecipeResponseGuidePromptVariablesItemHelpTextMax = 1000;
+
+export const generateDraftRecipeResponseGuidePromptVariablesItemDefaultValueMax = 10000;
+
+export const generateDraftRecipeResponseGuidePromptVariablesItemOptionsItemMax = 500;
+
+export const generateDraftRecipeResponseGuidePromptVariablesItemOptionsMax = 100;
+
+export const generateDraftRecipeResponseGuidePromptVariablesItemValidationMinLengthMin = 0;
+export const generateDraftRecipeResponseGuidePromptVariablesItemValidationMinLengthMax = 10000;
+
+export const generateDraftRecipeResponseGuidePromptVariablesItemValidationMaxLengthMax = 10000;
+
+export const generateDraftRecipeResponseGuidePromptVariablesItemValidationPatternMax = 500;
+
+export const generateDraftRecipeResponseGuideOutputConfigDescriptionMax = 2000;
+
+export const generateDraftRecipeResponseGuideOutputConfigFieldsItemMax = 200;
+
+export const generateDraftRecipeResponseGuideOutputConfigFieldsMax = 50;
+
+export const generateDraftRecipeResponseGuideCustomContentTroubleshootingItemMax = 2000;
+
+export const generateDraftRecipeResponseGuideCustomContentTroubleshootingMax = 100;
+
+export const generateDraftRecipeResponseGuideCustomContentVerificationChecklistItemMax = 2000;
+
+export const generateDraftRecipeResponseGuideCustomContentVerificationChecklistMax = 100;
+
+export const generateDraftRecipeResponseGuideCustomContentWorkflowDiagramMax = 20000;
+
+export const generateDraftRecipeResponseGuideCustomContentImagesItemUrlMax = 2048;
+
+export const generateDraftRecipeResponseGuideCustomContentImagesItemAltMax = 500;
+
+export const generateDraftRecipeResponseGuideCustomContentImagesItemCaptionMax = 500;
+
+export const generateDraftRecipeResponseGuideCustomContentImagesMax = 20;
+
 export const generateDraftRecipeResponseLayoutConfigOneBlocksItemIdMax = 100;
 
 export const generateDraftRecipeResponseLayoutConfigOneBlocksItemHeadingMax = 200;
@@ -1770,6 +2302,8 @@ export const generateDraftRecipeResponseLayoutConfigOneBlocksItemImageUrlMax = 2
 export const generateDraftRecipeResponseLayoutConfigOneBlocksItemAltMax = 500;
 
 export const generateDraftRecipeResponseLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const generateDraftRecipeResponseLayoutConfigOneBlocksItemFieldRefMax = 100;
 
 export const generateDraftRecipeResponseLayoutConfigOneBlocksMax = 50;
 
@@ -1836,11 +2370,38 @@ export const GenerateDraftRecipeResponse = zod.object({
   "name": zod.string(),
   "label": zod.string(),
   "placeholder": zod.string().optional(),
-  "required": zod.boolean().optional()
+  "required": zod.boolean().optional(),
+  "type": zod.enum(['text', 'textarea', 'number', 'url', 'date', 'select', 'dropdown', 'checkbox', 'file']).optional(),
+  "helpText": zod.string().max(generateDraftRecipeResponseGuidePromptVariablesItemHelpTextMax).optional(),
+  "defaultValue": zod.string().max(generateDraftRecipeResponseGuidePromptVariablesItemDefaultValueMax).optional(),
+  "options": zod.array(zod.string().max(generateDraftRecipeResponseGuidePromptVariablesItemOptionsItemMax)).max(generateDraftRecipeResponseGuidePromptVariablesItemOptionsMax).optional(),
+  "validation": zod.object({
+  "minLength": zod.int().min(generateDraftRecipeResponseGuidePromptVariablesItemValidationMinLengthMin).max(generateDraftRecipeResponseGuidePromptVariablesItemValidationMinLengthMax).optional(),
+  "maxLength": zod.int().min(1).max(generateDraftRecipeResponseGuidePromptVariablesItemValidationMaxLengthMax).optional(),
+  "minimum": zod.number().optional(),
+  "maximum": zod.number().optional(),
+  "pattern": zod.string().max(generateDraftRecipeResponseGuidePromptVariablesItemValidationPatternMax).optional()
+}).optional()
 })).optional(),
+  "outputConfig": zod.object({
+  "version": zod.literal(1),
+  "format": zod.enum(['text', 'list', 'table', 'json', 'steps']),
+  "description": zod.string().max(generateDraftRecipeResponseGuideOutputConfigDescriptionMax).optional(),
+  "fields": zod.array(zod.string().max(generateDraftRecipeResponseGuideOutputConfigFieldsItemMax)).max(generateDraftRecipeResponseGuideOutputConfigFieldsMax).optional()
+}).optional(),
   "expectedOutput": zod.object({
   "description": zod.string().optional(),
   "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "customContent": zod.object({
+  "troubleshooting": zod.array(zod.string().max(generateDraftRecipeResponseGuideCustomContentTroubleshootingItemMax)).max(generateDraftRecipeResponseGuideCustomContentTroubleshootingMax).optional(),
+  "verificationChecklist": zod.array(zod.string().max(generateDraftRecipeResponseGuideCustomContentVerificationChecklistItemMax)).max(generateDraftRecipeResponseGuideCustomContentVerificationChecklistMax).optional(),
+  "workflowDiagram": zod.string().max(generateDraftRecipeResponseGuideCustomContentWorkflowDiagramMax).optional(),
+  "images": zod.array(zod.object({
+  "url": zod.url().max(generateDraftRecipeResponseGuideCustomContentImagesItemUrlMax),
+  "alt": zod.string().max(generateDraftRecipeResponseGuideCustomContentImagesItemAltMax),
+  "caption": zod.string().max(generateDraftRecipeResponseGuideCustomContentImagesItemCaptionMax).optional()
+})).max(generateDraftRecipeResponseGuideCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
   "scenario": zod.string(),
@@ -1872,7 +2433,7 @@ export const GenerateDraftRecipeResponse = zod.object({
   "version": zod.literal(1),
   "blocks": zod.array(zod.object({
   "id": zod.string().min(1).max(generateDraftRecipeResponseLayoutConfigOneBlocksItemIdMax),
-  "type": zod.enum(['hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "type": zod.enum(['hero', 'overview', 'richText', 'field', 'inputs', 'workflow', 'prompt', 'example', 'output', 'outcome', 'image', 'images', 'diagram', 'refinements', 'troubleshooting', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
   "visible": zod.boolean(),
   "heading": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemHeadingMax).optional(),
   "subtitle": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemSubtitleMax).optional(),
@@ -1885,7 +2446,8 @@ export const GenerateDraftRecipeResponse = zod.object({
   "imageUrl": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemImageUrlMax).optional(),
   "alt": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemAltMax).optional(),
   "caption": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemCaptionMax).optional(),
-  "variant": zod.enum(['tip', 'warning', 'info']).optional()
+  "variant": zod.enum(['tip', 'warning', 'info']).optional(),
+  "fieldRef": zod.string().max(generateDraftRecipeResponseLayoutConfigOneBlocksItemFieldRefMax).optional()
 })).max(generateDraftRecipeResponseLayoutConfigOneBlocksMax)
 }),zod.null()]).optional()
 })

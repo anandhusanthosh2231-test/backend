@@ -12,4 +12,5 @@ export type ImportAdminRecipesResponseResultsItem = {
   slug: string;
   status: ImportAdminRecipesResponseResultsItemStatus;
   message: string;
+  warnings?: string[];
 };

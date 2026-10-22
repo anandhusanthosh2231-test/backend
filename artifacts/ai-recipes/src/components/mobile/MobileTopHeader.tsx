@@ -56,9 +56,9 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
               <ArrowLeft size={22} />
             </button>
           ) : null}
-          <Link href="/" className="flipkart-mobile-header__brand" data-testid="mobile-link-logo">
-            <span className="brand-dot" />
-            <span className="flipkart-mobile-header__brand-text">AI Recipes</span>
+          <Link href="/" className={`flipkart-mobile-header__brand${isDetailPage ? ' is-detail' : ''}`} aria-label="TaskBakeAI home" data-testid="mobile-link-logo">
+            <img className="flipkart-mobile-header__brand-mark" src="/taskbakeai-mark.png" alt="" />
+            <span className="flipkart-mobile-header__brand-text">TaskBakeAI</span>
           </Link>
         </div>
 

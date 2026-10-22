@@ -15,7 +15,17 @@ export function normalizeRecipeCsvHeader(value: string): string {
 export function parseRecipeCsv(csv: string): RecipeCsvRecord[] {
   const records = parse(csv, {
     bom: true,
-    columns: (headers: string[]) => headers.map(normalizeRecipeCsvHeader),
+    columns: (headers: string[]) => {
+      const normalized = headers.map(normalizeRecipeCsvHeader);
+      if (new Set(normalized).size !== normalized.length) {
+        throw new Error("CSV headers must be unique after normalization.");
+      }
+      if (!normalized.some((header) => ["recipe title", "title"].includes(header))
+        || !normalized.some((header) => ["url slug", "slug"].includes(header))) {
+        throw new Error('CSV headers must include "Recipe Title" and "URL Slug".');
+      }
+      return normalized;
+    },
     skip_empty_lines: true,
     trim: true,
   }) as RecipeCsvRecord[];
@@ -86,6 +96,65 @@ function parseObjectArray(value: string): unknown[] | undefined {
   } catch {
     return undefined;
   }
+}
+
+function parseJsonCell<T>(record: RecipeCsvRecord, header: string): T | undefined {
+  const value = getCell(record, header);
+  if (!value) return undefined;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    throw new Error(`${header} must contain valid JSON.`);
+  }
+}
+
+function parseInputDefinitions(value: unknown, required: boolean, header: string): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) throw new Error(`${header} must be a JSON array.`);
+  return value.map((item, index) => {
+    if (typeof item === "string" && item.trim()) {
+      return { name: normalizePromptVariableName(item), label: item.trim(), required };
+    }
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new Error(`${header}[${index}] must be an input object.`);
+    }
+    const input = item as Record<string, unknown>;
+    const name = normalizePromptVariableName(String(input.name ?? input.variable ?? ""));
+    const label = String(input.label ?? name).trim();
+    if (!name || !label) throw new Error(`${header}[${index}] needs a name and label.`);
+    return {
+      ...input,
+      name,
+      label,
+      required,
+    };
+  });
+}
+
+function parseWorkflowSteps(value: unknown): string[] {
+  if (!Array.isArray(value) || !value.every((step) => typeof step === "string")) {
+    throw new Error("workflow_steps_json must be a JSON array of strings.");
+  }
+  return value.map((step) => step.trim()).filter(Boolean);
+}
+
+function parseCustomLayout(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("layout_config_json must be a versioned layout object.");
+  }
+  const layout = value as Record<string, unknown>;
+  if (layout.version !== 1 || !Array.isArray(layout.blocks)) {
+    throw new Error("layout_config_json must use version 1 and include a blocks array.");
+  }
+  return {
+    ...layout,
+    blocks: layout.blocks.map((block, index) => {
+      if (!block || typeof block !== "object" || Array.isArray(block)) {
+        throw new Error(`layout_config_json.blocks[${index}] must be a block object.`);
+      }
+      const object = block as Record<string, unknown>;
+      return { ...object, id: object.id ?? `csv-block-${index + 1}` };
+    }),
+  };
 }
 
 function objectCell(record: Record<string, unknown>, ...keys: string[]): string {
@@ -168,7 +237,25 @@ function parsePromptVariables(value: string) {
       const label = objectCell(record, "label", "title", "description", "name", "variable", "key") || name;
       const placeholder = objectCell(record, "placeholder", "example", "default", "hint");
       const required = objectBoolean(record, "required");
-      return [{ name, label, ...(placeholder ? { placeholder } : {}), ...(required === undefined ? {} : { required }) }];
+      const type = objectCell(record, "type");
+      const helpText = objectCell(record, "helpText", "help_text");
+      const defaultValue = objectCell(record, "defaultValue", "default_value");
+      const optionsValue = record.options;
+      const options = Array.isArray(optionsValue) ? optionsValue.map(String) : undefined;
+      const validation = record.validation && typeof record.validation === "object" && !Array.isArray(record.validation)
+        ? record.validation
+        : undefined;
+      return [{
+        name,
+        label,
+        ...(placeholder ? { placeholder } : {}),
+        ...(required === undefined ? {} : { required }),
+        ...(type ? { type } : {}),
+        ...(helpText ? { helpText } : {}),
+        ...(defaultValue ? { defaultValue } : {}),
+        ...(options ? { options } : {}),
+        ...(validation ? { validation } : {}),
+      }];
     });
   }
   return splitList(value).map((item) => {
@@ -223,8 +310,124 @@ export function mapRecipeCsvRecord(
   const timeToResult = getCell(record, "Time To Result");
   const outputDescription = getCell(record, "Expected Output", "Output");
   const realisticExamples = getCell(record, "Realistic Examples");
+  const schemaVersion = getCell(record, "CSV Schema Version", "Recipe CSV Version");
+  if (schemaVersion && schemaVersion !== "2") {
+    throw new Error(`Unsupported CSV schema version "${schemaVersion}". Use version 2 or omit the version for legacy CSV.`);
+  }
+
+  const requiredJson = parseJsonCell<unknown>(record, "Required Inputs JSON");
+  const optionalJson = parseJsonCell<unknown>(record, "Optional Inputs JSON");
+  const hasJsonInputs = requiredJson !== undefined || optionalJson !== undefined;
+  const jsonRequiredInputs = requiredJson === undefined ? [] : parseInputDefinitions(requiredJson, true, "required_inputs_json");
+  const jsonOptionalInputs = optionalJson === undefined ? [] : parseInputDefinitions(optionalJson, false, "optional_inputs_json");
+  const promptVariables = hasJsonInputs
+    ? [...jsonRequiredInputs, ...jsonOptionalInputs]
+    : parsePromptVariables(getCell(record, "Prompt Variables"));
+  const workflowJson = parseJsonCell<unknown>(record, "Workflow Steps JSON");
+  const outputConfig = parseJsonCell<unknown>(record, "Output Config JSON");
+  const layoutConfigValue = parseJsonCell<unknown>(record, "Layout Config JSON");
+  const layoutConfig = layoutConfigValue === undefined ? null : parseCustomLayout(layoutConfigValue);
+  const troubleshooting = parseJsonCell<unknown>(record, "Troubleshooting JSON");
+  const verificationChecklist = parseJsonCell<unknown>(record, "Verification Checklist JSON");
+  const images = parseJsonCell<unknown>(record, "Images JSON");
+  const workflowDiagram = getCell(record, "Workflow Diagram Mermaid");
+  const guideJson = parseJsonCell<unknown>(record, "Recipe Guide JSON");
+  if (guideJson !== undefined && (!guideJson || typeof guideJson !== "object" || Array.isArray(guideJson))) {
+    throw new Error("recipe_guide_json must be a JSON object.");
+  }
+  const rawPrompt = getCell(record, "Prompt Template") || getCell(record, "The Copyable Prompt", "Copyable Prompt", "Prompt");
+  const requiredInputLabels = hasJsonInputs && jsonRequiredInputs.length
+    ? jsonRequiredInputs.map((input) => String(input.label))
+    : requiredInputs;
 
   const guideTools = supportedTools.length ? supportedTools : aiTools;
+  const layoutMode = layoutConfig ? "custom" : "normal";
+  const mappedGuide = {
+    snapshot: {
+      bestFor: getCell(record, "Best For"),
+      worksBestWhen: getCell(record, "Works Best When"),
+      timeToResult,
+      output: getCell(record, "Output") || outputDescription,
+      bestWith,
+      skillLevel: getCell(record, "Skill Level") || getCell(record, "Difficulty"),
+    },
+    useCases: splitList(getCell(record, "When This Recipe Is Useful")).map((description, index) => ({
+      name: `Use case ${index + 1}`,
+      description,
+    })),
+    whenNotToUse: splitList(getCell(record, "When Not To Use This")),
+    inputs: {
+      required: hasJsonInputs ? requiredInputLabels : requiredInputs,
+      optional: hasJsonInputs
+        ? jsonOptionalInputs.map((input) => String(input.label))
+        : splitList(getCell(record, "Optional Inputs")),
+    },
+    situations: parseSituations(getCell(record, "Choose Your Situation")),
+    tools: guideTools.map((name) => ({ name, support: "compatible" })),
+    promptVariables,
+    ...(outputConfig === undefined ? {} : { outputConfig }),
+    expectedOutput: {
+      description: outputDescription,
+      characteristics: splitList(getCell(record, "Output Characteristics")),
+    },
+    examples: parseExamples(realisticExamples, exampleInput, exampleOutput),
+    bestFor: {
+      people: splitList(getCell(record, "Best For People")),
+      tasks: splitList(getCell(record, "Best For Tasks")),
+      channels: splitList(getCell(record, "Best For Channels")),
+    },
+    timeToResult,
+    effort: getCell(record, "Effort"),
+    typicalIterations: getCell(record, "Typical AI Iterations"),
+    commonMistakes: splitList(getCell(record, "Common Mistakes")),
+    betterApproach: getCell(record, "Better Approach"),
+    proTips: splitList(getCell(record, "Pro Tips")),
+    safetyNotes: splitList(getCell(record, "Additional Safety Notes")),
+    ...((troubleshooting !== undefined || verificationChecklist !== undefined || images !== undefined || workflowDiagram)
+      ? {
+          customContent: {
+            ...(troubleshooting === undefined ? {} : { troubleshooting }),
+            ...(verificationChecklist === undefined ? {} : { verificationChecklist }),
+            ...(images === undefined ? {} : { images }),
+            ...(workflowDiagram ? { workflowDiagram } : {}),
+          },
+        }
+      : {}),
+    quality: {
+      status: testStatus,
+      lastTested: testedAt,
+      version,
+      testedWith,
+    },
+  };
+  const guide = guideJson === undefined
+    ? mappedGuide
+    : {
+        ...(guideJson as Record<string, unknown>),
+        ...(hasJsonInputs ? {
+          promptVariables,
+          inputs: {
+            required: requiredInputLabels,
+            optional: jsonOptionalInputs.map((input) => String(input.label)),
+          },
+        } : {}),
+        ...(outputConfig === undefined ? {} : { outputConfig }),
+        ...((troubleshooting !== undefined || verificationChecklist !== undefined || images !== undefined || workflowDiagram)
+          ? {
+              customContent: {
+                ...((guideJson as Record<string, unknown>).customContent
+                  && typeof (guideJson as Record<string, unknown>).customContent === "object"
+                  && !Array.isArray((guideJson as Record<string, unknown>).customContent)
+                  ? (guideJson as Record<string, unknown>).customContent as Record<string, unknown>
+                  : {}),
+                ...(troubleshooting === undefined ? {} : { troubleshooting }),
+                ...(verificationChecklist === undefined ? {} : { verificationChecklist }),
+                ...(images === undefined ? {} : { images }),
+                ...(workflowDiagram ? { workflowDiagram } : {}),
+              },
+            }
+          : {}),
+      };
 
   return {
     title,
@@ -238,9 +441,9 @@ export function mapRecipeCsvRecord(
     estimatedTime: getCell(record, "Estimated Time") || timeToResult,
     language: getCell(record, "Language") || "English",
     aiTools,
-    requiredInputs,
-    steps: splitList(getCell(record, "Steps to Execute", "Steps")),
-    prompt: getCell(record, "The Copyable Prompt", "Copyable Prompt", "Prompt"),
+    requiredInputs: hasJsonInputs ? requiredInputLabels : requiredInputs,
+    steps: workflowJson === undefined ? splitList(getCell(record, "Steps to Execute", "Steps")) : parseWorkflowSteps(workflowJson),
+    prompt: rawPrompt,
     exampleInput,
     exampleOutput,
     refinementPrompts: splitList(getCell(record, "Refinement Follow Up Prompts", "Refinement Prompts")),
@@ -255,47 +458,8 @@ export function mapRecipeCsvRecord(
     testedWith,
     seoTitle: getCell(record, "SEO Title") || title,
     seoDescription: getCell(record, "SEO Description") || getCell(record, "Short Description"),
-    guide: {
-      snapshot: {
-        bestFor: getCell(record, "Best For"),
-        worksBestWhen: getCell(record, "Works Best When"),
-        timeToResult,
-        output: getCell(record, "Output") || outputDescription,
-        bestWith,
-        skillLevel: getCell(record, "Skill Level") || getCell(record, "Difficulty"),
-      },
-      useCases: splitList(getCell(record, "When This Recipe Is Useful")).map((description, index) => ({
-        name: `Use case ${index + 1}`,
-        description,
-      })),
-      whenNotToUse: splitList(getCell(record, "When Not To Use This")),
-      inputs: { required: requiredInputs, optional: splitList(getCell(record, "Optional Inputs")) },
-      situations: parseSituations(getCell(record, "Choose Your Situation")),
-      tools: guideTools.map((name) => ({ name, support: "compatible" })),
-      promptVariables: parsePromptVariables(getCell(record, "Prompt Variables")),
-      expectedOutput: {
-        description: outputDescription,
-        characteristics: splitList(getCell(record, "Output Characteristics")),
-      },
-      examples: parseExamples(realisticExamples, exampleInput, exampleOutput),
-      bestFor: {
-        people: splitList(getCell(record, "Best For People")),
-        tasks: splitList(getCell(record, "Best For Tasks")),
-        channels: splitList(getCell(record, "Best For Channels")),
-      },
-      timeToResult,
-      effort: getCell(record, "Effort"),
-      typicalIterations: getCell(record, "Typical AI Iterations"),
-      commonMistakes: splitList(getCell(record, "Common Mistakes")),
-      betterApproach: getCell(record, "Better Approach"),
-      proTips: splitList(getCell(record, "Pro Tips")),
-      safetyNotes: splitList(getCell(record, "Additional Safety Notes")),
-      quality: {
-        status: testStatus,
-        lastTested: testedAt,
-        version,
-        testedWith,
-      },
-    },
+    guide,
+    layoutMode,
+    layoutConfig,
   };
 }

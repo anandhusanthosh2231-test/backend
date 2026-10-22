@@ -4,7 +4,7 @@ import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import { ClerkProvider, Show, SignIn, SignUp, useAuth, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import {
-  AlertCircle, ArrowRight, BarChart3, Bookmark, BookmarkCheck, Check, CheckCircle2,
+  AlertCircle, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bookmark, BookmarkCheck, Check, CheckCircle2,
   ChevronLeft, ChevronRight, Clock3, Copy, ExternalLink, Eye, EyeOff, FileText, Filter, Flame,
   History, Info, Key, Layers, LayoutDashboard, Lock, Menu, PenLine, Phone, Plus, RefreshCw,
   Search, Send, Share2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Tag, ThumbsUp, Trash2, Upload,
@@ -32,9 +32,12 @@ import { MobileTopHeader } from '@/components/mobile/MobileTopHeader';
 import { MobileCategoryChips } from '@/components/mobile/MobileCategoryChips';
 import { MobileBannerCarousel } from '@/components/mobile/MobileBannerCarousel';
 import { useMobileEnforcement } from '@/hooks/useMobileEnforcement';
-import { createDefaultRecipeLayout, isValidRecipeLayout, RecipeLayoutBuilder, RecipeLayoutRenderer } from '@/components/recipe-layout';
+import { createDefaultRecipeLayout, isValidRecipeLayout, RecipeLayoutBuilder, RecipeLayoutRenderer, RecipePromptInputEditor } from '@/components/recipe-layout';
 import type { RecipeLayoutData } from '@/components/recipe-layout';
+import { RecipePromptInputs } from '@/components/recipe-prompt-inputs';
+import { getRecipePromptInputErrors, resolveRecipePrompt } from '@/lib/recipe-prompt';
 import { ADMIN_PATH, getAdminPath } from '@/lib/admin-path';
+import { Footer } from '@/components/Footer';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
@@ -75,7 +78,7 @@ const clerkAppearance = {
   options: {
     logoPlacement: 'inside' as const,
     logoLinkUrl: basePath || '/',
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+    logoImageUrl: `${window.location.origin}${basePath}/taskbakeai-wordmark.png`,
   },
 };
 
@@ -108,19 +111,21 @@ function usePageMeta(title: string, description: string, structured?: unknown) {
 }
 
 function Logo() {
-  return <Link href="/" className="brand-mark" data-testid="link-logo"><span className="brand-dot" />AI Recipes</Link>;
+  return <Link href="/" className="brand-mark taskbakeai-desktop-brand" aria-label="TaskBakeAI home" data-testid="link-logo">
+    <img src={`${basePath}/taskbakeai-wordmark.png`} alt="TaskBakeAI — Practical AI workflows for real life" />
+  </Link>;
 }
 
 function Header() {
   const [open, setOpen] = useState(false);
   const [location] = useLocation();
   const { isSignedIn } = useAuth();
-  const links = [['/recipes', 'Discover'], ['/categories', 'Categories'], ['/audiences', 'Collections'], ['/about', 'About']];
+  const links = [['/recipes', 'Discover'], ['/categories', 'Categories'], ['/audiences', 'Collections'], ['/why-ai-recipes', 'Why recipes'], ['/about', 'About']];
   return <header className="site-header">
     <div className="shell header-inner">
       <Logo />
        <nav className={`main-nav ${open ? 'is-open' : ''}`} aria-label="Primary navigation">
-        {links.map(([href, label]) => <Link key={href} href={href} onClick={() => setOpen(false)} className={location.startsWith(href) ? 'active' : ''} data-testid={`link-nav-${label.toLowerCase()}`}>{label}</Link>)}
+        {links.map(([href, label]) => <Link key={href} href={href} onClick={() => setOpen(false)} className={location.startsWith(href) ? 'active' : ''} data-testid={`link-nav-${label.toLowerCase().replace(/\s+/g, '-')}`}>{label}</Link>)}
       </nav>
         <div className="header-actions">
          <Link href="/search" className="icon-button" aria-label="Search" data-testid="link-search"><Search size={18} /></Link>
@@ -134,97 +139,7 @@ function Header() {
   </header>;
 }
 
-function Footer() {
-  const footerRef = useRef<HTMLElement>(null);
-  const robotTrackRef = useRef<HTMLDivElement>(null);
-  const robotRef = useRef<SVGSVGElement>(null);
-  const [hasStarted, setHasStarted] = useState(false);
 
-  useEffect(() => {
-    const footer = footerRef.current;
-    const track = robotTrackRef.current;
-    const robot = robotRef.current;
-    if (!footer || !track || !robot) return;
-
-    const updateTravel = () => {
-      const travel = Math.max(0, track.clientWidth - robot.getBoundingClientRect().width);
-      track.style.setProperty('--robot-travel', `${travel}px`);
-    };
-    updateTravel();
-
-    const resizeObserver = 'ResizeObserver' in window
-      ? new ResizeObserver(updateTravel)
-      : null;
-    resizeObserver?.observe(track);
-    resizeObserver?.observe(robot);
-    if (!resizeObserver) window.addEventListener('resize', updateTravel);
-
-    let intersectionObserver: IntersectionObserver | null = null;
-    if ('IntersectionObserver' in window) {
-      intersectionObserver = new IntersectionObserver(([entry]) => {
-        if (!entry.isIntersecting) return;
-        setHasStarted(true);
-        intersectionObserver?.disconnect();
-      }, { threshold: 0.05 });
-      intersectionObserver.observe(footer);
-    } else {
-      setHasStarted(true);
-    }
-
-    return () => {
-      resizeObserver?.disconnect();
-      if (!resizeObserver) window.removeEventListener('resize', updateTravel);
-      intersectionObserver?.disconnect();
-    };
-  }, []);
-
-  return <footer ref={footerRef} className="site-footer">
-    <div className="shell footer-inner">
-      <div className="footer-main">
-        <div className="footer-brand-area">
-          <div className="footer-brand-copy">
-            <Logo />
-            <p className="footer-tagline">A practical field guide to doing better work with AI.</p>
-          </div>
-          <div className="footer-robot-track" ref={robotTrackRef} aria-hidden="true">
-            <svg ref={robotRef} className={`footer-robot${hasStarted ? ' is-started' : ''}`} viewBox="0 0 24 24" role="presentation">
-              <g className="footer-robot-body">
-                <g className="footer-robot-head">
-                  <rect x="5" y="2" width="14" height="11" rx="4" fill="none" stroke="currentColor" strokeWidth="1.25" />
-                  <g className="footer-robot-eyes" fill="currentColor">
-                    <circle cx="8" cy="7.5" r=".8" />
-                    <circle cx="16" cy="7.5" r=".8" />
-                  </g>
-                  <path d="M9 10h6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                  <path d="M12 2V.8m-.8 0h1.6" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
-                </g>
-                <path d="M12 13v1.5m-5 0h10a2 2 0 0 1 2 2V21H5v-4.5a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
-                <g className="footer-robot-arm">
-                  <path d="m19 15 2 3" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-                  <circle cx="21" cy="18" r="1" fill="currentColor" />
-                </g>
-                <g className="footer-robot-legs" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round">
-                  <path className="footer-robot-leg-left" d="M9 21v2" />
-                  <path className="footer-robot-leg-right" d="M15 21v2" />
-                </g>
-              </g>
-            </svg>
-          </div>
-        </div>
-        <nav className="footer-nav" aria-label="Footer navigation">
-          <Link href="/recipes">Explore</Link>
-          <Link href="/about">About</Link>
-          <Link href="/privacy">Privacy</Link>
-          <Link href="/terms">Terms</Link>
-        </nav>
-      </div>
-      <div className="footer-bottom">
-        <span>© 2026 AI Recipes</span>
-        <span>Made for curious minds</span>
-      </div>
-    </div>
-  </footer>;
-}
 
 function SiteShell({ children }: { children: ReactNode }) {
   return (
@@ -307,7 +222,7 @@ function HomePage() {
   const [search, setSearch] = useState('');
   const exampleSearches = ['Create a LinkedIn post', 'Build a presentation', 'Analyze data', 'Create an Instagram campaign', 'Study for an exam', 'Generate an image'];
   const runExampleSearch = (example: string) => setLocation(`/search?q=${encodeURIComponent(example)}`);
-  usePageMeta('AI Recipes — Practical AI workflows for real work', 'A trusted, Indian-first field guide to practical AI workflows you can copy, run, and make your own.');
+  usePageMeta('TaskBakeAI — Practical AI workflows for real work', 'A trusted, Indian-first field guide to practical AI workflows you can copy, run, and make your own.');
   if (isLoading) return <SiteShell><LoadingState /></SiteShell>;
   if (isError || !data) return <SiteShell><ErrorState retry={() => refetch()} /></SiteShell>;
   return <SiteShell>
@@ -338,7 +253,7 @@ function LibraryPage() {
   const { data: audiences } = useListAudiences();
   const [savedIds] = useState(() => new Set<number>());
   const [, setLocation] = useLocation();
-  usePageMeta(q ? `Search results for ${q} — AI Recipes` : 'Recipe library — AI Recipes', 'Browse practical, tested AI workflows for work, study, business, creativity, and everyday life.');
+  usePageMeta(q ? `Search results for ${q} — TaskBakeAI` : 'Recipe library — TaskBakeAI', 'Browse practical, tested AI workflows for work, study, business, creativity, and everyday life.');
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); searchInputRef.current?.focus(); } };
     window.addEventListener('keydown', onKeyDown);
@@ -424,6 +339,14 @@ function RecipePage() {
     }
   }, [slug]);
   useEffect(() => {
+    if (!query.data || query.data.slug !== slug) return;
+    const variables = query.data.guide?.promptVariables ?? [];
+    setVariableValues((current) => Object.fromEntries(variables.map((variable) => {
+      const name = variable.name.trim().replace(/^\{\{\s*/, '').replace(/\s*\}\}$/, '');
+      return [name, current[name] ?? variable.defaultValue ?? ''];
+    })));
+  }, [query.data?.id, slug]);
+  useEffect(() => {
     if (situationSelection?.slug !== slug) return;
     try {
       if (situationSelection.value) localStorage.setItem(`recipe-situation:${slug}`, situationSelection.value);
@@ -437,9 +360,9 @@ function RecipePage() {
       track.mutate({ data: { type: "recipe_view", recipeId: query.data.id } });
   }, [query.data]);
   usePageMeta(
-    query.data ? `${query.data.title} — AI Recipes` : "Recipe — AI Recipes",
+    query.data ? `${query.data.title} — TaskBakeAI` : "Recipe — TaskBakeAI",
     query.data?.seoDescription ||
-      "A tested, practical AI workflow from AI Recipes.",
+      "A tested, practical AI workflow from TaskBakeAI.",
     query.data
       ? {
           "@context": "https://schema.org",
@@ -488,12 +411,10 @@ function RecipePage() {
         label: (match[1] ?? "").replace(/[_-]+/g, " ").toLowerCase(),
         required: false,
       }));
-  const missingRequiredPromptVariables = variableFields.some((variable) => variable.required && !variableValues[variable.name]?.trim());
+  const promptInputErrors = getRecipePromptInputErrors(variableFields, variableValues);
+  const missingRequiredPromptVariables = Object.keys(promptInputErrors).length > 0;
   const chosenSituation = guide.situations?.find((item) => item.name === selectedSituation);
-  const customizedPrompt = variableFields.reduce((prompt, variable) => {
-    const escapedName = variable.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return prompt.replace(new RegExp(`\\{\\{\\s*${escapedName}\\s*\\}\\}`, "g"), variableValues[variable.name] ?? `{{${variable.name}}}`);
-  }, recipe.prompt);
+  const customizedPrompt = resolveRecipePrompt(recipe.prompt, variableFields, variableValues);
   const finalPrompt = chosenSituation?.promptModifier
     ? `${customizedPrompt}\n\nSituation-specific instructions:\n${chosenSituation.promptModifier}${selectedRefinement ? `\n\nRefinement:\n${selectedRefinement}` : ''}`
     : `${customizedPrompt}${selectedRefinement ? `\n\nRefinement:\n${selectedRefinement}` : ''}`;
@@ -592,7 +513,15 @@ function RecipePage() {
     );
   };
   if (recipe.layoutMode === 'custom' && isValidRecipeLayout(recipe.layoutConfig)) {
-    return <SiteShell><div className="shell custom-recipe-page"><RecipeLayoutRenderer recipe={recipe} config={recipe.layoutConfig} related={related.data ?? []} /></div></SiteShell>;
+    return <SiteShell><div className="shell custom-recipe-page"><RecipeLayoutRenderer
+      recipe={recipe}
+      config={recipe.layoutConfig}
+      related={related.data ?? []}
+      promptValues={variableValues}
+      promptInputErrors={promptInputErrors}
+      resolvedPrompt={finalPrompt}
+      onPromptValueChange={(name, value) => setVariableValues((current) => ({ ...current, [name]: value }))}
+    /></div></SiteShell>;
   }
   return (
     <SiteShell>
@@ -784,9 +713,12 @@ function RecipePage() {
                 <h2>Fill these in, then copy.</h2>
               </div>
             </div>
-            {!!variableFields.length && <div className="prompt-variable-form">
-              {variableFields.map((variable) => <label key={variable.name}>{variable.label}{variable.required && <span className="required-mark">Required</span>}<textarea value={variableValues[variable.name] ?? ""} onChange={(event) => setVariableValues((current) => ({ ...current, [variable.name]: event.target.value }))} placeholder={variable.placeholder || `Enter ${variable.label.toLowerCase()}`} rows={variable.label.toLowerCase().includes("context") || variable.label.toLowerCase().includes("message") ? 3 : 2} />{variable.required && !variableValues[variable.name]?.trim() && <small>Fill this in before copying.</small>}</label>)}
-            </div>}
+            {!!variableFields.length && <RecipePromptInputs
+              fields={variableFields}
+              values={variableValues}
+              errors={promptInputErrors}
+              onChange={(name, value) => setVariableValues((current) => ({ ...current, [name]: value }))}
+            />}
             {missingRequiredPromptVariables && <p className="form-error" role="alert">Fill in the required details above before copying this prompt.</p>}
             <div className="prompt-box">
               <div className="prompt-label">
@@ -801,6 +733,7 @@ function RecipePage() {
             {copyError && <p className="form-error" role="alert">Clipboard access failed. Select and copy the prompt text above.</p>}
           </section>
           {!!(guide.expectedOutput?.description || guide.expectedOutput?.characteristics?.length) && <section className="expected-output-section"><div className="content-heading"><span className="step-count">04</span><div><span className="kicker">Expected output</span><h2>What you’ll get</h2></div></div>{guide.expectedOutput.description && <p className="expected-output-copy">{guide.expectedOutput.description}</p>}{!!guide.expectedOutput.characteristics?.length && <div className="output-characteristics">{guide.expectedOutput.characteristics.map((item) => <span key={item}><Check size={14} />{item}</span>)}</div>}</section>}
+          {guide.outputConfig && <section className="expected-output-config"><span className="kicker">Output structure · {guide.outputConfig.format}</span>{guide.outputConfig.description && <p>{guide.outputConfig.description}</p>}{!!guide.outputConfig.fields?.length && <ul>{guide.outputConfig.fields.map((field) => <li key={field}>{field}</li>)}</ul>}</section>}
           {!!examples.length && <details className="recipe-guide-section recipe-examples" onToggle={(event) => { if (event.currentTarget.open) trackGuideEvent("recipe_example_view"); }}>
             <summary><span className="kicker">Use</span><strong>Realistic examples</strong></summary>
             <div className="example-scroll-row">{examples.map((item, index) => <article className="recipe-example-card" key={`${item.scenario}-${index}`}><span className="kicker">Example {index + 1} · {item.scenario}</span><h3>Input</h3><div className="example-box">{item.input}</div><h3>Output</h3><div className="example-box output">{item.output}</div>{!!item.whyItWorks?.length && <><h3>Why this works</h3><ul>{item.whyItWorks.map((reason, reasonIndex) => <li key={`${reason}-${reasonIndex}`}>{reason}</li>)}</ul></>}</article>)}</div>
@@ -876,8 +809,8 @@ function CollectionPage({ type }: { type: "category" | "audience" }) {
         });
   usePageMeta(
     query.data
-      ? `${query.data.name} workflows — AI Recipes`
-      : "Collection — AI Recipes",
+      ? `${query.data.name} workflows — TaskBakeAI`
+      : "Collection — TaskBakeAI",
     query.data?.description ||
       "Browse practical AI workflows in this collection.",
   );
@@ -914,7 +847,7 @@ function CollectionPage({ type }: { type: "category" | "audience" }) {
 
 function CollectionsIndex({ type }: { type: 'category' | 'audience' }) {
   const query = type === 'category' ? useListCategories() : useListAudiences();
-  usePageMeta(type === 'category' ? 'Categories — AI Recipes' : 'Audiences — AI Recipes', 'Find the right shelf of practical AI workflows for the work you do.');
+  usePageMeta(type === 'category' ? 'Categories — TaskBakeAI' : 'Audiences — TaskBakeAI', 'Find the right shelf of practical AI workflows for the work you do.');
   if (query.isLoading) return <SiteShell><LoadingState /></SiteShell>;
   if (query.isError || !query.data) return <SiteShell><ErrorState retry={() => query.refetch()} /></SiteShell>;
   const items = query.data;
@@ -925,7 +858,7 @@ function SubmitPage() {
   const create = useCreateSubmission();
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState({ title: '', problem: '', workflow: '', howUsed: '', email: '' });
-  usePageMeta('Share a workflow — AI Recipes', 'Share a practical AI workflow with the AI Recipes field guide.');
+  usePageMeta('Share a workflow — TaskBakeAI', 'Share a practical AI workflow with the TaskBakeAI field guide.');
   const update = (key: keyof typeof form) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm({ ...form, [key]: e.target.value });
   if (sent) return <SiteShell><div className="success-panel shell"><span className="success-mark"><Check size={25} /></span><span className="kicker">Workflow received</span><h1>That is exactly the kind of thing we want to test.</h1><p>We will review your workflow for clarity, usefulness, and whether someone else can actually run it.</p><Link href="/recipes" className="button button-dark" data-testid="link-submit-success">Back to the library <ArrowRight size={16} /></Link></div></SiteShell>;
   return <SiteShell><div className="form-page shell"><div className="form-intro"><span className="kicker">Contribute to the field guide</span><h1>What workflow saved you time?</h1><p>Share the problem, the steps, and how you know it worked. We will do the editing and testing; you bring the useful bit.</p><div className="form-aside-note"><PenLine size={18} /><span>Good submissions are specific, honest, and repeatable.</span></div></div><form className="workflow-form" onSubmit={(e) => { e.preventDefault(); create.mutate({ data: { ...form, email: form.email || null } }, { onSuccess: () => setSent(true) }); }}><label>Give it a useful title<input required minLength={3} value={form.title} onChange={update('title')} placeholder="e.g. Turn a messy brief into a clear project plan" data-testid="input-submit-title" /></label><label>What problem does it solve?<textarea required minLength={10} value={form.problem} onChange={update('problem')} placeholder="Describe the moment when this workflow is useful." data-testid="input-submit-problem" /></label><label>Walk us through the workflow<textarea required minLength={20} className="tall-input" value={form.workflow} onChange={update('workflow')} placeholder="What do you put in, what do you ask, and what do you do with the result?" data-testid="input-submit-workflow" /></label><label>How did you use it?<textarea required minLength={10} value={form.howUsed} onChange={update('howUsed')} placeholder="Tell us what changed, or what you checked." data-testid="input-submit-how-used" /></label><label>Your email <span className="optional">(optional)</span><input type="email" value={form.email} onChange={update('email')} placeholder="you@example.com" data-testid="input-submit-email" /></label><button className="button button-dark submit-button" type="submit" disabled={create.isPending} data-testid="button-submit-workflow">{create.isPending ? 'Sending...' : 'Send workflow for review'} <Send size={16} /></button>{create.isError && <p className="form-error">Could not send that just now. Please try again.</p>}</form></div></SiteShell>;
@@ -940,7 +873,7 @@ function Protected({ children }: { children: ReactNode }) {
 
 function SavedPage() {
   const query = useListSavedRecipes();
-  usePageMeta('Saved recipes — AI Recipes', 'Your saved practical AI workflows.');
+  usePageMeta('Saved recipes — TaskBakeAI', 'Your saved practical AI workflows.');
   if (query.isLoading) return <LoadingState label="Opening your shelf" />;
   if (query.isError) return <ErrorState retry={() => query.refetch()} />;
   return <div className="protected-page shell"><div className="page-intro compact"><span className="kicker">Your shelf</span><h1>Saved for later.</h1><p>A short list of workflows worth keeping close.</p></div><RecipeGrid recipes={query.data || []} /></div>;
@@ -948,7 +881,7 @@ function SavedPage() {
 
 function HistoryPage() {
   const query = useListHistory();
-  usePageMeta('History — AI Recipes', 'Recently opened workflows from AI Recipes.');
+  usePageMeta('History — TaskBakeAI', 'Recently opened workflows from TaskBakeAI.');
   if (query.isLoading) return <LoadingState label="Replaying your trail" />;
   if (query.isError) return <ErrorState retry={() => query.refetch()} />;
   return <div className="protected-page shell"><div className="page-intro compact"><span className="kicker">Your trail</span><h1>Recently opened.</h1><p>Pick up where you left off.</p></div><RecipeGrid recipes={query.data || []} /></div>;
@@ -958,7 +891,7 @@ function ProfilePage() {
   const query = useGetMe();
   const { user } = useUser();
   const { signOut } = useClerk();
-  usePageMeta('Profile — AI Recipes', 'Your AI Recipes profile and personal library.');
+  usePageMeta('Profile — TaskBakeAI', 'Your TaskBakeAI profile and personal library.');
   if (query.isLoading) return <LoadingState />;
   if (query.isError || !query.data) return <ErrorState retry={() => query.refetch()} />;
   const profile = query.data;
@@ -1142,7 +1075,7 @@ function AdminAuthGateway({ auth }: { auth: ReturnType<typeof useAdminAuth> }) {
 
         <div className="admin-gateway-footer">
           <Link href="/" className="arrow-link">
-            <ChevronLeft size={14} /> Back to AI Recipes public site
+            <ChevronLeft size={14} /> Back to TaskBakeAI public site
           </Link>
         </div>
       </div>
@@ -1295,7 +1228,7 @@ Best,
       recipeOfDay: false,
       version: "1.0",
       testedWith: ["Claude 3.5 Sonnet", "ChatGPT-4o"],
-      seoTitle: "B2B Cold Outreach for Decision Makers | AI Recipes",
+      seoTitle: "B2B Cold Outreach for Decision Makers | TaskBakeAI",
       seoDescription: "A tested, high-converting B2B cold email recipe tailored for executive response rates."
     }
   },
@@ -1371,7 +1304,7 @@ Core Decision: Rebuild the checkout UI in React Native or patch current native v
       recipeOfDay: false,
       version: "1.0",
       testedWith: ["Claude 3.5 Sonnet"],
-      seoTitle: "1-Page Executive Briefing & Decision Memo | AI Recipes",
+      seoTitle: "1-Page Executive Briefing & Decision Memo | TaskBakeAI",
       seoDescription: "Synthesize dense reports into structured, executive-ready 1-page decision memos."
     }
   },
@@ -1454,7 +1387,7 @@ export async function getUser(req: Request, res: Response): Promise<void> {
       recipeOfDay: false,
       version: "1.0",
       testedWith: ["Claude 3.5 Sonnet"],
-      seoTitle: "Production Code Refactor & Security Review | AI Recipes",
+      seoTitle: "Production Code Refactor & Security Review | TaskBakeAI",
       seoDescription: "Audit and refactor source code for performance, type safety, and security vulnerabilities."
     }
   },
@@ -1524,7 +1457,7 @@ A2: TTL (Time To Live) cached at ISP or local resolver.`,
       recipeOfDay: false,
       version: "1.0",
       testedWith: ["ChatGPT-4o"],
-      seoTitle: "Active Recall Study Guide & Concept Mastery Quiz | AI Recipes",
+      seoTitle: "Active Recall Study Guide & Concept Mastery Quiz | TaskBakeAI",
       seoDescription: "Transform notes into active recall questions and self-testing quizzes for faster learning."
     }
   }
@@ -1778,7 +1711,7 @@ function AdminShell({ children }: { children: ReactNode }) {
       <div className="admin-content">
         <header className="admin-topbar flex justify-between items-center h-16 px-4 border-b border-line text-gray-600 text-sm uppercase">
           <div className="admin-topbar-left flex items-center gap-2">
-            <span className="topbar-crumb">AI Recipes / <strong>Admin Workspace</strong></span>
+            <span className="topbar-crumb">TaskBakeAI / <strong>Admin Workspace</strong></span>
             <span className="admin-mode-pill passkey flex items-center">
               <ShieldCheck size={13} /> {(auth.adminUser as any)?.username ? `@${(auth.adminUser as any).username}` : 'Master Admin'}
             </span>
@@ -1850,7 +1783,7 @@ function AdminOverview() {
   const [, setLocation] = useLocation();
   const [showDraftModal, setShowDraftModal] = useState(false);
 
-  usePageMeta('Super Admin Dashboard — AI Recipes', 'Comprehensive command center for the AI Recipes field guide.');
+  usePageMeta('Super Admin Dashboard — TaskBakeAI', 'Comprehensive command center for the TaskBakeAI field guide.');
 
   if (summaryQuery.isLoading || recipesQuery.isLoading) return <LoadingState label="Loading Command Center" />;
   if (summaryQuery.isError || !summaryQuery.data) return <ErrorState retry={() => summaryQuery.refetch()} />;
@@ -2129,10 +2062,13 @@ function AdminRecipes() {
   const [importReport, setImportReport] = useState<ImportAdminRecipesResponse | null>(null);
   const [importError, setImportError] = useState('');
   const [importFileName, setImportFileName] = useState('');
+  const [importCsvText, setImportCsvText] = useState('');
+  const [exportError, setExportError] = useState('');
+  const [exportingCsv, setExportingCsv] = useState(false);
   const categoriesQuery = useListCategories();
   const audiencesQuery = useListAudiences();
 
-  usePageMeta('Manage Recipes — AI Recipes', 'Edit, test, and publish recipes.');
+  usePageMeta('Manage Recipes — TaskBakeAI', 'Edit, test, and publish recipes.');
 
   const handleDeleteConfirm = () => {
     if (!recipeToDelete) return;
@@ -2156,6 +2092,7 @@ function AdminRecipes() {
     setImportReport(null);
     setImportError('');
     setImportFileName(file.name);
+    setImportCsvText('');
     if (!file.name.toLowerCase().endsWith('.csv')) {
       setImportError('Choose a .csv file.');
       return;
@@ -2171,19 +2108,96 @@ function AdminRecipes() {
         setImportError('The selected CSV is empty.');
         return;
       }
-      importCsv.mutate({ data: { csv } }, {
+      setImportCsvText(csv);
+      importCsv.mutate({ data: { csv, preview: true } }, {
         onSuccess: (report) => {
           setImportReport(report);
-          void queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey({ q: q || undefined, status: status || undefined, page: 1 }) });
-          void queryClient.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
-          void queryClient.invalidateQueries({ queryKey: getGetHomeQueryKey() });
-          void queryClient.invalidateQueries({ queryKey: getListRecipesQueryKey() });
         },
         onError: (error) => setImportError(error instanceof Error ? error.message : 'CSV import failed.'),
       });
     } catch {
       setImportError('Could not read the selected CSV file.');
     }
+  };
+  const commitCsvImport = () => {
+    if (!importCsvText || !importReport?.preview || importReport.failedCount > 0) return;
+    setImportError('');
+    importCsv.mutate({ data: { csv: importCsvText, preview: false } }, {
+      onSuccess: (report) => {
+        setImportReport(report);
+        if (report.createdCount) {
+          void queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey({ q: q || undefined, status: status || undefined, page: 1 }) });
+          void queryClient.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getGetHomeQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getListRecipesQueryKey() });
+        }
+      },
+      onError: (error) => setImportError(error instanceof Error ? error.message : 'CSV import failed.'),
+    });
+  };
+  const downloadImportErrorReport = () => {
+    if (!importReport) return;
+    const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
+    const errors = importReport.results.filter((result) => result.status === 'failed');
+    const csv = ['row,slug,status,message', ...errors.map((result) =>
+      [String(result.row), result.slug, result.status, result.message].map(escape).join(','),
+    )].join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${importFileName.replace(/\.csv$/i, '') || 'recipe-import'}-errors.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  const exportRecipesCsv = async () => {
+    setExportingCsv(true);
+    setExportError('');
+    try {
+      const response = await fetch('/api/admin/recipes/export-csv', { credentials: 'include' });
+      if (!response.ok) throw new Error(`CSV export failed (HTTP ${response.status}).`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'ai-recipes-v2.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : 'CSV export failed.');
+    } finally {
+      setExportingCsv(false);
+    }
+  };
+  const downloadRecipeCsvTemplate = () => {
+    const headers = [
+      'csv_schema_version', 'csv_action', 'Recipe Title', 'URL Slug', 'Short Description', 'Problem',
+      'Category', 'Target Audience', 'Subcategory', 'Difficulty', 'Estimated Time', 'Language', 'AI Tools',
+      'Required Inputs', 'Steps to Execute', 'Prompt Template', 'Example Input', 'Example Output',
+      'Refinement Prompts', 'Verification & Testing Notes', 'Tags', 'Publishing Status', 'required_inputs_json',
+      'optional_inputs_json', 'workflow_steps_json', 'output_config_json', 'layout_config_json',
+      'troubleshooting_json', 'verification_checklist_json', 'workflow_diagram_mermaid', 'images_json',
+      'recipe_guide_json',
+    ];
+    const layout = {
+      version: 1,
+      blocks: ['hero', 'overview', 'inputs', 'outcome', 'workflow', 'prompt', 'example', 'refinements', 'verification', 'troubleshooting', 'diagram', 'images', 'related']
+        .map((type, index) => ({ id: `custom-${index + 1}`, type, visible: true })),
+    };
+    const csvCell = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const row = headers.map((header) => header === 'csv_schema_version'
+      ? '2'
+      : header === 'csv_action'
+        ? 'create'
+        : header === 'layout_config_json'
+          ? JSON.stringify(layout)
+          : '');
+    const csv = `${headers.map(csvCell).join(',')}\r\n${row.map(csvCell).join(',')}`;
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'custom-layout-recipe-template-v2.csv';
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   if (query.isLoading) return <LoadingState label="Loading recipe library..." />;
@@ -2206,6 +2220,12 @@ function AdminRecipes() {
             onChange={handleCsvFileChange}
             data-testid="input-admin-recipes-csv"
           />
+          <button type="button" className="button button-outline" onClick={() => void exportRecipesCsv()} disabled={exportingCsv}>
+            <FileText size={16} /> {exportingCsv ? 'Exporting...' : 'Export CSV'}
+          </button>
+          <button type="button" className="button button-outline" onClick={downloadRecipeCsvTemplate}>
+            <FileText size={16} /> Download CSV template
+          </button>
           <button
             type="button"
             className="button button-outline"
@@ -2230,20 +2250,23 @@ function AdminRecipes() {
         </div>
       </div>
 
-      {(importCsv.isPending || importError || importReport) && (
+      {(importCsv.isPending || importError || importReport || exportError) && (
         <div className={`csv-import-feedback${importError || importReport?.failedCount ? ' has-errors' : ''}`} role={importError ? 'alert' : 'status'} aria-live="polite">
-          {importCsv.isPending && <p>Importing {importFileName}...</p>}
+          {importCsv.isPending && <p>{importReport?.preview ? `Validating ${importFileName}...` : importReport ? `Importing ${importFileName}...` : `Validating ${importFileName}...`}</p>}
           {importError && <p>{importError}</p>}
+          {exportError && <p role="alert">{exportError}</p>}
           {importReport && (
             <>
-              <p><strong>{importReport.createdCount} recipes imported</strong> · {importReport.failedCount} rows need attention.</p>
-              {importReport.failedCount > 0 && (
-                <ul>
-                  {importReport.results.filter((result) => result.status === 'failed').slice(0, 10).map((result) => (
-                    <li key={`${result.row}-${result.slug}`}>Row {result.row}{result.slug ? ` (${result.slug})` : ''}: {result.message}</li>
-                  ))}
-                </ul>
-              )}
+              <p><strong>{importReport.preview
+                ? `${importReport.results.filter((result) => result.status === 'planned').length} recipes ready to import`
+                : `${importReport.createdCount + importReport.updatedCount} recipes created or updated`}</strong> · {importReport.failedCount} rows need attention.</p>
+              {importReport.results.length > 0 && <ul>
+                {importReport.results.map((result) => (
+                  <li key={`${result.row}-${result.slug}`}>Row {result.row}{result.slug ? ` (${result.slug})` : ''} · {result.status}: {result.message}{result.warnings?.length ? ` · Warning: ${result.warnings.join('; ')}` : ''}</li>
+                ))}
+              </ul>}
+              {importReport.failedCount > 0 && <button type="button" className="button button-outline" onClick={downloadImportErrorReport}>Download error report</button>}
+              {importReport.preview && importReport.failedCount === 0 && importReport.results.length > 0 && <button type="button" className="button button-dark" onClick={commitCsvImport} disabled={importCsv.isPending}>Import {importReport.results.length} recipes</button>}
             </>
           )}
         </div>
@@ -2502,7 +2525,19 @@ function cleanRecipeGuide(guide: RecipeGuideData, requiredInputs: string[]): Rec
     inputs: { required: cleanStrings(requiredInputs), optional: cleanStrings(normalized.inputs?.optional) },
     situations: (normalized.situations ?? []).map((item) => ({ ...item, name: item.name.trim(), description: item.description?.trim(), promptModifier: item.promptModifier.trim() })).filter((item) => item.name && item.promptModifier),
     tools: (normalized.tools ?? []).map((item) => ({ ...item, name: item.name.trim(), notes: item.notes?.trim() })).filter((item) => item.name),
-    promptVariables: (normalized.promptVariables ?? []).map((item) => ({ ...item, name: item.name.trim(), label: item.label.trim(), placeholder: item.placeholder?.trim() })).filter((item) => item.name && item.label),
+    promptVariables: (normalized.promptVariables ?? []).map((item) => ({
+      ...item,
+      name: item.name.trim().replace(/^\{\{\s*/, '').replace(/\s*\}\}$/, ''),
+      label: item.label.trim(),
+      placeholder: item.placeholder?.trim(),
+      helpText: item.helpText?.trim(),
+      options: item.options?.map((option) => option.trim()).filter(Boolean),
+    })).filter((item) => item.name && item.label),
+    outputConfig: normalized.outputConfig ? {
+      ...normalized.outputConfig,
+      description: normalized.outputConfig.description?.trim(),
+      fields: normalized.outputConfig.fields?.map((field) => field.trim()).filter(Boolean),
+    } : undefined,
     expectedOutput: { ...normalized.expectedOutput, characteristics: cleanStrings(normalized.expectedOutput?.characteristics) },
     examples: (normalized.examples ?? []).map((item) => ({ ...item, scenario: item.scenario.trim(), input: item.input.trim(), output: item.output.trim(), whyItWorks: cleanStrings(item.whyItWorks) })).filter((item) => item.scenario && item.input && item.output),
     bestFor: { people: cleanStrings(normalized.bestFor?.people), tasks: cleanStrings(normalized.bestFor?.tasks), channels: cleanStrings(normalized.bestFor?.channels) },
@@ -2510,6 +2545,18 @@ function cleanRecipeGuide(guide: RecipeGuideData, requiredInputs: string[]): Rec
     betterApproach: normalized.betterApproach?.trim() ?? '',
     proTips: cleanStrings(normalized.proTips),
     safetyNotes: cleanStrings(normalized.safetyNotes),
+    customContent: normalized.customContent ? {
+      ...normalized.customContent,
+      troubleshooting: cleanStrings(normalized.customContent.troubleshooting),
+      verificationChecklist: cleanStrings(normalized.customContent.verificationChecklist),
+      workflowDiagram: normalized.customContent.workflowDiagram?.trim(),
+      images: normalized.customContent.images?.map((image) => ({
+        ...image,
+        url: image.url.trim(),
+        alt: image.alt.trim(),
+        caption: image.caption?.trim(),
+      })).filter((image) => image.url),
+    } : undefined,
     quality: { ...normalized.quality, testedWith: cleanStrings(normalized.quality?.testedWith) },
   };
 }
@@ -2548,6 +2595,110 @@ function StringListEditor({
       </button>
     </fieldset>
   );
+}
+
+function CustomLayoutRecipeEditor({
+  form,
+  guide,
+  categories,
+  audiences,
+  set,
+  setList,
+  updateGuide,
+  updateGuideInputs,
+  autoGenerateSlug,
+  updateForm,
+}: {
+  form: RecipeInput;
+  guide: RecipeGuideData;
+  categories: Array<{ id: number; name: string }>;
+  audiences: Array<{ id: number; name: string }>;
+  set: (key: keyof RecipeInput) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  setList: (key: 'aiTools' | 'requiredInputs' | 'steps' | 'refinementPrompts' | 'tags' | 'testedWith') => (event: ChangeEvent<HTMLTextAreaElement>) => void;
+  updateGuide: (patch: Partial<RecipeGuideData>) => void;
+  updateGuideInputs: (key: 'required' | 'optional', values: string[]) => void;
+  autoGenerateSlug: () => void;
+  updateForm: (patch: Partial<RecipeInput>) => void;
+}) {
+  const updateCustomContent = (patch: NonNullable<RecipeGuideData['customContent']>) => {
+    updateGuide({ customContent: { ...guide.customContent, ...patch } });
+  };
+  const images = guide.customContent?.images ?? [];
+
+  return <div className="custom-layout-content-editor">
+    <div className="editor-section-label">01 / Recipe identity</div>
+    <label>Recipe Title
+      <input required value={form.title} onChange={set('title')} placeholder="e.g. Build a focused job-search system" data-testid="input-editor-title" />
+    </label>
+    <div className="editor-split">
+      <label>URL Slug
+        <div className="input-with-action"><input required value={form.slug} onChange={set('slug')} placeholder="focused-job-search-system" data-testid="input-editor-slug" /><button type="button" className="inline-action-btn" onClick={autoGenerateSlug}>Auto-Slug</button></div>
+      </label>
+      <label>Category<select value={form.categoryId} onChange={set('categoryId')}>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+    </div>
+    <div className="editor-split">
+      <label>Subcategory<input value={form.subcategory} onChange={set('subcategory')} placeholder="Job search, coding, research" /></label>
+      <label>Target Audience<select value={form.audienceId} onChange={set('audienceId')}>{audiences.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+    </div>
+    <label>Short Description
+      <textarea required value={form.shortDescription} onChange={set('shortDescription')} placeholder="State the practical result and who this workflow helps." data-testid="input-editor-description" />
+    </label>
+
+    <div className="editor-section-label">02 / Outcome and setup</div>
+    <label>Expected Outcome
+      <textarea value={guide.expectedOutput?.description ?? ''} onChange={(event) => updateGuide({ expectedOutput: { ...guide.expectedOutput, description: event.target.value } })} placeholder="Describe the concrete, reviewable result." />
+    </label>
+    <StringListEditor label="Required Tools / Models" values={form.aiTools} onChange={(values) => setFormList('aiTools', values)} placeholder="e.g. Claude Code" />
+    <StringListEditor label="Required Inputs" values={form.requiredInputs} onChange={(values) => updateGuideInputs('required', values)} placeholder="e.g. Target role and current resume" />
+    <div className="editor-split">
+      <label>Estimated Completion Time<input value={form.estimatedTime} onChange={set('estimatedTime')} placeholder="30–45 minutes" data-testid="input-editor-time" /></label>
+      <label>Difficulty<select value={form.difficulty} onChange={set('difficulty')}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
+    </div>
+    <StringListEditor label="Tags" values={form.tags} onChange={(values) => setFormList('tags', values)} placeholder="e.g. job-search" />
+
+    <div className="editor-section-label">03 / Action workflow and prompt</div>
+    <label>Steps to Execute (one actionable step per line)
+      <textarea required className="tall-input" value={form.steps.join('\n')} onChange={setList('steps')} placeholder="Collect target roles and constraints.\nBuild a prioritized search list.\nReview and schedule the next actions." />
+    </label>
+    <div className="repeatable-object-list">
+      <div className="repeatable-object-heading"><div><strong>Dynamic prompt inputs</strong><p>Use each variable in the prompt as <code>{'{{variable_name}}'}</code>.</p></div></div>
+      <RecipePromptInputEditor fields={guide.promptVariables ?? []} onChange={(promptVariables) => updateGuide({ promptVariables })} />
+    </div>
+    <label>The Copyable Prompt
+      <textarea required className="tall-input code-input" value={form.prompt} onChange={set('prompt')} placeholder="Use {{target_role}} and {{location}} to create a concrete search plan." data-testid="input-editor-prompt" />
+    </label>
+    <div className="editor-split">
+      <label>Example Input<textarea value={form.exampleInput} onChange={set('exampleInput')} placeholder="A realistic set of filled-in inputs." /></label>
+      <label>Example Output<textarea value={form.exampleOutput} onChange={set('exampleOutput')} placeholder="A concise sample of the expected result." /></label>
+    </div>
+    <StringListEditor label="Refinement Follow-Up Prompts" values={form.refinementPrompts} onChange={(values) => setFormList('refinementPrompts', values)} placeholder="e.g. Prioritize by likelihood of response." />
+
+    <div className="editor-section-label">04 / Verification and help</div>
+    <StringListEditor label="Verification Checklist" values={guide.customContent?.verificationChecklist ?? (form.verificationNotes ? form.verificationNotes.split(/\r?\n/).filter(Boolean) : [])} onChange={(verificationChecklist) => {
+      updateCustomContent({ verificationChecklist });
+      setFormText('verificationNotes', verificationChecklist.join('\n'));
+    }} placeholder="Confirm every action is specific and feasible." />
+    <StringListEditor label="Troubleshooting" values={guide.customContent?.troubleshooting ?? []} onChange={(troubleshooting) => updateCustomContent({ troubleshooting })} placeholder="If the result is too broad, add a location or time constraint." />
+    <label>Workflow Diagram (optional Mermaid)
+      <textarea className="code-input" value={guide.customContent?.workflowDiagram ?? ''} onChange={(event) => updateCustomContent({ workflowDiagram: event.target.value })} rows={7} placeholder={'flowchart TD\n  A[Collect inputs] --> B[Run prompt]\n  B --> C[Verify result]'} />
+    </label>
+    <div className="custom-layout-images">
+      <div className="repeatable-object-heading"><div><strong>Images / Screenshots (optional)</strong><p>Only add images that clarify a step. Alt text is required.</p></div><button type="button" className="repeatable-add" onClick={() => updateCustomContent({ images: [...images, { url: '', alt: '', caption: '' }] })}><Plus size={14} /> Add image</button></div>
+      {images.map((image, index) => <div className="repeatable-object-card" key={`custom-image-${index}`}>
+        <div className="repeatable-object-heading"><span>Image {index + 1}</span><button type="button" className="repeatable-remove" onClick={() => updateCustomContent({ images: images.filter((_, imageIndex) => imageIndex !== index) })} aria-label={`Remove image ${index + 1}`}><Trash2 size={15} /></button></div>
+        <label>Image URL<input type="url" value={image.url} onChange={(event) => updateCustomContent({ images: images.map((value, imageIndex) => imageIndex === index ? { ...value, url: event.target.value } : value) })} placeholder="https://…" /></label>
+        <label>Alt text<input required={Boolean(image.url)} value={image.alt} onChange={(event) => updateCustomContent({ images: images.map((value, imageIndex) => imageIndex === index ? { ...value, alt: event.target.value } : value) })} placeholder="What this screenshot explains" /></label>
+        <label>Caption<input value={image.caption ?? ''} onChange={(event) => updateCustomContent({ images: images.map((value, imageIndex) => imageIndex === index ? { ...value, caption: event.target.value } : value) })} /></label>
+      </div>)}
+    </div>
+  </div>;
+
+  function setFormList(key: 'aiTools' | 'tags' | 'refinementPrompts', values: string[]) {
+    updateForm({ [key]: values });
+  }
+  function setFormText(key: 'verificationNotes', value: string) {
+    updateForm({ [key]: value });
+  }
 }
 
 function AdminRecipeEditor() {
@@ -2669,15 +2820,26 @@ function AdminRecipeEditor() {
       : key === 'categoryId' || key === 'audienceId'
         ? Number(e.target.value)
         : e.target.value;
-    setForm({ ...form, [key]: value });
+    setForm((current) => ({ ...current, [key]: value }));
   };
 
   const setList = (key: 'aiTools' | 'requiredInputs' | 'steps' | 'refinementPrompts' | 'tags' | 'testedWith') => (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setForm({ ...form, [key]: e.target.value.split('\n').map((value) => value.trim()).filter(Boolean) });
+    const values = e.target.value.split('\n').map((value) => value.trim()).filter(Boolean);
+    setForm((current) => ({ ...current, [key]: values }));
   };
 
   const updateGuide = (patch: Partial<RecipeGuideData>) => {
     setGuide((current) => normalizeRecipeGuide({ ...current, ...patch }, form.requiredInputs));
+  };
+  const updatePromptVariable = (index: number, patch: Partial<NonNullable<RecipeGuideData['promptVariables']>[number]>) => {
+    updateGuide({ promptVariables: (guide.promptVariables ?? []).map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) });
+  };
+  const movePromptVariable = (index: number, delta: number) => {
+    const target = index + delta;
+    const variables = [...(guide.promptVariables ?? [])];
+    if (target < 0 || target >= variables.length) return;
+    [variables[index], variables[target]] = [variables[target], variables[index]];
+    updateGuide({ promptVariables: variables });
   };
   const updateGuideList = (key: 'whenNotToUse' | 'commonMistakes' | 'proTips' | 'safetyNotes', values: string[]) => updateGuide({ [key]: values });
   const updateGuideInputs = (key: 'required' | 'optional', values: string[]) => {
@@ -2697,7 +2859,7 @@ function AdminRecipeEditor() {
     setForm((prev) => ({
       ...prev,
       slug: generated,
-      seoTitle: prev.seoTitle || `${prev.title} | AI Recipes`,
+      seoTitle: prev.seoTitle || `${prev.title} | TaskBakeAI`,
       seoDescription: prev.seoDescription || prev.shortDescription,
     }));
   };
@@ -2719,6 +2881,9 @@ function AdminRecipeEditor() {
     const body = {
       data: {
         ...form,
+        ...(form.layoutMode === 'custom' ? {
+          problem: form.problem.trim() || form.shortDescription.trim() || cleanGuide.expectedOutput?.description?.trim() || form.title,
+        } : {}),
         testedAt: cleanGuide.quality.status === 'tested' ? cleanGuide.quality.lastTested : form.testedAt,
         testedWith: cleanGuide.quality.status === 'tested' ? cleanGuide.quality.testedWith ?? form.testedWith : form.testedWith,
         guide: cleanGuide,
@@ -2799,11 +2964,13 @@ function AdminRecipeEditor() {
     prompt: form.prompt,
     exampleInput: form.exampleInput,
     exampleOutput: form.exampleOutput,
+    refinementPrompts: form.refinementPrompts,
     verificationNotes: form.verificationNotes,
+    tags: form.tags,
     guide,
   };
 
-  usePageMeta(isNew ? 'New Recipe Editor — AI Recipes' : `Edit: ${form.title || 'Recipe'} — AI Recipes`, 'Edit and curate practical AI workflows.');
+  usePageMeta(isNew ? 'New Recipe Editor — TaskBakeAI' : `Edit: ${form.title || 'Recipe'} — TaskBakeAI`, 'Edit and curate practical AI workflows.');
 
   return (
     <div className="admin-page editor-page">
@@ -2908,6 +3075,18 @@ function AdminRecipeEditor() {
             {form.layoutMode === 'custom' && <RecipeLayoutBuilder value={layoutConfig} onChange={(next) => setForm((current) => ({ ...current, layoutConfig: next }))} recipe={layoutPreviewRecipe} recipeId={isNew ? undefined : Number(id)} />}
           </section>
           <div className="editor-main">
+            {form.layoutMode === 'custom' ? <CustomLayoutRecipeEditor
+              form={form}
+              guide={guide}
+              categories={categories.data ?? []}
+              audiences={audiences.data ?? []}
+              set={set}
+              setList={setList}
+              updateGuide={updateGuide}
+              updateGuideInputs={updateGuideInputs}
+              autoGenerateSlug={autoGenerateSlug}
+              updateForm={(patch) => setForm((current) => ({ ...current, ...patch }))}
+            /> : <>
             <div className="editor-section-label">01 / Concept & Taxonomy</div>
             <label>
               Recipe Title
@@ -3171,15 +3350,35 @@ function AdminRecipeEditor() {
                 ))}
               </div>
               <div className="repeatable-object-list">
-                <div className="repeatable-object-heading"><strong>Prompt variables</strong><button type="button" className="repeatable-add" onClick={() => updateGuide({ promptVariables: [...(guide.promptVariables ?? []), { name: '', label: '', required: false }] })}><Plus size={14} /> Add variable</button></div>
+                <div className="repeatable-object-heading"><strong>Prompt inputs</strong><button type="button" className="repeatable-add" onClick={() => updateGuide({ promptVariables: [...(guide.promptVariables ?? []), { name: '', label: '', required: false, type: 'text' }] })}><Plus size={14} /> Add input</button></div>
                 {(guide.promptVariables ?? []).map((item, index) => (
                   <div className="repeatable-object-card" key={`variable-${index}`}>
-                    <div className="repeatable-object-heading"><span>Variable {index + 1}</span><button type="button" className="repeatable-remove" onClick={() => updateGuide({ promptVariables: (guide.promptVariables ?? []).filter((_, itemIndex) => itemIndex !== index) })} aria-label={`Remove variable ${index + 1}`}><X size={15} /></button></div>
-                    <div className="editor-split"><input aria-label={`Variable ${index + 1} name`} value={item.name} onChange={(event) => updateGuide({ promptVariables: (guide.promptVariables ?? []).map((value, itemIndex) => itemIndex === index ? { ...value, name: event.target.value } : value) })} placeholder="CUSTOMER_MESSAGE" /><input aria-label={`Variable ${index + 1} label`} value={item.label} onChange={(event) => updateGuide({ promptVariables: (guide.promptVariables ?? []).map((value, itemIndex) => itemIndex === index ? { ...value, label: event.target.value } : value) })} placeholder="Customer message" /></div>
-                    <input aria-label={`Variable ${index + 1} placeholder`} value={item.placeholder ?? ''} onChange={(event) => updateGuide({ promptVariables: (guide.promptVariables ?? []).map((value, itemIndex) => itemIndex === index ? { ...value, placeholder: event.target.value } : value) })} placeholder="Paste the original message" />
-                    <label className="toggle-line"><input type="checkbox" checked={item.required ?? false} onChange={(event) => updateGuide({ promptVariables: (guide.promptVariables ?? []).map((value, itemIndex) => itemIndex === index ? { ...value, required: event.target.checked } : value) })} /> Required before prompt generation</label>
+                    <div className="repeatable-object-heading"><span>Input {index + 1}</span><div className="repeatable-actions"><button type="button" className="repeatable-remove" disabled={index === 0} onClick={() => movePromptVariable(index, -1)} aria-label={`Move input ${index + 1} up`}><ArrowUp size={15} /></button><button type="button" className="repeatable-remove" disabled={index === (guide.promptVariables?.length ?? 0) - 1} onClick={() => movePromptVariable(index, 1)} aria-label={`Move input ${index + 1} down`}><ArrowDown size={15} /></button><button type="button" className="repeatable-remove" onClick={() => updateGuide({ promptVariables: (guide.promptVariables ?? []).filter((_, itemIndex) => itemIndex !== index) })} aria-label={`Remove input ${index + 1}`}><X size={15} /></button></div></div>
+                    <div className="editor-split"><input aria-label={`Input ${index + 1} variable name`} value={item.name} onChange={(event) => updatePromptVariable(index, { name: event.target.value })} placeholder="target_audience" /><input aria-label={`Input ${index + 1} display label`} value={item.label} onChange={(event) => updatePromptVariable(index, { label: event.target.value })} placeholder="Target audience" /></div>
+                    <label>Input type<select aria-label={`Input ${index + 1} type`} value={item.type ?? 'text'} onChange={(event) => updatePromptVariable(index, { type: event.target.value as NonNullable<typeof item.type>, options: event.target.value === 'dropdown' ? item.options ?? [] : undefined })}><option value="text">Text</option><option value="textarea">Long text</option><option value="number">Number</option><option value="url">URL</option><option value="date">Date</option><option value="dropdown">Dropdown</option><option value="checkbox">Checkbox</option><option value="file">File</option></select></label>
+                    <div className="editor-split"><input aria-label={`Input ${index + 1} placeholder`} value={item.placeholder ?? ''} onChange={(event) => updatePromptVariable(index, { placeholder: event.target.value })} placeholder="Enter a helpful placeholder" /><input aria-label={`Input ${index + 1} default value`} value={item.defaultValue ?? ''} onChange={(event) => updatePromptVariable(index, { defaultValue: event.target.value })} placeholder="Default value (optional)" /></div>
+                    <textarea aria-label={`Input ${index + 1} help text`} value={item.helpText ?? ''} onChange={(event) => updatePromptVariable(index, { helpText: event.target.value })} placeholder="Help text shown below the input" rows={2} />
+                    {item.type === 'dropdown' && <textarea aria-label={`Input ${index + 1} dropdown options`} value={(item.options ?? []).join('\n')} onChange={(event) => updatePromptVariable(index, { options: event.target.value.split('\n').map((option) => option.trim()).filter(Boolean) })} placeholder={'One option per line'} rows={3} />}
+                    <div className="editor-split">
+                      <label>Minimum length<input type="number" min="0" value={item.validation?.minLength ?? ''} onChange={(event) => updatePromptVariable(index, { validation: { ...item.validation, minLength: event.target.value === '' ? undefined : Number(event.target.value) } })} /></label>
+                      <label>Maximum length<input type="number" min="1" value={item.validation?.maxLength ?? ''} onChange={(event) => updatePromptVariable(index, { validation: { ...item.validation, maxLength: event.target.value === '' ? undefined : Number(event.target.value) } })} /></label>
+                    </div>
+                    {(item.type === 'number') && <div className="editor-split">
+                      <label>Minimum value<input type="number" value={item.validation?.minimum ?? ''} onChange={(event) => updatePromptVariable(index, { validation: { ...item.validation, minimum: event.target.value === '' ? undefined : Number(event.target.value) } })} /></label>
+                      <label>Maximum value<input type="number" value={item.validation?.maximum ?? ''} onChange={(event) => updatePromptVariable(index, { validation: { ...item.validation, maximum: event.target.value === '' ? undefined : Number(event.target.value) } })} /></label>
+                    </div>}
+                    {(item.type === 'text' || item.type === 'textarea' || item.type === 'url') && <input aria-label={`Input ${index + 1} validation pattern`} value={item.validation?.pattern ?? ''} onChange={(event) => updatePromptVariable(index, { validation: { ...item.validation, pattern: event.target.value || undefined } })} placeholder="Optional validation pattern (regular expression)" />}
+                    <label className="toggle-line"><input type="checkbox" checked={item.required ?? false} onChange={(event) => updatePromptVariable(index, { required: event.target.checked })} /> Required before prompt generation</label>
                   </div>
                 ))}
+              </div>
+              <div className="repeatable-object-card">
+                <strong>Output structure</strong>
+                <label>Format<select value={guide.outputConfig?.format ?? ''} onChange={(event) => updateGuide({ outputConfig: event.target.value ? { version: 1, format: event.target.value as NonNullable<RecipeGuideData['outputConfig']>['format'], description: guide.outputConfig?.description, fields: guide.outputConfig?.fields } : undefined })}><option value="">No custom format</option><option value="text">Text</option><option value="list">List</option><option value="table">Table</option><option value="json">JSON</option><option value="steps">Step-by-step</option></select></label>
+                {guide.outputConfig && <>
+                  <textarea aria-label="Output structure description" value={guide.outputConfig.description ?? ''} onChange={(event) => updateGuide({ outputConfig: { ...guide.outputConfig!, description: event.target.value } })} placeholder="Describe the expected output structure." rows={3} />
+                  <StringListEditor label="Output fields" values={guide.outputConfig.fields ?? []} onChange={(values) => updateGuide({ outputConfig: { ...guide.outputConfig!, fields: values } })} />
+                </>}
               </div>
             </details>
 
@@ -3213,6 +3412,7 @@ function AdminRecipeEditor() {
               </div>
               <StringListEditor label="Tested with" values={guide.quality?.testedWith ?? []} onChange={(values) => updateGuide({ quality: { ...guide.quality, testedWith: values } })} />
             </details>
+            </>}
           </div>
 
           <aside className="editor-aside">
@@ -3268,7 +3468,7 @@ function AdminRecipeEditor() {
         <div className="editor-preview-container">
           {form.layoutMode === 'custom' ? <div className="preview-section-box">
             <span className="preview-label">2. Custom Recipe Page Preview</span>
-            <div className="preview-page-wrap"><RecipeLayoutRenderer recipe={layoutPreviewRecipe} config={layoutConfig} /></div>
+            <div className="preview-page-wrap"><RecipeLayoutRenderer recipe={layoutPreviewRecipe} config={layoutConfig} editorPreview /></div>
           </div> : <div className="preview-section-box">
             <span className="preview-label">1. Card View Preview (As seen in Library Grid)</span>
             <div className="preview-card-wrap">
@@ -3508,7 +3708,7 @@ function AdminSubmissions() {
   const [, setLocation] = useLocation();
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
-  usePageMeta('Community Submissions — AI Recipes', 'Review, approve, and convert workflow submissions.');
+  usePageMeta('Community Submissions — TaskBakeAI', 'Review, approve, and convert workflow submissions.');
 
   if (query.isLoading) return <LoadingState label="Loading submissions inbox..." />;
   if (query.isError || !query.data) return <ErrorState retry={() => query.refetch()} />;
@@ -3666,7 +3866,7 @@ function AdminCollections({ type }: { type: 'categories' | 'audiences' }) {
     ? createCategory.isPending || updateCategory.isPending
     : createAudience.isPending || updateAudience.isPending;
 
-  usePageMeta(`Manage ${type} — AI Recipes`, `Manage recipe ${type}.`);
+  usePageMeta(`Manage ${type} — TaskBakeAI`, `Manage recipe ${type}.`);
 
   const openCreateForm = () => {
     setIsFormOpen(true);
@@ -3815,7 +4015,7 @@ function AdminCollections({ type }: { type: 'categories' | 'audiences' }) {
 
 function AdminAnalytics() {
   const query = useGetAdminAnalytics();
-  usePageMeta('Analytics — AI Recipes', 'Understand what people need from the field guide.');
+  usePageMeta('Analytics — TaskBakeAI', 'Understand what people need from the field guide.');
   if (query.isLoading) return <LoadingState />;
   if (query.isError || !query.data) return <ErrorState retry={() => query.refetch()} />;
   return (
@@ -3867,9 +4067,267 @@ function AdminAnalytics() {
   );
 }
 
-function AboutPage() { usePageMeta('About AI Recipes', 'Why AI Recipes exists: practical, tested AI workflows for real work.'); return <SiteShell><div className="prose-page shell"><span className="kicker">About the field guide</span><h1>Less prompt theatre.<br /><em>More useful work.</em></h1><p className="lead">AI Recipes is an Indian-first library of practical workflows for people who have something real to do.</p><div className="prose-columns"><div><h2>Why this exists</h2><p>The internet is full of impressive prompts. We wanted the other thing: instructions you can copy on a Tuesday morning, with the context, caveats, and checks that make them actually work.</p><p>Recipes begin with the problem, not the model. Each one is tested, edited, and written to be useful whether you are running a small business in Jaipur, studying in Kochi, or making your next thing from a shared desk.</p></div><div><h2>Our standard</h2><p>A good recipe tells you what to bring, what to ask, what a decent result looks like, and how to improve it. It leaves you with a skill, not a dependency.</p><p>Have a workflow that deserves a place here? <Link href="/submit" data-testid="link-about-submit">Send it in.</Link></p></div></div></div></SiteShell>; }
+function AboutPage() { usePageMeta('About TaskBakeAI', 'Why TaskBakeAI exists: practical, tested AI workflows for real work.'); return <SiteShell><div className="prose-page shell"><span className="kicker">About the field guide</span><h1>Less prompt theatre.<br /><em>More useful work.</em></h1><p className="lead">TaskBakeAI is an Indian-first library of practical workflows for people who have something real to do.</p><div className="prose-columns"><div><h2>Why this exists</h2><p>The internet is full of impressive prompts. We wanted the other thing: instructions you can copy on a Tuesday morning, with the context, caveats, and checks that make them actually work.</p><p>Recipes begin with the problem, not the model. Each one is tested, edited, and written to be useful whether you are running a small business in Jaipur, studying in Kochi, or making your next thing from a shared desk.</p></div><div><h2>Our standard</h2><p>A good recipe tells you what to bring, what to ask, what a decent result looks like, and how to improve it. It leaves you with a skill, not a dependency.</p><p>Have a workflow that deserves a place here? <Link href="/submit" data-testid="link-about-submit">Send it in.</Link></p></div></div></div></SiteShell>; }
 
-function SimplePage({ type }: { type: 'privacy' | 'terms' | 'disclaimer' }) { const titles = { privacy: 'Privacy, plainly.', terms: 'The terms, without the fog.', disclaimer: 'A note on using recipes.' }; const copy = { privacy: 'We collect only what helps AI Recipes work: account details for signed-in shelves, and lightweight usage signals to understand which workflows help.', terms: 'Use the library thoughtfully. Recipes are provided as practical guidance, not as a promise of a particular business, academic, legal, or financial outcome.', disclaimer: 'AI can be confidently wrong. Check outputs, protect private information, and use your own judgment before acting on any recipe.' }; usePageMeta(`${titles[type]} — AI Recipes`, copy[type]); return <SiteShell><div className="prose-page shell legal-page"><span className="kicker">AI Recipes / {type}</span><h1>{titles[type]}</h1><p className="lead">{copy[type]}</p><hr /><h2>What to keep in mind</h2><p>Recipes are starting points. Read the verification notes, adapt the workflow to your context, and check important work with a qualified person or a trusted source.</p><h2>Questions</h2><p>If something is unclear, send us a note through the workflow submission form. We would rather make the guide clearer than hide behind small print.</p></div></SiteShell>; }
+const whyRecipeExamples = [
+  {
+    name: 'Improve a resume',
+    context: 'Writing / Career',
+    plainPrompt: 'Improve my resume for a software engineer role.',
+    quickOutput: {
+      title: 'Software Engineer',
+      summary: 'Motivated professional seeking an opportunity at a growing company.',
+      points: ['Worked on web applications.', 'Helped fix bugs and support releases.', 'Collaborated with a team.'],
+    },
+    recipeTitle: 'A resume tailored to a real role',
+    role: 'Act as a careful resume editor. Improve clarity and relevance without adding or guessing facts.',
+    inputs: [
+      ['Target role', '{{target_role}}'],
+      ['Resume', '{{resume}}'],
+      ['Verified achievements', '{{achievements}}'],
+      ['Region and preferences', '{{region_and_preferences}}'],
+    ],
+    rules: [
+      'Match relevant experience to the role description.',
+      'Keep all claims grounded in the supplied resume and achievements.',
+      'Use clear, scannable headings and concise action-led bullets.',
+      'Mark missing details for the person to verify; never invent metrics.',
+    ],
+    output: [
+      ['01', 'Role-aligned summary', 'A concise opening based only on the supplied experience.'],
+      ['02', 'Relevant experience', 'Reordered, clearer bullets with verified details preserved.'],
+      ['03', 'Review notes', 'A short list of gaps or claims to confirm before using.'],
+    ],
+    recipeResult: {
+      title: 'Role-aligned summary',
+      summary: 'Software engineer with experience building and maintaining web applications. Brings hands-on work with the tools and responsibilities listed in the supplied resume.',
+      points: ['Selected experience is ordered to match the target role.', 'Achievements use only the details provided; missing metrics are flagged for review.'],
+      review: 'Add a verified project outcome or metric where available.',
+    },
+    takeaways: ['Role-specific focus, not generic career language.', 'Evidence stays tied to what the person supplied.', 'A review step makes uncertainty visible.'],
+  },
+  {
+    name: 'Write a customer message',
+    context: 'Business / Communication',
+    plainPrompt: 'Write a WhatsApp pitch for my product.',
+    quickOutput: {
+      title: 'Introducing our product',
+      summary: 'Hi! We offer a great product that can help your business save time and improve results.',
+      points: ['It is easy to use.', 'Get in touch to learn more.'],
+    },
+    recipeTitle: 'A concise, considerate customer message',
+    role: 'Act as a thoughtful customer communications writer. Be specific, honest, and respectful of the reader’s time.',
+    inputs: [
+      ['Customer and context', '{{customer_context}}'],
+      ['Genuine customer need', '{{customer_need}}'],
+      ['Product benefit you can support', '{{verified_benefit}}'],
+      ['Tone and next step', '{{tone_and_next_step}}'],
+    ],
+    rules: [
+      'Open with a relevant detail, not a generic greeting.',
+      'Connect one real product benefit to the stated need.',
+      'Keep the message short and easy to read on a phone.',
+      'Avoid pressure, unsupported promises, and fabricated proof.',
+    ],
+    output: [
+      ['01', 'Personal opening', 'A brief, context-aware first line.'],
+      ['02', 'Relevant value', 'One supported benefit, explained in plain language.'],
+      ['03', 'Low-pressure close', 'A clear next step the recipient can comfortably decline.'],
+    ],
+    recipeResult: {
+      title: 'A message grounded in your details',
+      summary: 'Hi [Name] — saw that [relevant context]. If [stated need] is something you’re working on, [verified benefit] may be useful.',
+      points: ['Short enough for a quick read.', 'Uses a real benefit and a clear, optional next step.'],
+      review: 'Replace bracketed text with accurate details before sending.',
+    },
+    takeaways: ['The message starts from the recipient’s situation.', 'Only supported product details make it into the copy.', 'The call to action is clear without being pushy.'],
+  },
+  {
+    name: 'Plan a study session',
+    context: 'Learning / Study',
+    plainPrompt: 'Help me study for my exam.',
+    quickOutput: {
+      title: 'Study plan',
+      summary: 'Review your notes, practice the main topics, and take breaks. Make sure to get enough rest before the exam.',
+      points: ['Review important material.', 'Practice questions.', 'Stay organized and take breaks.'],
+    },
+    recipeTitle: 'A study plan that fits the week',
+    role: 'Act as a practical study coach. Make a realistic plan and invite active recall rather than passive rereading.',
+    inputs: [
+      ['Subject and exam date', '{{subject_and_date}}'],
+      ['Topics to cover', '{{topics}}'],
+      ['Available study time', '{{available_time}}'],
+      ['Hardest topic right now', '{{priority_topic}}'],
+    ],
+    rules: [
+      'Fit the schedule to the time actually available.',
+      'Break topics into manageable sessions with short breaks.',
+      'Include practice questions or recall, not only rereading.',
+      'Leave a final review slot and flag assumptions to confirm.',
+    ],
+    output: [
+      ['01', 'Priorities', 'Topics ordered by urgency and confidence.'],
+      ['02', 'Session plan', 'A flexible schedule using the available study time.'],
+      ['03', 'Recall and review', 'A way to check understanding and adjust the plan.'],
+    ],
+    recipeResult: {
+      title: 'A flexible plan for your available time',
+      summary: 'Start with [priority topic] in a focused session, then use a short recall exercise to check what you remember without looking at your notes.',
+      points: ['Next, review [second topic] and note any questions to revisit.', 'Finish with a brief recap and adjust the next session based on what still feels difficult.'],
+      review: 'Add your exam date and actual study hours to turn this outline into a schedule.',
+    },
+    takeaways: ['The plan reflects the exam date and available hours.', 'Active practice is built into the workflow.', 'The schedule is a flexible starting point, not a promise.'],
+  },
+];
+
+function WhyRecipesPage() {
+  const [selectedExample, setSelectedExample] = useState(0);
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const example = whyRecipeExamples[selectedExample];
+  const recipePrompt = [
+    `# ROLE\n${example.role}`,
+    `# INPUTS\n${example.inputs.map(([label, variable]) => `- ${label}: ${variable}`).join('\n')}`,
+    `# WORKFLOW\n${example.rules.map((rule, index) => `${index + 1}. ${rule}`).join('\n')}`,
+    `# OUTPUT FORMAT\n${example.output.map(([index, heading]) => `${index}. ${heading}`).join('\n')}\n\nBefore using the result, review the notes and verify details that matter.`,
+  ].join('\n\n');
+
+  const copyRecipePrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(recipePrompt);
+      setCopyState('copied');
+    } catch {
+      setCopyState('failed');
+    }
+    window.setTimeout(() => setCopyState('idle'), 2200);
+  };
+
+  const selectExample = (index: number) => {
+    setSelectedExample(index);
+    setCopyState('idle');
+  };
+
+  usePageMeta(
+    'Why TaskBakeAI? — Better workflows start with better context',
+    'Compare a quick prompt with a reusable AI recipe: clear context, practical instructions, and a reviewable result.',
+  );
+
+  return <SiteShell>
+    <div className="why-page">
+      <section className="why-hero shell">
+        <div className="why-hero-copy">
+          <span className="kicker"><span className="kicker-mark" />A field guide to doing better work with AI</span>
+          <h1>Good work needs<br /><em>more than a prompt.</em></h1>
+          <p className="why-lede">An AI Recipe gives a task the context, steps, and checks a one-line prompt leaves out. So you can start with a clearer process—and stay in charge of the result.</p>
+          <div className="why-hero-actions"><a href="#why-comparison-title" className="button button-dark" data-testid="link-why-see-comparison">See the difference <ArrowDown size={15} /></a><Link href="/recipes" className="why-text-link" data-testid="link-why-browse">Browse the recipe shelf <ArrowRight size={15} /></Link></div>
+          <div className="why-hero-note"><span>FIELD NOTE / 001</span><span>Practical beats impressive.</span></div>
+        </div>
+        <aside className="why-hero-art" aria-label="An AI Recipe has four parts">
+          <div className="why-art-stamp">THE<br />RECIPE<br /><span>METHOD</span></div>
+          <div className="why-art-orbit why-art-orbit-one" />
+          <div className="why-art-orbit why-art-orbit-two" />
+          <div className="why-art-index"><span>01 — 04</span><strong>Context<br />to clarity.</strong><small>A considered way<br />through the work.</small></div>
+          <span className="why-art-caption">AI RECIPES / FIELD GUIDE</span>
+        </aside>
+      </section>
+
+      <section className="why-comparison shell" aria-labelledby="why-comparison-title">
+        <div className="why-section-heading">
+          <div><span className="kicker"><span className="kicker-mark" />The difference, in practice</span><h2 id="why-comparison-title">A quick ask. A considered workflow.</h2></div>
+          <p>Choose a task. Follow the prompt through to an example result. The details change; the method holds.</p>
+        </div>
+        <div className="why-example-tabs" role="group" aria-label="Choose a workflow example" data-testid="why-example-tabs" style={{ '--selected-tab': selectedExample } as React.CSSProperties}>
+          <span className="why-example-tab-indicator" aria-hidden="true" />
+          {whyRecipeExamples.map((item, index) => <button
+            key={item.name}
+            type="button"
+            className={`why-example-tab ${selectedExample === index ? 'is-active' : ''}`}
+            aria-pressed={selectedExample === index}
+            onClick={() => selectExample(index)}
+            data-testid={`button-why-example-${index}`}
+          ><span className="why-tab-index">{String(index + 1).padStart(2, '0')}</span><span>{item.name}</span><ArrowRight size={14} /></button>)}
+        </div>
+        <div key={selectedExample} className="why-comparison-grid" data-testid="why-example-content" aria-live="polite">
+          <article className="why-example-card why-plain-card">
+            <header className="why-panel-header why-panel-header--plain"><div><span className="why-panel-index">01</span><h3>The quick ask</h3></div><span className="why-panel-tag">Raw Prompt · Low Context</span></header>
+            <div className="why-panel-body">
+              <span className="why-detail-label">Your prompt</span>
+              <blockquote>“{example.plainPrompt}”</blockquote>
+              <div className="why-output-label"><span>Typical risk</span><span className="why-risk-mark">Needs more context</span></div>
+              <div className="why-quick-output" data-testid="why-quick-output">
+                <div className="why-output-preview-label"><span className="why-result-dot why-result-dot--plain" />A possible quick response</div>
+                <div className="why-output-preview">
+                  <strong>{example.quickOutput.title}</strong>
+                  <p>{example.quickOutput.summary}</p>
+                  <ul>{example.quickOutput.points.map((point) => <li key={point}>{point}</li>)}</ul>
+                </div>
+              </div>
+            </div>
+            <footer className="why-panel-footer"><span><Info size={14} /> The model has to fill in the gaps.</span></footer>
+          </article>
+          <article className="why-example-card why-recipe-card">
+            <header className="why-panel-header why-panel-header--recipe"><div><span className="why-panel-index">02</span><h3>The recipe prompt</h3></div><button type="button" onClick={copyRecipePrompt} className="why-copy-button" data-testid="button-why-copy-prompt"><Copy size={13} />{copyState === 'copied' ? 'Copied!' : 'Copy recipe prompt'}</button></header>
+            <div className="why-prompt-meta"><span><span className="why-status-dot" />{example.context}</span><span>Reusable structure</span></div>
+            <div className="why-prompt-content" data-testid="why-recipe-prompt">
+              <div className="why-prompt-section"><span className="why-prompt-label"><i>01</i> ROLE & INTENT</span><p>{example.role}</p></div>
+              <div className="why-prompt-section"><span className="why-prompt-label"><i>02</i> INPUT VARIABLES</span><ul>{example.inputs.map(([label, variable]) => <li key={variable}><span>{label}</span><code>{variable}</code></li>)}</ul></div>
+              <div className="why-prompt-section"><span className="why-prompt-label"><i>03</i> EXECUTION RULES</span><ol>{example.rules.map((rule) => <li key={rule}>{rule}</li>)}</ol></div>
+            </div>
+            {copyState === 'failed' && <p role="status" className="why-copy-status">Clipboard access is unavailable. You can still select and copy each visible prompt section.</p>}
+            <footer className="why-panel-footer why-panel-footer--recipe"><span><Check size={14} /> Clear inputs. Explicit constraints.</span><span>02 / 03</span></footer>
+          </article>
+          <article className="why-example-card why-output-card">
+            <header className="why-panel-header why-panel-header--output"><div><span className="why-panel-index">03</span><h3>An illustrative result</h3></div><span className="why-output-badge"><Check size={12} />Recipe-shaped draft</span></header>
+            <div className="why-output-body">
+              <p className="why-output-intro">A possible response shaped by the recipe prompt. Replace example details with your own and review before use.</p>
+              <div className="why-result-preview" data-testid="why-recipe-output">
+                <div className="why-result-preview-top"><span><Check size={12} /> RECIPE-SHAPED DRAFT</span><span>EXAMPLE</span></div>
+                <h4>{example.recipeResult.title}</h4>
+                <p className="why-result-summary">{example.recipeResult.summary}</p>
+                <ul>{example.recipeResult.points.map((point) => <li key={point}><Check size={13} />{point}</li>)}</ul>
+                <div className="why-result-review"><ShieldCheck size={14} /><span>{example.recipeResult.review}</span></div>
+              </div>
+              <div className="why-output-structure">
+                <span className="why-detail-label">What the workflow asks for</span>
+                {example.output.map(([index, title, description]) => <div className="why-result-row" key={index}><span>{index}</span><div><strong>{title}</strong><p>{description}</p></div></div>)}
+              </div>
+              <div className="why-review-note"><ShieldCheck size={15} /><p>Check important details before you use or share the result.</p></div>
+            </div>
+            <footer className="why-panel-footer why-panel-footer--output"><span><Info size={14} /> Examples, not guaranteed outcomes.</span></footer>
+          </article>
+        </div>
+        <div className="why-comparison-caption"><span>01 — 03 / ONE TASK, THREE LAYERS</span><span>Structure helps. Your judgment still matters.</span></div>
+      </section>
+
+      <section className="why-principles">
+        <div className="shell">
+          <div className="why-section-heading">
+            <div><span className="kicker"><span className="kicker-mark" />A better way to frame the work</span><h2 id="why-principles-title">Four ingredients.<br /><em>One clearer process.</em></h2></div>
+            <p>Recipes are not magic prompts. They are practical scaffolding for work you still understand and own.</p>
+          </div>
+          <div className="why-principle-grid" aria-labelledby="why-principles-title">
+            <article><span>THE INGREDIENTS / 01</span><span className="why-ingredient-number">01</span><h3>Useful variables</h3><p>Bring in the audience, facts, constraints, and preferences that make this task yours.</p><code>{'{{your_context}}'}</code></article>
+            <article><span>THE INGREDIENTS / 02</span><span className="why-ingredient-number">02</span><h3>Role & context</h3><p>Give the model a relevant perspective and explain what a good result needs to do.</p><code>intent + audience</code></article>
+            <article><span>THE INGREDIENTS / 03</span><span className="why-ingredient-number">03</span><h3>Practical rules</h3><p>Set useful boundaries, sequence the work, and call out what should not be assumed.</p><code>steps + constraints</code></article>
+            <article><span>THE INGREDIENTS / 04</span><span className="why-ingredient-number">04</span><h3>Reviewable output</h3><p>Ask for a format you can inspect, refine, and adapt before putting it to use.</p><code>format + checks</code></article>
+          </div>
+        </div>
+      </section>
+
+      <section className="why-takeaways shell">
+        <div className="why-takeaways-heading"><span className="kicker"><span className="kicker-mark" />What changes</span><h2>Less guesswork.<br /><em>More to work with.</em></h2><p>Across different kinds of work, the useful shift is the same: move from an underspecified ask to a process you can inspect and improve.</p></div>
+        <div className="why-takeaways-list" data-testid="why-takeaways">
+          {example.takeaways.map((item, index) => <div key={item}><span>{String(index + 1).padStart(2, '0')}</span><p>{item}</p><Check size={16} /></div>)}
+        </div>
+      </section>
+
+      <section className="why-cta">
+        <div className="shell why-cta-inner"><div><span className="kicker"><span className="kicker-mark" />Start with the work</span><h2>Find a recipe for the thing you need to do next.</h2><p>Browse practical workflows, adapt one to your context, and keep your judgment in the loop.</p></div><div className="why-cta-actions"><Link href="/recipes" className="button button-dark" data-testid="link-why-explore">Explore recipes <ArrowRight size={16} /></Link><Link href="/submit" className="why-cta-secondary" data-testid="link-why-submit">Share a workflow <ArrowRight size={14} /></Link></div></div>
+      </section>
+    </div>
+  </SiteShell>;
+}
+
+function SimplePage({ type }: { type: 'privacy' | 'terms' | 'disclaimer' }) { const titles = { privacy: 'Privacy, plainly.', terms: 'The terms, without the fog.', disclaimer: 'A note on using recipes.' }; const copy = { privacy: 'We collect only what helps TaskBakeAI work: account details for signed-in shelves, and lightweight usage signals to understand which workflows help.', terms: 'Use the library thoughtfully. Recipes are provided as practical guidance, not as a promise of a particular business, academic, legal, or financial outcome.', disclaimer: 'AI can be confidently wrong. Check outputs, protect private information, and use your own judgment before acting on any recipe.' }; usePageMeta(`${titles[type]} — TaskBakeAI`, copy[type]); return <SiteShell><div className="prose-page shell legal-page"><span className="kicker">TaskBakeAI / {type}</span><h1>{titles[type]}</h1><p className="lead">{copy[type]}</p><hr /><h2>What to keep in mind</h2><p>Recipes are starting points. Read the verification notes, adapt the workflow to your context, and check important work with a qualified person or a trusted source.</p><h2>Questions</h2><p>If something is unclear, send us a note through the workflow submission form. We would rather make the guide clearer than hide behind small print.</p></div></SiteShell>; }
 
 function SearchPage() { const query = new URLSearchParams(window.location.search).get('q') || ''; return <LibraryPage key={query} />; }
 
@@ -3884,7 +4342,7 @@ function Router() {
     <Route path="/" component={HomePage} /><Route path="/recipes" component={LibraryPage} /><Route path="/recipes/:slug" component={RecipePage} />
     <Route path="/categories" component={() => <CollectionsIndex type="category" />} /><Route path="/categories/:slug" component={() => <CollectionPage type="category" />} />
     <Route path="/audiences" component={() => <CollectionsIndex type="audience" />} /><Route path="/audiences/:slug" component={() => <CollectionPage type="audience" />} />
-    <Route path="/search" component={SearchPage} /><Route path="/submit" component={SubmitPage} /><Route path="/about" component={AboutPage} />
+    <Route path="/search" component={SearchPage} /><Route path="/submit" component={SubmitPage} /><Route path="/why-ai-recipes" component={WhyRecipesPage} /><Route path="/about" component={AboutPage} />
     <Route path="/privacy" component={() => <SimplePage type="privacy" />} /><Route path="/terms" component={() => <SimplePage type="terms" />} /><Route path="/disclaimer" component={() => <SimplePage type="disclaimer" />} />
     <Route path="/profile" component={() => <Protected><ProfilePage /></Protected>} /><Route path="/saved" component={() => <Protected><SavedPage /></Protected>} /><Route path="/history" component={() => <Protected><HistoryPage /></Protected>} />
     <Route path={ADMIN_PATH} component={() => <AdminShell><AdminOverview /></AdminShell>} /><Route path={getAdminPath('/recipes')} component={() => <AdminShell><AdminRecipes /></AdminShell>} /><Route path={getAdminPath('/recipes/new')} component={() => <AdminShell><AdminRecipeEditor /></AdminShell>} /><Route path={getAdminPath('/recipes/:id')} component={() => <AdminShell><AdminRecipeEditor /></AdminShell>} /><Route path={getAdminPath('/categories')} component={() => <AdminShell><AdminCollections type="categories" /></AdminShell>} /><Route path={getAdminPath('/audiences')} component={() => <AdminShell><AdminCollections type="audiences" /></AdminShell>} /><Route path={getAdminPath('/submissions')} component={() => <AdminShell><AdminSubmissions /></AdminShell>} /><Route path={getAdminPath('/analytics')} component={() => <AdminShell><AdminAnalytics /></AdminShell>} />

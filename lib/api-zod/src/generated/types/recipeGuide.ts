@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { RecipeGuideBestFor } from './recipeGuideBestFor';
+import type { RecipeGuideCustomContent } from './recipeGuideCustomContent';
 import type { RecipeGuideExamplesItem } from './recipeGuideExamplesItem';
 import type { RecipeGuideExpectedOutput } from './recipeGuideExpectedOutput';
 import type { RecipeGuideInputs } from './recipeGuideInputs';
@@ -15,6 +16,7 @@ import type { RecipeGuideSituationsItem } from './recipeGuideSituationsItem';
 import type { RecipeGuideSnapshot } from './recipeGuideSnapshot';
 import type { RecipeGuideToolsItem } from './recipeGuideToolsItem';
 import type { RecipeGuideUseCasesItem } from './recipeGuideUseCasesItem';
+import type { RecipeOutputConfig } from './recipeOutputConfig';
 
 export interface RecipeGuide {
   snapshot?: RecipeGuideSnapshot;
@@ -24,7 +26,9 @@ export interface RecipeGuide {
   situations?: RecipeGuideSituationsItem[];
   tools?: RecipeGuideToolsItem[];
   promptVariables?: RecipeGuidePromptVariablesItem[];
+  outputConfig?: RecipeOutputConfig;
   expectedOutput?: RecipeGuideExpectedOutput;
+  customContent?: RecipeGuideCustomContent;
   examples?: RecipeGuideExamplesItem[];
   bestFor?: RecipeGuideBestFor;
   timeToResult?: string;

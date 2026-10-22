@@ -1,6 +1,90 @@
 import { expect, test } from '@playwright/test';
 import { mockApi } from './fixtures';
 
+test('mobile bottom navigation opens Why TaskBakeAI instead of a cart', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.goto('/');
+
+  const whyLink = page.getByTestId('mobile-nav-why-ai-recipes');
+  await expect(whyLink).toBeVisible();
+  await expect(whyLink).toContainText('Why TaskBakeAI');
+  await expect(whyLink).not.toContainText('Cart');
+  await expect(whyLink).toHaveAttribute('href', '/why-ai-recipes');
+  const navLayout = await whyLink.evaluate((link) => {
+    const icon = link.querySelector('.flipkart-bottom-nav__icon-wrapper')!.getBoundingClientRect();
+    const label = link.querySelector('.flipkart-bottom-nav__label')!.getBoundingClientRect();
+    const item = link.getBoundingClientRect();
+    return {
+      labelWithinItem: label.left >= item.left && label.right <= item.right,
+      labelBelowIcon: label.top >= icon.bottom,
+      labelVisible: label.height > 0 && label.bottom <= item.bottom,
+    };
+  });
+  expect(navLayout).toEqual({ labelWithinItem: true, labelBelowIcon: true, labelVisible: true });
+
+  await whyLink.click();
+  await expect(page).toHaveURL(/\/why-ai-recipes$/);
+  await expect(page.getByRole('heading', { name: /Good work needs more than a prompt/ })).toBeVisible();
+});
+
+test('TaskBakeAI shows the supplied mark on mobile and wordmark on desktop', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.goto('/');
+
+  const mobileBrand = page.getByTestId('mobile-link-logo');
+  const mobileMark = mobileBrand.locator('img');
+  await expect(mobileBrand).toBeVisible();
+  await expect(mobileMark).toHaveAttribute('src', '/taskbakeai-mark.png');
+  await expect.poll(() => mobileMark.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const desktopBrand = page.getByRole('banner').getByTestId('link-logo');
+  const desktopWordmark = desktopBrand.locator('img');
+  await expect(desktopBrand).toBeVisible();
+  await expect(desktopWordmark).toHaveAttribute('src', '/taskbakeai-wordmark.png');
+  await expect.poll(() => desktopWordmark.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+});
+
+test('why AI Recipes page uses the site shell and switches its examples', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/why-ai-recipes');
+  await expect(page.getByRole('heading', { name: /Good work needs more than a prompt/ })).toBeVisible();
+  await expect(page.getByTestId('link-nav-why-recipes')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'A quick ask. A considered workflow.' })).toBeVisible();
+  await expect(page.getByTestId('why-example-content')).toContainText('The quick ask');
+  await expect(page.getByTestId('why-example-content')).toContainText('The recipe prompt');
+  await expect(page.getByTestId('why-example-content')).toContainText('An illustrative result');
+  await expect(page.getByTestId('why-quick-output')).toContainText('Software Engineer');
+  await expect(page.getByTestId('why-recipe-output')).toContainText('Role-aligned summary');
+  await expect(page.getByTestId('button-why-example-0')).toHaveAttribute('aria-pressed', 'true');
+
+  await page.getByTestId('button-why-example-1').click();
+  await expect(page.getByTestId('why-example-content')).toContainText('Write a WhatsApp pitch for my product.');
+  await expect(page.getByTestId('why-recipe-prompt')).toContainText('{{verified_benefit}}');
+  await expect(page.getByTestId('why-quick-output')).toContainText('Introducing our product');
+  await expect(page.getByTestId('why-recipe-output')).toContainText('A message grounded in your details');
+  await expect(page.getByTestId('why-takeaways')).toContainText('The message starts from the recipient’s situation.');
+  await page.getByTestId('button-why-copy-prompt').click();
+  await expect(page.getByTestId('button-why-copy-prompt')).toContainText('Copied');
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('# ROLE');
+  await expect(page.getByTestId('link-why-explore')).toHaveAttribute('href', '/recipes');
+  await expect(page.getByTestId('link-footer-why recipes')).toHaveAttribute('href', '/why-ai-recipes');
+
+  for (const width of [1920, 1440, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.getByTestId('why-example-content')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  }
+  await page.getByTestId('button-why-example-2').click();
+  await expect(page.getByTestId('button-why-example-2')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('why-example-content')).toContainText('Help me study for my exam.');
+  await expect(page.getByTestId('why-quick-output')).toContainText('Study plan');
+  await expect(page.getByTestId('why-recipe-output')).toContainText('A flexible plan for your available time');
+});
+
 test('home page navigates into the recipe library and a recipe', async ({
   page,
 }) => {
@@ -83,6 +167,44 @@ test('recipe prompt copy and helpful feedback work', async ({ page }) => {
     helpful: true,
   });
   await expect(page.getByTestId('button-feedback-yes')).toBeDisabled();
+});
+
+test('dynamic recipe inputs validate, resolve safely, and preserve unknown prompt variables', async ({ page }) => {
+  await mockApi(page, { dynamicRecipe: true });
+  await page.goto('/recipes/brief-to-project-plan');
+
+  const copyButton = page.getByTestId('button-copy-prompt');
+  await expect(copyButton).toBeDisabled();
+  await expect(page.getByText('Target audience is required.')).toBeVisible();
+  await page.getByLabel('Target audience').fill('A $& audience');
+
+  const promptPreview = page.locator('.prompt-box pre');
+  await expect(promptPreview).toContainText('Write for A $& audience in a Warm tone.');
+  await expect(promptPreview).toContainText('{{unconfigured_token}}');
+  await page.getByLabel('Tone').selectOption('Concise');
+  await expect(promptPreview).toContainText('in a Concise tone.');
+  await expect(copyButton).toBeEnabled();
+  await copyButton.click();
+  await expect(copyButton).toContainText('Copied');
+});
+
+test('custom-layout recipe renders an actionable workflow, personalized prompt, and optional sections', async ({ page }) => {
+  await mockApi(page, { customLayoutRecipe: true });
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/recipes/brief-to-project-plan');
+  await expect(page.getByRole('heading', { name: 'Turn a brief into a project plan' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Numbered workflow' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Expected outcome' })).toBeVisible();
+  await expect(page.getByText('Example input', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Screenshots / images', { exact: true })).toHaveCount(0);
+  await expect(page.locator('.layout-diagram')).toBeVisible();
+  await page.getByLabel('Target role').fill('Senior product designer');
+  await expect(page.locator('.layout-prompt pre')).toContainText('Build a job-search plan for Senior product designer.');
+  const copyButton = page.getByRole('button', { name: 'Copy prompt' });
+  await copyButton.click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('Build a job-search plan for Senior product designer.');
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
 test('negative feedback reasons are all sent and saved with the recipe feedback', async ({ page }) => {
@@ -225,7 +347,7 @@ test('minimal footer stays responsive and robot animates once with reduced-motio
   await expect(footer.getByRole('link', { name: 'About' })).toHaveAttribute('href', '/about');
   await expect(footer.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
   await expect(footer.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/terms');
-  await expect(footer.getByText('© 2026 AI Recipes')).toBeVisible();
+  await expect(footer.getByText('© 2026 TaskBakeAI')).toBeVisible();
   await expect(footer.getByText('A practical field guide to doing better work with AI.')).toBeVisible();
   await expect(footer.getByText('Made for curious minds')).toBeVisible();
   await expect(robot).toHaveCSS('height', '24px');
@@ -310,6 +432,124 @@ test('recipe editor links to the visible CSV import action', async ({ page }) =>
   await page.getByTestId('link-editor-import-csv').click();
   await expect(page).toHaveURL(/\/recipes#import-csv$/);
   await expect(page.getByTestId('button-admin-recipes-import-csv')).toBeVisible();
+});
+
+test('admin previews CSV rows before committing the import', async ({ page }) => {
+  const api = await mockApi(page, { adminAuthenticated: true });
+  const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
+  await page.goto(`${adminPath}/recipes`);
+  await page.getByTestId('input-admin-recipes-csv').setInputFiles({
+    name: 'recipes.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Recipe Title,URL Slug\nA recipe,a-recipe'),
+  });
+
+  await expect(page.getByText('1 recipes ready to import')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Import 1 recipes' })).toBeVisible();
+  expect(api.csvImportRequests).toHaveLength(1);
+  expect(api.csvImportRequests[0]).toMatchObject({ preview: true });
+
+  await page.getByRole('button', { name: 'Import 1 recipes' }).click();
+  await expect(page.getByText('1 recipes created or updated')).toBeVisible();
+  expect(api.csvImportRequests).toHaveLength(2);
+  expect(api.csvImportRequests[1]).toMatchObject({ preview: false });
+});
+
+test('admin can configure and save ordered dynamic prompt inputs', async ({ page }) => {
+  const api = await mockApi(page, { adminAuthenticated: true });
+  const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
+  await page.goto(`${adminPath}/recipes/new`);
+  await page.getByTestId('input-editor-title').fill('Audience-specific outreach');
+  await page.getByTestId('input-editor-description').fill('Create tailored outreach for a selected audience.');
+  await page.getByTestId('input-editor-problem').fill('Outreach messages often miss their target audience.');
+  await page.getByTestId('input-editor-prompt').fill('Write an outreach message for {{target_audience}} in a {{tone}} tone.');
+
+  await page.getByText('Inputs, situations, tools, and prompt variables').click();
+  await page.getByRole('button', { name: 'Add input' }).click();
+  await page.getByLabel('Input 1 variable name').fill('target_audience');
+  await page.getByLabel('Input 1 display label').fill('Target audience');
+  await page.getByLabel('Input 1 type').selectOption('textarea');
+  await page.getByRole('button', { name: 'Add input' }).click();
+  await page.getByLabel('Input 2 variable name').fill('tone');
+  await page.getByLabel('Input 2 display label').fill('Tone');
+  await page.getByLabel('Input 2 type').selectOption('dropdown');
+  await page.getByLabel('Input 2 dropdown options').fill('Warm\nConcise');
+  await page.getByLabel('Input 2 variable name').press('Tab');
+  await page.getByRole('button', { name: 'Move input 2 up' }).click();
+
+  await page.getByTestId('button-save-editor').click();
+  await expect.poll(() => api.recipeSaveRequests.length).toBe(1);
+  const savedRecipe = api.recipeSaveRequests[0];
+  const guide = savedRecipe.guide as { promptVariables: Array<Record<string, unknown>> };
+  expect(guide.promptVariables.map(({ name, type, options }) => ({ name, type, options }))).toEqual([
+    { name: 'tone', type: 'dropdown', options: ['Warm', 'Concise'] },
+    { name: 'target_audience', type: 'textarea', options: undefined },
+  ]);
+});
+
+test('admin custom-layout editor saves structured workflow content and can publish', async ({ page }) => {
+  const api = await mockApi(page, { adminAuthenticated: true });
+  const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
+  await page.goto(`${adminPath}/recipes/new`);
+  await page.getByRole('button', { name: 'Custom Layout' }).click();
+  const layoutBlocks = page.locator('.layout-block-editor');
+  await expect(layoutBlocks).toHaveCount(13);
+  await layoutBlocks.first().getByRole('button', { name: 'Hide block' }).click();
+  await expect(layoutBlocks.first().getByRole('button', { name: 'Show block' })).toBeVisible();
+  await layoutBlocks.first().getByRole('button', { name: 'Duplicate block' }).click();
+  await expect(layoutBlocks).toHaveCount(14);
+  page.on('dialog', (dialog) => dialog.accept());
+  await layoutBlocks.nth(1).getByRole('button', { name: 'Remove block' }).click();
+  await expect(layoutBlocks).toHaveCount(13);
+  await page.getByRole('button', { name: 'Reset', exact: true }).click();
+  await expect(layoutBlocks).toHaveCount(13);
+  await page.getByTestId('input-editor-title').fill('Focused job search system');
+  await page.getByTestId('input-editor-slug').fill('focused-job-search-system');
+  await page.getByTestId('input-editor-description').fill('Build a practical, prioritized weekly job-search workflow.');
+  await page.getByRole('textbox', { name: 'Expected Outcome' }).fill('A prioritized list of roles and next actions.');
+  await page.getByLabel('Steps to Execute (one actionable step per line)').fill('Collect target roles and constraints.\nBuild a shortlist.\nVerify each role is open.');
+  await page.getByLabel('The Copyable Prompt').fill('Create a job-search plan for {{target_role}}.');
+  await page.getByRole('button', { name: 'Add input' }).click();
+  await page.getByLabel('Input 1 variable name').fill('target_role');
+  await page.getByLabel('Input 1 display label').fill('Target role');
+  await page.getByLabel('Input 1 required').check();
+  await page.getByRole('button', { name: 'Add Verification Checklist' }).click();
+  await page.getByRole('textbox', { name: 'Verification Checklist 1' }).fill('Confirm every role is currently open.');
+  await page.getByLabel('Workflow Diagram (optional Mermaid)').fill('flowchart TD\n  A[Collect] --> B[Verify]');
+  await page.getByLabel('Publishing Status').selectOption('PUBLISHED');
+  await page.getByTestId('button-save-editor').click();
+
+  await expect.poll(() => api.recipeSaveRequests.length).toBe(1);
+  const saved = api.recipeSaveRequests[0];
+  expect(saved).toMatchObject({ layoutMode: 'custom', status: 'PUBLISHED', slug: 'focused-job-search-system' });
+  expect(saved.steps).toEqual(['Collect target roles and constraints.', 'Build a shortlist.', 'Verify each role is open.']);
+  expect(saved.layoutConfig).toMatchObject({ version: 1, blocks: expect.arrayContaining([expect.objectContaining({ type: 'workflow' }), expect.objectContaining({ type: 'prompt' })]) });
+  expect(saved.guide).toMatchObject({
+    promptVariables: [expect.objectContaining({ name: 'target_role', label: 'Target role', required: true })],
+    expectedOutput: { description: 'A prioritized list of roles and next actions.' },
+    customContent: {
+      verificationChecklist: ['Confirm every role is currently open.'],
+      workflowDiagram: 'flowchart TD\n  A[Collect] --> B[Verify]',
+    },
+  });
+
+  await page.goto(`${adminPath}/recipes/99`);
+  await expect(page.getByTestId('input-editor-title')).toHaveValue('Focused job search system');
+  await expect(page.getByRole('button', { name: 'Custom Layout' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('input-editor-description').fill('A saved and editable job-search workflow with clear next actions.');
+  await page.getByTestId('button-save-editor').click();
+  await expect.poll(() => api.recipeUpdateRequests.length).toBe(1);
+  expect(api.recipeUpdateRequests[0].id).toBe(99);
+  expect(api.recipeUpdateRequests[0].body).toMatchObject({
+    layoutMode: 'custom',
+    status: 'PUBLISHED',
+    guide: {
+      customContent: {
+        verificationChecklist: ['Confirm every role is currently open.'],
+        workflowDiagram: 'flowchart TD\n  A[Collect] --> B[Verify]',
+      },
+    },
+  });
 });
 
 test('admin can create and edit categories and audiences', async ({ page }) => {

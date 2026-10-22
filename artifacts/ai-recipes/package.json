@@ -78,5 +78,8 @@
     "wouter": "^3.3.5",
     "wrangler": "^4.17.0",
     "zod": "catalog:"
+  },
+  "dependencies": {
+    "mermaid": "^12.2.0"
   }
 }

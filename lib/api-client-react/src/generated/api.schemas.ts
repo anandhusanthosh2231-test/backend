@@ -89,6 +89,51 @@ export const RecipeGuideToolsItemSupport = {
   excellent: 'excellent',
 } as const;
 
+export type RecipeGuidePromptVariablesItemType = typeof RecipeGuidePromptVariablesItemType[keyof typeof RecipeGuidePromptVariablesItemType];
+
+
+export const RecipeGuidePromptVariablesItemType = {
+  text: 'text',
+  textarea: 'textarea',
+  number: 'number',
+  url: 'url',
+  date: 'date',
+  select: 'select',
+  dropdown: 'dropdown',
+  checkbox: 'checkbox',
+  file: 'file',
+} as const;
+
+export type RecipeOutputConfigVersion = typeof RecipeOutputConfigVersion[keyof typeof RecipeOutputConfigVersion];
+
+
+export const RecipeOutputConfigVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type RecipeOutputConfigFormat = typeof RecipeOutputConfigFormat[keyof typeof RecipeOutputConfigFormat];
+
+
+export const RecipeOutputConfigFormat = {
+  text: 'text',
+  list: 'list',
+  table: 'table',
+  json: 'json',
+  steps: 'steps',
+} as const;
+
+export interface RecipeOutputConfig {
+  version: RecipeOutputConfigVersion;
+  format: RecipeOutputConfigFormat;
+  /** @maxLength 2000 */
+  description?: string;
+  /**
+     * @maxItems 50
+     * @items.maxLength 200
+     */
+  fields?: string[];
+}
+
 export type RecipeGuideQualityStatus = typeof RecipeGuideQualityStatus[keyof typeof RecipeGuideQualityStatus];
 
 
@@ -129,16 +174,70 @@ export type RecipeGuideToolsItem = {
   notes?: string;
 };
 
+export type RecipeGuidePromptVariablesItemValidation = {
+  /**
+     * @minimum 0
+     * @maximum 10000
+     */
+  minLength?: number;
+  /**
+     * @minimum 1
+     * @maximum 10000
+     */
+  maxLength?: number;
+  minimum?: number;
+  maximum?: number;
+  /** @maxLength 500 */
+  pattern?: string;
+};
+
 export type RecipeGuidePromptVariablesItem = {
   name: string;
   label: string;
   placeholder?: string;
   required?: boolean;
+  type?: RecipeGuidePromptVariablesItemType;
+  /** @maxLength 1000 */
+  helpText?: string;
+  /** @maxLength 10000 */
+  defaultValue?: string;
+  /**
+     * @maxItems 100
+     * @items.maxLength 500
+     */
+  options?: string[];
+  validation?: RecipeGuidePromptVariablesItemValidation;
 };
 
 export type RecipeGuideExpectedOutput = {
   description?: string;
   characteristics?: string[];
+};
+
+export type RecipeGuideCustomContentImagesItem = {
+  /** @maxLength 2048 */
+  url: string;
+  /** @maxLength 500 */
+  alt: string;
+  /** @maxLength 500 */
+  caption?: string;
+};
+
+export type RecipeGuideCustomContent = {
+  /**
+     * @maxItems 100
+     * @items.maxLength 2000
+     */
+  troubleshooting?: string[];
+  /**
+     * @maxItems 100
+     * @items.maxLength 2000
+     */
+  verificationChecklist?: string[];
+  /** @maxLength 20000 */
+  workflowDiagram?: string;
+  /** @maxItems 20 */
+  images?: RecipeGuideCustomContentImagesItem[];
 };
 
 export type RecipeGuideExamplesItem = {
@@ -170,7 +269,9 @@ export interface RecipeGuide {
   situations?: RecipeGuideSituationsItem[];
   tools?: RecipeGuideToolsItem[];
   promptVariables?: RecipeGuidePromptVariablesItem[];
+  outputConfig?: RecipeOutputConfig;
   expectedOutput?: RecipeGuideExpectedOutput;
+  customContent?: RecipeGuideCustomContent;
   examples?: RecipeGuideExamplesItem[];
   bestFor?: RecipeGuideBestFor;
   timeToResult?: string;
@@ -197,11 +298,18 @@ export const RecipeLayoutBlockType = {
   hero: 'hero',
   overview: 'overview',
   richText: 'richText',
+  field: 'field',
   inputs: 'inputs',
   workflow: 'workflow',
   prompt: 'prompt',
   example: 'example',
+  output: 'output',
+  outcome: 'outcome',
   image: 'image',
+  images: 'images',
+  diagram: 'diagram',
+  refinements: 'refinements',
+  troubleshooting: 'troubleshooting',
   callout: 'callout',
   tools: 'tools',
   useCases: 'useCases',
@@ -272,6 +380,8 @@ export interface RecipeLayoutBlock {
   /** @maxLength 500 */
   caption?: string;
   variant?: RecipeLayoutBlockVariant;
+  /** @maxLength 100 */
+  fieldRef?: string;
 }
 
 export interface RecipeLayoutConfig {
@@ -379,13 +489,16 @@ export interface AdminMediaListResponse {
 export interface ImportAdminRecipesBody {
   /** @maxLength 5242880 */
   csv: string;
+  preview?: boolean;
 }
 
 export type ImportAdminRecipesResponseResultsItemStatus = typeof ImportAdminRecipesResponseResultsItemStatus[keyof typeof ImportAdminRecipesResponseResultsItemStatus];
 
 
 export const ImportAdminRecipesResponseResultsItemStatus = {
+  planned: 'planned',
   created: 'created',
+  updated: 'updated',
   failed: 'failed',
 } as const;
 
@@ -394,11 +507,14 @@ export type ImportAdminRecipesResponseResultsItem = {
   slug: string;
   status: ImportAdminRecipesResponseResultsItemStatus;
   message: string;
+  warnings?: string[];
 };
 
 export interface ImportAdminRecipesResponse {
   createdCount: number;
+  updatedCount: number;
   failedCount: number;
+  preview: boolean;
   results: ImportAdminRecipesResponseResultsItem[];
 }
 

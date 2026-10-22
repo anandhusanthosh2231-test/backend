@@ -39,4 +39,6 @@ export interface RecipeLayoutBlock {
   /** @maxLength 500 */
   caption?: string;
   variant?: RecipeLayoutBlockVariant;
+  /** @maxLength 100 */
+  fieldRef?: string;
 }

@@ -9,4 +9,5 @@
 export interface ImportAdminRecipesBody {
   /** @maxLength 5242880 */
   csv: string;
+  preview?: boolean;
 }

@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import type { RecipeCard, RecipeGuide, RecipeLayoutBlock, RecipeLayoutConfig } from '@workspace/api-client-react';
 import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, ImagePlus, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import './recipe-layout.css';
+import { RecipePromptInputs } from '@/components/recipe-prompt-inputs';
+import { getRecipePromptInputErrors, resolveRecipePrompt } from '@/lib/recipe-prompt';
 
 export interface RecipeLayoutData {
   title: string;
@@ -19,18 +21,23 @@ export interface RecipeLayoutData {
   prompt: string;
   exampleInput: string;
   exampleOutput: string;
+  refinementPrompts: string[];
   verificationNotes: string;
+  tags: string[];
   guide?: RecipeGuide | null;
 }
 
 const blockKinds: RecipeLayoutBlock['type'][] = [
-  'hero', 'overview', 'richText', 'inputs', 'workflow', 'prompt', 'example', 'image',
-  'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related',
+  'hero', 'overview', 'inputs', 'outcome', 'workflow', 'prompt', 'example', 'refinements',
+  'verification', 'troubleshooting', 'diagram', 'images', 'related', 'richText', 'field',
+  'output', 'image', 'callout', 'tools', 'useCases', 'mistakes',
 ];
 
 const blockLabels: Record<RecipeLayoutBlock['type'], string> = {
-  hero: 'Hero', overview: 'Quick overview', richText: 'Rich text', inputs: 'Inputs',
-  workflow: 'Workflow', prompt: 'AI prompt', example: 'Example', image: 'Image',
+  hero: 'Hero / outcome', overview: 'Quick overview', richText: 'Rich text', field: 'Recipe field', inputs: 'Tools and inputs',
+  workflow: 'Numbered workflow', prompt: 'Copyable prompt', example: 'Example input/output', output: 'Output structure',
+  outcome: 'Expected outcome', refinements: 'Refinement prompts', troubleshooting: 'Troubleshooting',
+  diagram: 'Workflow diagram', images: 'Screenshots / images', image: 'Image',
   callout: 'Callout', tools: 'Tools and models', useCases: 'Use cases',
   mistakes: 'Mistakes and best practices', verification: 'Verification and safety', related: 'Related recipes',
 };
@@ -40,7 +47,10 @@ function newId() {
 }
 
 export function createDefaultRecipeLayout(): RecipeLayoutConfig {
-  const types: RecipeLayoutBlock['type'][] = ['hero', 'overview', 'inputs', 'workflow', 'prompt', 'example', 'verification', 'related'];
+  const types: RecipeLayoutBlock['type'][] = [
+    'hero', 'overview', 'inputs', 'outcome', 'workflow', 'prompt', 'example',
+    'refinements', 'verification', 'troubleshooting', 'diagram', 'images', 'related',
+  ];
   return { version: 1, blocks: types.map((type) => ({ id: newId(), type, visible: true, align: 'left', width: 'standard', background: 'plain' })) };
 }
 
@@ -54,7 +64,7 @@ export function isValidRecipeLayout(value: unknown): value is RecipeLayoutConfig
     if (!candidate || typeof candidate !== 'object') return false;
     const block = candidate as Record<string, unknown>;
     if (typeof block.id !== 'string' || !block.id || block.id.length > 100 || ids.has(block.id) || !blockKinds.includes(block.type as RecipeLayoutBlock['type']) || typeof block.visible !== 'boolean') return false;
-    const allowedKeys = ['id', 'type', 'visible', 'heading', 'subtitle', 'align', 'width', 'background', 'title', 'description', 'content', 'imageUrl', 'alt', 'caption', 'variant'];
+    const allowedKeys = ['id', 'type', 'visible', 'heading', 'subtitle', 'align', 'width', 'background', 'title', 'description', 'content', 'imageUrl', 'alt', 'caption', 'variant', 'fieldRef'];
     if (Object.keys(block).some((key) => !allowedKeys.includes(key))) return false;
     ids.add(block.id);
     if (block.heading !== undefined && (typeof block.heading !== 'string' || block.heading.length > 200)) return false;
@@ -64,6 +74,9 @@ export function isValidRecipeLayout(value: unknown): value is RecipeLayoutConfig
     if (block.content !== undefined && (typeof block.content !== 'string' || block.content.length > 20000)) return false;
     if (block.alt !== undefined && (typeof block.alt !== 'string' || block.alt.length > 500)) return false;
     if (block.caption !== undefined && (typeof block.caption !== 'string' || block.caption.length > 500)) return false;
+    if (block.fieldRef !== undefined && !['title', 'shortDescription', 'problem', 'requiredInputs', 'steps', 'prompt', 'exampleInput', 'exampleOutput', 'verificationNotes', 'aiTools', 'tags', 'guide.expectedOutput.description', 'guide.proTips', 'guide.safetyNotes'].includes(String(block.fieldRef))) return false;
+    if (block.type === 'field' && typeof block.fieldRef !== 'string') return false;
+    if (block.type !== 'field' && block.fieldRef !== undefined) return false;
     if (block.align !== undefined && block.align !== 'left' && block.align !== 'center') return false;
     if (block.width !== undefined && block.width !== 'standard' && block.width !== 'wide') return false;
     if (block.background !== undefined && !['plain', 'tint', 'dark'].includes(block.background as string)) return false;
@@ -104,26 +117,145 @@ function RichText({ content }: { content: string }) {
 function ImageBlock({ block, eager = false }: { block: RecipeLayoutBlock; eager?: boolean }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [block.imageUrl]);
-  if (!block.imageUrl || failed) return <div className="layout-image-placeholder">{failed ? 'Image unavailable' : 'Image not selected'}</div>;
+  if (!block.imageUrl) return null;
+  if (failed) return <div className="layout-image-placeholder">Image unavailable</div>;
   return <figure className="layout-image">
     <img src={block.imageUrl} alt={block.alt ?? ''} loading={eager ? 'eager' : 'lazy'} onError={() => setFailed(true)} />
     {block.caption && <figcaption>{block.caption}</figcaption>}
   </figure>;
 }
 
-export function RecipeLayoutRenderer({ recipe, config, related = [] }: {
+function MermaidDiagram({ source }: { source: string }) {
+  const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const [image, setImage] = useState('');
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void import('mermaid').then(({ default: mermaid }) => {
+      if (!active) return undefined;
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'neutral' });
+      return mermaid.render(`recipe-diagram-${id}`, source);
+    }).then((result) => {
+      if (result && active) {
+        setImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(result.svg)}`);
+        setFailed(false);
+      }
+    }).catch(() => {
+      if (active) {
+        setImage('');
+        setFailed(true);
+      }
+    });
+    return () => { active = false; };
+  }, [id, source]);
+
+  if (failed) return <div className="layout-diagram-error" role="status">Diagram syntax could not be rendered. Review the Mermaid source.</div>;
+  if (!image) return <div className="layout-diagram-loading" role="status">Rendering workflow diagram…</div>;
+  return <img className="layout-diagram" src={image} alt="Workflow diagram" />;
+}
+
+export function RecipePromptInputEditor({
+  fields,
+  onChange,
+}: {
+  fields: NonNullable<RecipeGuide['promptVariables']>;
+  onChange: (fields: NonNullable<RecipeGuide['promptVariables']>) => void;
+}) {
+  const change = (index: number, patch: Partial<NonNullable<RecipeGuide['promptVariables']>[number]>) => {
+    onChange(fields.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
+  };
+  const move = (index: number, delta: number) => {
+    const target = index + delta;
+    if (target < 0 || target >= fields.length) return;
+    const next = [...fields];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  };
+
+  return <div className="repeatable-object-list custom-prompt-input-editor">
+    <div className="repeatable-object-heading">
+      <strong>Prompt inputs</strong>
+      <button type="button" className="repeatable-add" onClick={() => onChange([...fields, { name: '', label: '', required: false, type: 'text' }])}>
+        <Plus size={14} /> Add input
+      </button>
+    </div>
+    {fields.map((item, index) => <div className="repeatable-object-card" key={`custom-variable-${index}`}>
+      <div className="repeatable-object-heading">
+        <span>Input {index + 1}</span>
+        <div className="repeatable-actions">
+          <button type="button" className="repeatable-remove" disabled={index === 0} onClick={() => move(index, -1)} aria-label={`Move input ${index + 1} up`}><ArrowUp size={15} /></button>
+          <button type="button" className="repeatable-remove" disabled={index === fields.length - 1} onClick={() => move(index, 1)} aria-label={`Move input ${index + 1} down`}><ArrowDown size={15} /></button>
+          <button type="button" className="repeatable-remove" onClick={() => onChange(fields.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove input ${index + 1}`}><Trash2 size={15} /></button>
+        </div>
+      </div>
+      <div className="editor-split">
+        <label>Variable name<input aria-label={`Input ${index + 1} variable name`} value={item.name} onChange={(event) => change(index, { name: event.target.value })} placeholder="target_role" /></label>
+        <label>User-facing label<input aria-label={`Input ${index + 1} display label`} value={item.label} onChange={(event) => change(index, { label: event.target.value })} placeholder="Target role" /></label>
+      </div>
+      <div className="editor-split">
+        <label>Input type<select aria-label={`Input ${index + 1} type`} value={item.type ?? 'text'} onChange={(event) => change(index, { type: event.target.value as NonNullable<typeof item.type>, options: event.target.value === 'select' || event.target.value === 'dropdown' ? item.options ?? [] : undefined })}>
+          <option value="text">Text</option><option value="textarea">Long text</option><option value="select">Select</option><option value="number">Number</option><option value="url">URL</option><option value="date">Date</option><option value="file">File name only</option><option value="checkbox">Checkbox</option><option value="dropdown">Legacy dropdown</option>
+        </select></label>
+        <label className="toggle-line"><input type="checkbox" aria-label={`Input ${index + 1} required`} checked={item.required ?? false} onChange={(event) => change(index, { required: event.target.checked })} /> Required</label>
+      </div>
+      <div className="editor-split">
+        <label>Placeholder<input value={item.placeholder ?? ''} onChange={(event) => change(index, { placeholder: event.target.value })} placeholder="Paste relevant details" /></label>
+        <label>Default value<input value={item.defaultValue ?? ''} onChange={(event) => change(index, { defaultValue: event.target.value })} /></label>
+      </div>
+      <label>Help text<textarea value={item.helpText ?? ''} onChange={(event) => change(index, { helpText: event.target.value })} rows={2} /></label>
+      {(item.type === 'select' || item.type === 'dropdown') && <label>Select options (one per line)<textarea value={(item.options ?? []).join('\n')} onChange={(event) => change(index, { options: event.target.value.split('\n').map((option) => option.trim()).filter(Boolean) })} rows={3} /></label>}
+    </div>)}
+  </div>;
+}
+
+export function RecipeLayoutRenderer({
+  recipe,
+  config,
+  related = [],
+  promptValues: providedPromptValues,
+  promptInputErrors: providedPromptInputErrors,
+  resolvedPrompt: providedResolvedPrompt,
+  onPromptValueChange,
+  editorPreview = false,
+}: {
   recipe: RecipeLayoutData;
   config: RecipeLayoutConfig;
   related?: RecipeCard[];
+  promptValues?: Record<string, string>;
+  promptInputErrors?: Record<string, string>;
+  resolvedPrompt?: string;
+  onPromptValueChange?: (name: string, value: string) => void;
+  editorPreview?: boolean;
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState(false);
+  const [localPromptValues, setLocalPromptValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries((recipe.guide?.promptVariables ?? []).map((field) => [field.name, field.defaultValue ?? ''])),
+  );
   const guide = recipe.guide;
-  const copyPrompt = async (id: string) => {
+  const customContent = guide?.customContent;
+  const promptVariables = guide?.promptVariables ?? [];
+  const promptValues = providedPromptValues ?? localPromptValues;
+  const promptInputErrors = providedPromptInputErrors ?? getRecipePromptInputErrors(promptVariables, promptValues);
+  const resolvedPrompt = providedResolvedPrompt ?? resolveRecipePrompt(recipe.prompt, promptVariables, promptValues);
+  const updatePromptValue = onPromptValueChange
+    ?? ((name: string, value: string) => setLocalPromptValues((current) => ({ ...current, [name]: value })));
+  const copyPrompt = async (id: string, text = resolvedPrompt, validatePrompt = true) => {
+    if (validatePrompt && Object.keys(promptInputErrors).length) return;
     try {
-      await navigator.clipboard.writeText(recipe.prompt);
+      await navigator.clipboard.writeText(text);
       setCopiedId(id);
+      setCopyError(false);
       window.setTimeout(() => setCopiedId(null), 1800);
-    } catch { setCopiedId(null); }
+    } catch { setCopiedId(null); setCopyError(true); }
+  };
+  const recipeField = (reference: string | undefined): unknown => {
+    if (!reference) return '';
+    if (reference === 'guide.expectedOutput.description') return guide?.expectedOutput?.description ?? '';
+    if (reference === 'guide.proTips') return guide?.proTips ?? [];
+    if (reference === 'guide.safetyNotes') return guide?.safetyNotes ?? [];
+    return recipe[reference as keyof RecipeLayoutData] ?? '';
   };
 
   return <div className="custom-recipe-layout">{config.blocks.filter((block) => block.visible).map((block) => {
@@ -133,45 +265,98 @@ export function RecipeLayoutRenderer({ recipe, config, related = [] }: {
         content = <div className="layout-hero-content"><ImageBlock block={block} eager /><div><p className="kicker">{block.heading || recipe.category}</p><h1>{block.title || recipe.title}</h1><p>{block.description || block.subtitle || recipe.shortDescription}</p><div className="layout-hero-meta"><span>{recipe.estimatedTime}</span><span>{recipe.difficulty}</span><span>{recipe.language}</span></div></div></div>;
         break;
       case 'overview':
-        content = <dl className="layout-overview-grid"><div><dt>Audience</dt><dd>{recipe.audience}</dd></div><div><dt>Difficulty</dt><dd>{guide?.snapshot?.skillLevel || recipe.difficulty}</dd></div><div><dt>Time</dt><dd>{guide?.timeToResult || recipe.estimatedTime}</dd></div><div><dt>Expected output</dt><dd>{guide?.expectedOutput?.description || guide?.snapshot?.output || 'A practical result you can review.'}</dd></div></dl>;
+        content = <dl className="layout-overview-grid">{[['Audience', recipe.audience], ['Difficulty', guide?.snapshot?.skillLevel || recipe.difficulty], ['Time', guide?.timeToResult || recipe.estimatedTime]].filter(([, value]) => Boolean(value)).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>;
         break;
       case 'richText':
-        content = <RichText content={block.content ?? ''} />;
+        content = block.content?.trim() ? <RichText content={block.content} /> : null;
         break;
+      case 'field': {
+        const value = recipeField(block.fieldRef);
+        content = Array.isArray(value)
+          ? <ul className="layout-list">{value.map((item, index) => <li key={`${index}-${String(item)}`}>{String(item)}</li>)}</ul>
+          : block.fieldRef === 'prompt'
+            ? <pre className="layout-field-prompt">{String(value)}</pre>
+            : <p className="layout-field-content">{String(value)}</p>;
+        break;
+      }
       case 'inputs':
-        content = <div className="layout-two-columns">{(guide?.inputs?.required?.length || recipe.requiredInputs.length) > 0 && <div><h3>Required</h3><ul>{(guide?.inputs?.required?.length ? guide.inputs.required : recipe.requiredInputs).map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul></div>}{!!guide?.inputs?.optional?.length && <div><h3>Optional</h3><ul>{guide.inputs.optional.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul></div>}</div>;
+        content = (guide?.inputs?.required?.length || recipe.requiredInputs.length || guide?.inputs?.optional?.length || recipe.aiTools.length)
+          ? <div className="layout-two-columns">{(recipe.aiTools.length > 0 || (guide?.tools?.length ?? 0) > 0) && <div><h3>Required tools</h3><ul>{(guide?.tools?.length ? guide.tools.map((tool) => tool.name) : recipe.aiTools).map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul></div>}{(guide?.inputs?.required?.length || recipe.requiredInputs.length) > 0 && <div><h3>Required inputs</h3><ul>{(guide?.inputs?.required?.length ? guide.inputs.required : recipe.requiredInputs).map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul></div>}{!!guide?.inputs?.optional?.length && <div><h3>Optional inputs</h3><ul>{guide.inputs.optional.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul></div>}</div>
+          : null;
         break;
       case 'workflow':
-        content = <ol className="layout-steps">{recipe.steps.map((step, index) => <li key={`${index}-${step}`}><span>{String(index + 1).padStart(2, '0')}</span><p>{step}</p></li>)}</ol>;
+        content = recipe.steps.length ? <ol className="layout-steps">{recipe.steps.map((step, index) => <li key={`${index}-${step}`}><span>{String(index + 1).padStart(2, '0')}</span><p>{step}</p></li>)}</ol> : null;
         break;
       case 'prompt':
-        content = <div className="layout-prompt"><pre>{recipe.prompt || 'Prompt not added yet.'}</pre><button type="button" className="button button-dark" onClick={() => void copyPrompt(block.id)}><Copy size={15} />{copiedId === block.id ? 'Copied' : 'Copy prompt'}</button></div>;
+        if (!recipe.prompt.trim()) break;
+        content = <div className="layout-prompt">
+          {!!promptVariables.length && <RecipePromptInputs fields={promptVariables} values={promptValues} errors={promptInputErrors} onChange={updatePromptValue} idPrefix={`layout-${block.id}`} nativeRequired={!editorPreview} />}
+          {Object.keys(promptInputErrors).length > 0 && <p className="form-error" role="alert">Complete the required fields and correct invalid values before copying.</p>}
+          <pre>{resolvedPrompt}</pre>
+          <button type="button" className="button button-dark" disabled={Object.keys(promptInputErrors).length > 0} onClick={() => void copyPrompt(block.id)}><Copy size={15} />{copiedId === block.id ? 'Copied' : 'Copy prompt'}</button>
+          {copyError && <p className="form-error" role="alert">Clipboard access failed. Select and copy the prompt text above.</p>}
+        </div>;
         break;
       case 'example':
-        content = <div className="layout-two-columns"><div><h3>Example input</h3><p>{recipe.exampleInput || 'No example input added.'}</p></div><div><h3>Example output</h3><p>{recipe.exampleOutput || 'No example output added.'}</p></div></div>;
+        content = recipe.exampleInput.trim() || recipe.exampleOutput.trim()
+          ? <div className="layout-two-columns">{recipe.exampleInput.trim() && <div><h3>Example input</h3><p>{recipe.exampleInput}</p></div>}{recipe.exampleOutput.trim() && <div><h3>Example output</h3><p>{recipe.exampleOutput}</p></div>}</div>
+          : null;
         break;
+      case 'output':
+        content = guide?.outputConfig
+          ? <div className="layout-output-config"><strong>{guide.outputConfig.format.toUpperCase()} format</strong>{guide.outputConfig.description && <p>{guide.outputConfig.description}</p>}{!!guide.outputConfig.fields?.length && <ul>{guide.outputConfig.fields.map((field) => <li key={field}>{field}</li>)}</ul>}</div>
+          : null;
+        break;
+      case 'outcome': {
+        const outcome = guide?.expectedOutput?.description || guide?.snapshot?.output;
+        content = outcome?.trim() ? <p className="layout-outcome">{outcome}</p> : null;
+        break;
+      }
       case 'image':
-        content = <ImageBlock block={block} />;
+        content = block.imageUrl ? <ImageBlock block={block} /> : null;
         break;
+      case 'images':
+        content = customContent?.images?.length ? <div className="layout-image-gallery">{customContent.images.map((image, index) => <figure className="layout-image" key={`${image.url}-${index}`}><img src={image.url} alt={image.alt} loading="lazy" />{image.caption && <figcaption>{image.caption}</figcaption>}</figure>)}</div> : null;
+        break;
+      case 'diagram':
+        content = customContent?.workflowDiagram?.trim() ? <MermaidDiagram source={customContent.workflowDiagram} /> : null;
+        break;
+      case 'refinements':
+        content = recipe.refinementPrompts.length ? <div className="layout-refinement-list">{recipe.refinementPrompts.map((prompt, index) => <button type="button" key={`${index}-${prompt}`} onClick={() => void copyPrompt(`refinement-${index}`, prompt, false)}><span>{copiedId === `refinement-${index}` ? 'Copied' : 'Copy'}</span>{prompt}</button>)}</div> : null;
+        break;
+      case 'troubleshooting': {
+        const items = customContent?.troubleshooting?.length ? customContent.troubleshooting : guide?.commonMistakes ?? [];
+        content = items.length || guide?.betterApproach
+          ? <div>{guide?.betterApproach && <p>{guide.betterApproach}</p>}{items.length > 0 && <ul className="layout-list">{items.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>}</div>
+          : null;
+        break;
+      }
       case 'callout':
         content = <aside className={`layout-callout layout-callout-${block.variant ?? 'info'}`}><strong>{block.title || (block.variant === 'warning' ? 'Please note' : block.variant === 'tip' ? 'Practical tip' : 'Good to know')}</strong><RichText content={block.content ?? ''} /></aside>;
         break;
       case 'tools':
-        content = <div className="layout-chips">{(guide?.tools?.length ? guide.tools.map((tool) => tool.name) : recipe.aiTools).map((tool) => <span key={tool}>{tool}</span>)}</div>;
+        content = (guide?.tools?.length ? guide.tools.map((tool) => tool.name) : recipe.aiTools).length
+          ? <div className="layout-chips">{(guide?.tools?.length ? guide.tools.map((tool) => tool.name) : recipe.aiTools).map((tool) => <span key={tool}>{tool}</span>)}</div>
+          : null;
         break;
       case 'useCases':
-        content = <ul className="layout-list">{(guide?.useCases ?? []).map((item) => <li key={item.name}><strong>{item.name}</strong><span>{item.description}</span></li>)}</ul>;
+        content = guide?.useCases?.length ? <ul className="layout-list">{guide.useCases.map((item) => <li key={item.name}><strong>{item.name}</strong><span>{item.description}</span></li>)}</ul> : null;
         break;
       case 'mistakes':
-        content = <div>{guide?.betterApproach && <p>{guide.betterApproach}</p>}<ul className="layout-list">{(guide?.commonMistakes ?? []).map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul></div>;
+        content = guide?.betterApproach || guide?.commonMistakes?.length ? <div>{guide?.betterApproach && <p>{guide.betterApproach}</p>}{!!guide?.commonMistakes?.length && <ul className="layout-list">{guide.commonMistakes.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>}</div> : null;
         break;
       case 'verification':
-        content = <div className="layout-verification"><p>{recipe.verificationNotes}</p>{!!guide?.safetyNotes?.length && <ul>{guide.safetyNotes.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>}</div>;
+        content = customContent?.verificationChecklist?.length
+          ? <ul className="layout-verification-checklist">{customContent.verificationChecklist.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>
+          : recipe.verificationNotes.trim() || guide?.safetyNotes?.length
+            ? <div className="layout-verification">{recipe.verificationNotes.trim() && <p>{recipe.verificationNotes}</p>}{!!guide?.safetyNotes?.length && <ul>{guide.safetyNotes.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul>}</div>
+            : null;
         break;
       case 'related':
-        content = related.length ? <div className="layout-related-grid">{related.map((item) => <a key={item.id} href={`/recipes/${item.slug}`}><strong>{item.title}</strong><span>{item.shortDescription}</span></a>)}</div> : <p className="layout-muted">Related recipes will appear here.</p>;
+        content = related.length ? <div className="layout-related-grid">{related.map((item) => <a key={item.id} href={`/recipes/${item.slug}`}><strong>{item.title}</strong><span>{item.shortDescription}</span></a>)}</div> : null;
         break;
     }
+    if (content === null || content === undefined) return null;
     return <LayoutSection key={block.id} block={block}>{content}</LayoutSection>;
   })}</div>;
 }
@@ -261,7 +446,7 @@ export function RecipeLayoutBuilder({ value, onChange, recipe, recipeId }: {
   recipe: RecipeLayoutData;
   recipeId?: number;
 }) {
-  const [newType, setNewType] = useState<RecipeLayoutBlock['type']>('richText');
+  const [newType, setNewType] = useState<RecipeLayoutBlock['type']>('workflow');
   const updateBlock = (id: string, patch: Partial<RecipeLayoutBlock>) => onChange({ ...value, blocks: value.blocks.map((block) => block.id === id ? { ...block, ...patch } : block) });
   const moveBlock = (index: number, delta: number) => {
     const target = index + delta;
@@ -309,12 +494,13 @@ export function RecipeLayoutBuilder({ value, onChange, recipe, recipeId }: {
           <label>Background<select value={block.background ?? 'plain'} onChange={(event) => updateBlock(block.id, { background: event.target.value as RecipeLayoutBlock['background'] })}><option value="plain">Plain</option><option value="tint">Soft tint</option><option value="dark">Dark</option></select></label>
           {(block.type === 'hero' || block.type === 'callout') && <label>Title<input value={block.title ?? ''} onChange={(event) => updateBlock(block.id, { title: event.target.value })} maxLength={300} /></label>}
           {block.type === 'hero' && <label>Description<textarea value={block.description ?? ''} onChange={(event) => updateBlock(block.id, { description: event.target.value })} maxLength={4000} rows={3} /></label>}
+          {block.type === 'field' && <label>Recipe data field<select value={block.fieldRef ?? ''} onChange={(event) => updateBlock(block.id, { fieldRef: event.target.value || undefined })}><option value="">Choose a field</option>{['title', 'shortDescription', 'problem', 'requiredInputs', 'steps', 'prompt', 'exampleInput', 'exampleOutput', 'verificationNotes', 'aiTools', 'tags', 'guide.expectedOutput.description', 'guide.proTips', 'guide.safetyNotes'].map((field) => <option key={field} value={field}>{field}</option>)}</select></label>}
           {(block.type === 'richText' || block.type === 'callout') && <label className="layout-field-wide">Content<textarea value={block.content ?? ''} onChange={(event) => updateBlock(block.id, { content: event.target.value })} maxLength={20000} rows={6} placeholder={'## Heading\nA paragraph of recipe content.\n\n- A list item'} /></label>}
           {(block.type === 'image' || block.type === 'hero') && <div className="layout-field-wide"><MediaPicker recipeId={recipeId} purpose={block.type === 'hero' ? 'cover' : 'sections'} value={block.imageUrl} onSelect={(imageUrl) => updateBlock(block.id, { imageUrl: imageUrl || undefined })} /><label>Image URL<input type="url" value={block.imageUrl ?? ''} onChange={(event) => updateBlock(block.id, { imageUrl: event.target.value })} placeholder="https://…" /></label><label>Alt text<input value={block.alt ?? ''} onChange={(event) => updateBlock(block.id, { alt: event.target.value })} maxLength={500} /></label>{block.imageUrl && !block.alt?.trim() && <small className="form-error">Add alt text before saving this image.</small>}<label>Caption<input value={block.caption ?? ''} onChange={(event) => updateBlock(block.id, { caption: event.target.value })} maxLength={500} /></label></div>}
           {block.type === 'callout' && <label>Callout style<select value={block.variant ?? 'info'} onChange={(event) => updateBlock(block.id, { variant: event.target.value as RecipeLayoutBlock['variant'] })}><option value="info">Information</option><option value="tip">Tip</option><option value="warning">Warning</option></select></label>}
         </div>
       </article>)}</div>
     </section>
-    <aside className="layout-builder-preview"><div className="layout-preview-sticky"><span className="kicker">Live preview</span><RecipeLayoutRenderer recipe={recipe} config={value} /></div></aside>
+    <aside className="layout-builder-preview"><div className="layout-preview-sticky"><span className="kicker">Live preview</span><RecipeLayoutRenderer recipe={recipe} config={value} editorPreview /></div></aside>
   </div>;
 }

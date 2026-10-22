@@ -9,6 +9,8 @@ import type { ImportAdminRecipesResponseResultsItem } from './importAdminRecipes
 
 export interface ImportAdminRecipesResponse {
   createdCount: number;
+  updatedCount: number;
   failedCount: number;
+  preview: boolean;
   results: ImportAdminRecipesResponseResultsItem[];
 }

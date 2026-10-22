@@ -169,6 +169,7 @@ html[data-mobile-mode="true"] main {
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
   }
 
   .flipkart-mobile-header__back-btn {
@@ -187,20 +188,49 @@ html[data-mobile-mode="true"] main {
   .flipkart-mobile-header__brand {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     text-decoration: none;
     color: #fffdf7;
-    font-family: var(--font-serif, 'Instrument Serif', Georgia, serif);
-    font-size: 22px;
-    font-weight: 600;
-    letter-spacing: -0.02em;
+    font-family: var(--app-font-sans, 'DM Sans', sans-serif);
+    font-size: 16px;
+    font-weight: 750;
+    letter-spacing: -0.035em;
+    white-space: nowrap;
+    min-width: 0;
   }
 
-  .flipkart-mobile-header__brand .brand-dot {
-    width: 9px;
-    height: 9px;
-    background: #f6c944;
+  .flipkart-mobile-header__brand-mark {
+    display: block;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    object-fit: contain;
+    border-radius: 9px;
+    background: #f5eee3;
+    padding: 2px;
+    box-sizing: border-box;
+  }
+
+  .flipkart-mobile-header__brand-text {
+    color: #fffdf7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 380px) {
+    .flipkart-mobile-header__brand.is-detail .flipkart-mobile-header__brand-text {
+      display: none;
+    }
+  }
+
+  .flipkart-mobile-header__brand-text::after {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    margin: 0 0 2px 2px;
     border-radius: 50%;
+    background: #e2b85b;
   }
 
   .flipkart-mobile-header__actions {
@@ -342,7 +372,7 @@ html[data-mobile-mode="true"] main {
     display: flex;
     align-items: stretch;
     justify-content: space-around;
-    height: var(--mobile-nav-height);
+    height: 64px;
     max-width: 500px;
     margin: 0 auto;
     padding: 0 4px;
@@ -359,7 +389,7 @@ html[data-mobile-mode="true"] main {
     color: #766f7d;
     min-height: 48px;
     min-width: 48px;
-    padding: 4px 0 2px;
+    padding: 3px 2px 4px;
     cursor: pointer;
     user-select: none;
     transition: color 0.15s ease;
@@ -375,7 +405,7 @@ html[data-mobile-mode="true"] main {
     align-items: center;
     justify-content: center;
     width: 28px;
-    height: 28px;
+    height: 25px;
   }
 
   .flipkart-bottom-nav__badge {
@@ -397,11 +427,26 @@ html[data-mobile-mode="true"] main {
   }
 
   .flipkart-bottom-nav__label {
+    display: flex;
+    width: 100%;
+    min-height: 20px;
+    align-items: center;
+    justify-content: center;
+    padding-inline: 1px;
     font-size: 11px;
     font-weight: 500;
-    margin-top: 2px;
+    margin-top: 3px;
     letter-spacing: -0.01em;
-    line-height: 1;
+    line-height: 1.1;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  .flipkart-bottom-nav__item[data-testid="mobile-nav-why-ai-recipes"] .flipkart-bottom-nav__label {
+    max-width: 60px;
+    font-size: 9px;
+    letter-spacing: -0.025em;
+    line-height: 1.12;
   }
 
   .flipkart-bottom-nav__item.is-active .flipkart-bottom-nav__label {

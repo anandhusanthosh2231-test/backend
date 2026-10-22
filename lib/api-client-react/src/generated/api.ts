@@ -1856,7 +1856,7 @@ export const getImportAdminRecipesCsvUrl = () => {
 }
 
 /**
- * Imports up to 500 recipe rows. Headers are matched case-insensitively to the AI Recipes spreadsheet columns. List cells may use commas, semicolons, pipes, line breaks, or JSON arrays. Recipes default to DRAFT unless Publishing Status explicitly says Published or Live.
+ * Previews or imports up to 500 recipe rows. Set preview to true to validate without writing; any invalid row prevents the full batch from committing. CSV schema version 2 supports JSON-encoded dynamic inputs, workflow steps, output structures, and custom layout configuration. Existing slugs are create-only unless csv_action explicitly requests an update.
  * @summary Import recipes from a CSV spreadsheet
  */
 export const importAdminRecipesCsv = async (importAdminRecipesBody: ImportAdminRecipesBody, options?: Parameters<typeof customFetch>[1]): Promise<ImportAdminRecipesResponse> => {
@@ -1918,6 +1918,83 @@ export const useImportAdminRecipesCsv = <TError = ErrorType<void>,
       > => {
       return useMutation(getImportAdminRecipesCsvMutationOptions(options));
     }
+
+export const getExportAdminRecipesCsvUrl = () => {
+
+
+
+
+  return `/api/admin/recipes/export-csv`
+}
+
+/**
+ * @summary Export recipes using CSV schema version 2
+ */
+export const exportAdminRecipesCsv = async ( options?: Parameters<typeof customFetch>[1]): Promise<string> => {
+
+  return customFetch<string>(getExportAdminRecipesCsvUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getExportAdminRecipesCsvQueryKey = () => {
+    return [
+    `/api/admin/recipes/export-csv`
+    ] as const;
+    }
+
+
+export const getExportAdminRecipesCsvQueryOptions = <TData = Awaited<ReturnType<typeof exportAdminRecipesCsv>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportAdminRecipesCsv>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExportAdminRecipesCsvQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportAdminRecipesCsv>>> = ({ signal }) => exportAdminRecipesCsv({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof exportAdminRecipesCsv>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ExportAdminRecipesCsvQueryResult = NonNullable<Awaited<ReturnType<typeof exportAdminRecipesCsv>>>
+export type ExportAdminRecipesCsvQueryError = ErrorType<void>
+
+
+/**
+ * @summary Export recipes using CSV schema version 2
+ */
+
+export function useExportAdminRecipesCsv<TData = Awaited<ReturnType<typeof exportAdminRecipesCsv>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportAdminRecipesCsv>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getExportAdminRecipesCsvQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getCreateAdminCategoryUrl = () => {
 

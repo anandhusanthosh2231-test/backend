@@ -1,25 +1,11 @@
-import { useMemo } from 'react';
-import { Home, Layers, Search, ShoppingBag, User } from 'lucide-react';
+import { Home, Layers, Search, Sparkles, User } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@clerk/react';
-import { useListSavedRecipes, getListSavedRecipesQueryKey } from '@workspace/api-client-react';
 import { ADMIN_PATH } from '@/lib/admin-path';
 
 export function MobileBottomNav() {
   const [location] = useLocation();
   const { isSignedIn } = useAuth();
-  const savedQuery = useListSavedRecipes({
-    query: {
-      queryKey: getListSavedRecipesQueryKey(),
-      enabled: !!isSignedIn,
-      staleTime: 30000,
-    },
-  });
-
-  const savedCount = useMemo(() => {
-    if (!isSignedIn || !savedQuery.data) return 0;
-    return savedQuery.data.length;
-  }, [isSignedIn, savedQuery.data]);
 
   if (location === ADMIN_PATH || location.startsWith(`${ADMIN_PATH}/`)) {
     return null;
@@ -48,12 +34,11 @@ export function MobileBottomNav() {
       isActive: location.startsWith('/search') || (location === '/recipes' && window.location.search.includes('q=')),
     },
     {
-      id: 'cart',
-      label: 'Cart',
-      href: isSignedIn ? '/saved' : '/sign-in',
-      icon: ShoppingBag,
-      badge: savedCount > 0 ? (savedCount > 99 ? '99+' : savedCount) : null,
-      isActive: location === '/saved',
+      id: 'why-ai-recipes',
+      label: 'Why TaskBakeAI',
+      href: '/why-ai-recipes',
+      icon: Sparkles,
+      isActive: location === '/why-ai-recipes',
     },
     {
       id: 'account',
@@ -96,11 +81,6 @@ export function MobileBottomNav() {
             >
               <div className="flipkart-bottom-nav__icon-wrapper">
                 <Icon size={22} strokeWidth={item.isActive ? 2.4 : 1.8} />
-                {item.badge !== null && item.badge !== undefined && (
-                  <span className="flipkart-bottom-nav__badge" aria-label={`${item.badge} items in cart`}>
-                    {item.badge}
-                  </span>
-                )}
               </div>
               <span className="flipkart-bottom-nav__label">{item.label}</span>
               {item.isActive && <span className="flipkart-bottom-nav__active-pill" />}

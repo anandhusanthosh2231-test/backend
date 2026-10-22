@@ -87,6 +87,9 @@ export interface ApiMockState {
   recipeListRequests: URL[];
   submissionRequests: SubmissionInput[];
   feedbackRequests: unknown[];
+  csvImportRequests: Array<Record<string, unknown>>;
+  recipeSaveRequests: Array<Record<string, unknown>>;
+  recipeUpdateRequests: Array<{ id: number; body: Record<string, unknown> }>;
   adminRequests: string[];
   taxonomyRequests: Array<{ method: string; pathname: string; body: unknown }>;
 }
@@ -94,6 +97,8 @@ export interface ApiMockState {
 interface MockApiOptions {
   adminAuthenticated?: boolean;
   feedbackStatus?: number;
+  dynamicRecipe?: boolean;
+  customLayoutRecipe?: boolean;
 }
 
 export async function mockApi(
@@ -104,6 +109,9 @@ export async function mockApi(
     recipeListRequests: [],
     submissionRequests: [],
     feedbackRequests: [],
+    csvImportRequests: [],
+    recipeSaveRequests: [],
+    recipeUpdateRequests: [],
     adminRequests: [],
     taxonomyRequests: [],
   };
@@ -149,6 +157,81 @@ export async function mockApi(
       return;
     }
 
+    if (request.method() === 'POST' && pathname === '/api/admin/recipes/import-csv') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      state.csvImportRequests.push(body);
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          createdCount: body.preview ? 0 : 1,
+          updatedCount: 0,
+          failedCount: 0,
+          preview: body.preview === true,
+          results: [{
+            row: 2,
+            slug: 'dynamic-recipe',
+            status: body.preview ? 'planned' : 'created',
+            message: 'DRAFT',
+          }],
+        }),
+      });
+      return;
+    }
+
+    if (request.method() === 'POST' && pathname === '/api/admin/recipes') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      state.recipeSaveRequests.push(body);
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 99,
+          ...body,
+          category: category.name,
+          categorySlug: category.slug,
+          audience: audience.name,
+          audienceSlug: audience.slug,
+          updatedAt: new Date().toISOString(),
+          publishedAt: null,
+          viewCount: 0,
+          copyCount: 0,
+          saveCount: 0,
+          shareCount: 0,
+          positiveFeedbackCount: 0,
+          negativeFeedbackCount: 0,
+        }),
+      });
+      return;
+    }
+
+    if (request.method() === 'PATCH' && /^\/api\/admin\/recipes\/\d+$/.test(pathname)) {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      const id = Number(pathname.split('/').at(-1));
+      state.recipeUpdateRequests.push({ id, body });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id,
+          ...body,
+          category: category.name,
+          categorySlug: category.slug,
+          audience: audience.name,
+          audienceSlug: audience.slug,
+          updatedAt: new Date().toISOString(),
+          publishedAt: null,
+          viewCount: 0,
+          copyCount: 0,
+          saveCount: 0,
+          shareCount: 0,
+          positiveFeedbackCount: 0,
+          negativeFeedbackCount: 0,
+        }),
+      });
+      return;
+    }
+
     if (request.method() === 'POST' && pathname === '/api/events') {
       await route.fulfill({ status: 204 });
       return;
@@ -169,10 +252,32 @@ export async function mockApi(
     }
 
     if (request.method() === 'GET' && pathname === '/api/admin/recipes') {
+      const saved = state.recipeSaveRequests[0];
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ items: [], total: 0, page: 1, pageSize: 20 }),
+        body: JSON.stringify({
+          items: saved ? [{
+            id: 99,
+            ...saved,
+            category: category.name,
+            categorySlug: category.slug,
+            audience: audience.name,
+            audienceSlug: audience.slug,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            publishedAt: null,
+            viewCount: 0,
+            copyCount: 0,
+            saveCount: 0,
+            shareCount: 0,
+            positiveFeedbackCount: 0,
+            negativeFeedbackCount: 0,
+          }] : [],
+          total: saved ? 1 : 0,
+          page: 1,
+          pageSize: 20,
+        }),
       });
       return;
     }
@@ -294,7 +399,62 @@ export async function mockApi(
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(recipe),
+        body: JSON.stringify(options.customLayoutRecipe ? {
+          ...recipe,
+          prompt: 'Build a job-search plan for {{target_role}}.',
+          exampleInput: '',
+          exampleOutput: '',
+          refinementPrompts: ['Prioritize the next three actions.'],
+          verificationNotes: '',
+          layoutMode: 'custom',
+          layoutConfig: {
+            version: 1,
+            blocks: [
+              { id: 'hero', type: 'hero', visible: true },
+              { id: 'workflow', type: 'workflow', visible: true },
+              { id: 'outcome', type: 'outcome', visible: true },
+              { id: 'prompt', type: 'prompt', visible: true },
+              { id: 'refinements', type: 'refinements', visible: true },
+              { id: 'verification', type: 'verification', visible: true },
+              { id: 'troubleshooting', type: 'troubleshooting', visible: true },
+              { id: 'diagram', type: 'diagram', visible: true },
+              { id: 'images', type: 'images', visible: true },
+            ],
+          },
+          guide: {
+            promptVariables: [{ name: 'target_role', label: 'Target role', type: 'text', required: true }],
+            expectedOutput: { description: 'A prioritized weekly job-search plan.' },
+            customContent: {
+              troubleshooting: ['Add a location to narrow the role list.'],
+              verificationChecklist: ['Confirm every role is currently open.'],
+              workflowDiagram: 'flowchart TD\n  A[Collect target role] --> B[Build action plan]',
+              images: [],
+            },
+          },
+        } : options.dynamicRecipe ? {
+          ...recipe,
+          prompt: 'Write for {{target_audience}} in a {{tone}} tone. Legacy token: {{unconfigured_token}}.',
+          guide: {
+            promptVariables: [
+              {
+                name: 'target_audience',
+                label: 'Target audience',
+                type: 'text',
+                required: true,
+                helpText: 'Who should this be written for?',
+                validation: { minLength: 3 },
+              },
+              {
+                name: 'tone',
+                label: 'Tone',
+                type: 'dropdown',
+                required: false,
+                defaultValue: 'Warm',
+                options: ['Warm', 'Concise'],
+              },
+            ],
+          },
+        } : recipe),
       });
       return;
     }

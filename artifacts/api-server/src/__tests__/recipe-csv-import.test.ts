@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import type { Recipe } from "@workspace/db";
 import {
   mapRecipeCsvRecord,
   parseRecipeCsv,
   recipeTaxonomySlug,
   splitRecipeCsvAudiences,
 } from "../lib/recipe-csv-import.ts";
+import { buildRecipeCsvExport } from "../lib/recipe-csv-export.ts";
 
 test("splits and deduplicates semicolon-separated audience names", () => {
   assert.deepEqual(
@@ -19,7 +21,7 @@ test("creates readable URL-safe taxonomy slugs", () => {
 });
 
 test("parses quoted CSV cells containing commas and line breaks", () => {
-  const records = parseRecipeCsv('Recipe Title,The Copyable Prompt\n"Reply to customers","Write a clear, kind reply.\nKeep it short."');
+  const records = parseRecipeCsv('Recipe Title,URL Slug,The Copyable Prompt\n"Reply to customers",reply-to-customers,"Write a clear, kind reply.\nKeep it short."');
 
   assert.equal(records.length, 1);
   assert.equal(records[0]["recipe title"], "Reply to customers");
@@ -90,6 +92,157 @@ test("normalizes JSON guide objects with spreadsheet-style snake_case keys", () 
     input: "Team updates",
     output: "Agenda with owners",
   });
+});
+
+test("maps version 2 dynamic inputs, prompt templates, output format, workflow, and layout JSON", () => {
+  const csvCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+  const row = [
+    "2", "Resume Tailor", "resume-tailor", "Tailor a resume", "Generic resumes miss role requirements",
+    "Writing", "Job seekers", "Applications", "Beginner", "10 min", "English", '["ChatGPT"]',
+    "[]", "[]",
+    "Tailor {{resume}} to {{job_description}} for {{tone}}.",
+    "Resume", "Updated resume", "[]", "Verify every claim.", "[]", "DRAFT",
+    JSON.stringify([{ name: "resume", label: "Current resume", type: "textarea", required: true, helpText: "Remove private data." }]),
+    JSON.stringify([{ name: "tone", label: "Tone", type: "dropdown", required: false, defaultValue: "Concise", options: ["Concise", "Warm"] }]),
+    JSON.stringify(["Analyze the job", "Tailor the resume"]),
+    JSON.stringify({ version: 1, format: "steps", description: "Provide a checklist.", fields: ["Draft", "Checks"] }),
+    JSON.stringify({ version: 1, blocks: [{ type: "hero", visible: true }, { type: "field", fieldRef: "verificationNotes", visible: true }] }),
+  ];
+  const headers = [
+    "csv_schema_version", "Recipe Title", "URL Slug", "Short Description", "Problem", "Category",
+    "Target Audience", "Subcategory", "Difficulty", "Estimated Time", "Language", "AI Tools",
+    "Required Inputs", "Steps to Execute", "Prompt Template", "Example Input", "Example Output",
+    "Refinement Prompts", "Verification & Testing Notes", "Tags", "Publishing Status",
+    "required_inputs_json", "optional_inputs_json", "workflow_steps_json", "output_config_json", "layout_config_json",
+  ];
+  const [record] = parseRecipeCsv([headers.join(","), row.map(csvCell).join(",")].join("\n"));
+  const recipe = mapRecipeCsvRecord(record, 2, 3);
+  const guide = recipe.guide as Record<string, any>;
+  const inputs = guide.promptVariables as Array<Record<string, unknown>>;
+
+  assert.equal(recipe.prompt, "Tailor {{resume}} to {{job_description}} for {{tone}}.");
+  assert.deepEqual(recipe.steps, ["Analyze the job", "Tailor the resume"]);
+  assert.deepEqual(recipe.requiredInputs, ["Current resume"]);
+  assert.deepEqual(inputs.map(({ name, type, required }) => ({ name, type, required })), [
+    { name: "resume", type: "textarea", required: true },
+    { name: "tone", type: "dropdown", required: false },
+  ]);
+  assert.deepEqual(guide.outputConfig, {
+    version: 1,
+    format: "steps",
+    description: "Provide a checklist.",
+    fields: ["Draft", "Checks"],
+  });
+  assert.equal(recipe.layoutMode, "custom");
+  assert.deepEqual((recipe.layoutConfig as { blocks: Array<{ id: string }> }).blocks.map(({ id }) => id), ["csv-block-1", "csv-block-2"]);
+});
+
+test("round-trips dynamic inputs, guide data, output config, and custom layout through CSV export", () => {
+  const recipe = {
+    id: 1,
+    title: "Resume Tailor",
+    slug: "resume-tailor",
+    shortDescription: "Tailor a resume to a role.",
+    problem: "Resumes often miss role requirements.",
+    categoryId: 2,
+    audienceId: 3,
+    subcategory: "Applications",
+    difficulty: "Beginner",
+    estimatedTime: "10 min",
+    language: "English",
+    aiTools: ["ChatGPT"],
+    requiredInputs: ["Current resume"],
+    steps: ["Review the role", "Tailor the resume"],
+    prompt: "Tailor {{resume}} for {{tone}}.",
+    exampleInput: "Resume and job description",
+    exampleOutput: "Targeted resume",
+    refinementPrompts: ["Make it more concise."],
+    verificationNotes: "Verify every claim.",
+    guide: {
+      promptVariables: [
+        { name: "resume", label: "Current resume", type: "textarea", required: true, helpText: "Remove private data." },
+        { name: "tone", label: "Tone", type: "dropdown", required: false, defaultValue: "Concise", options: ["Concise", "Warm"] },
+      ],
+      outputConfig: { version: 1, format: "steps", fields: ["Draft", "Checks"] },
+      customContent: {
+        troubleshooting: ["Narrow the search to one location."],
+        verificationChecklist: ["Confirm listed roles are currently open."],
+        workflowDiagram: "flowchart TD\n  A[Collect] --> B[Verify]",
+        images: [{ url: "https://cdn.example.test/search.png", alt: "Search filters", caption: "Set filters" }],
+      },
+      customGuideData: { source: "editor" },
+    },
+    tags: ["career"],
+    status: "DRAFT",
+    featured: false,
+    trending: false,
+    recipeOfDay: false,
+    version: "1.0",
+    testedAt: null,
+    testedWith: [],
+    seoTitle: "Resume Tailor",
+    seoDescription: "Tailor a resume to a role.",
+    layoutMode: "custom",
+    layoutConfig: {
+      version: 1,
+      blocks: [
+        { id: "hero-1", type: "hero", visible: true },
+        { id: "inputs-1", type: "inputs", visible: true },
+        { id: "output-1", type: "output", visible: true },
+      ],
+    },
+    viewCount: 0,
+    copyCount: 0,
+    saveCount: 0,
+    shareCount: 0,
+    positiveFeedbackCount: 0,
+    negativeFeedbackCount: 0,
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    publishedAt: null,
+  } satisfies Recipe;
+
+  const csv = buildRecipeCsvExport([{
+    recipe,
+    category: "Writing",
+    audience: "Job seekers",
+    audiences: ["Job seekers", "Career coaches"],
+  }]);
+  const [record] = parseRecipeCsv(csv);
+  record["csv action"] = "update";
+
+  const imported = mapRecipeCsvRecord(record, recipe.categoryId, recipe.audienceId);
+  const importedGuide = imported.guide as typeof recipe.guide;
+  const originalGuide = recipe.guide;
+
+  assert.equal(imported.prompt, recipe.prompt);
+  assert.deepEqual(imported.steps, recipe.steps);
+  assert.deepEqual(importedGuide.promptVariables, originalGuide.promptVariables);
+  assert.deepEqual(importedGuide.outputConfig, originalGuide.outputConfig);
+  assert.deepEqual(importedGuide.customContent, originalGuide.customContent);
+  assert.deepEqual(importedGuide.customGuideData, originalGuide.customGuideData);
+  assert.deepEqual(imported.layoutConfig, recipe.layoutConfig);
+  assert.equal(imported.layoutMode, "custom");
+  assert.deepEqual(splitRecipeCsvAudiences(record["target audience"]), ["Job seekers", "Career coaches"]);
+});
+
+test("rejects malformed JSON in versioned input columns and unsupported schema versions", () => {
+  const [record] = parseRecipeCsv([
+    "csv_schema_version,Recipe Title,URL Slug,required_inputs_json",
+    '2,Recipe,resume-tailor,"not json"',
+  ].join("\n"));
+  assert.throws(() => mapRecipeCsvRecord(record, 1, 1), /Required Inputs JSON must contain valid JSON/i);
+
+  const [unsupported] = parseRecipeCsv([
+    "csv_schema_version,Recipe Title,URL Slug",
+    "99,Recipe,resume-tailor",
+  ].join("\n"));
+  assert.throws(() => mapRecipeCsvRecord(unsupported, 1, 1), /unsupported CSV schema version/i);
+});
+
+test("rejects duplicate normalized headers and missing required headers", () => {
+  assert.throws(() => parseRecipeCsv("Recipe Title,recipe-title,URL Slug\nA,B,a"), /headers must be unique/i);
+  assert.throws(() => parseRecipeCsv("Name,URL Slug\nA,a"), /must include.*Recipe Title/i);
 });
 
 test("rejects CSV without a recipe row", () => {
