@@ -25,7 +25,15 @@ interface SubmissionInput {
   email?: string | null;
 }
 
-const category = {
+interface CategoryItem {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  recipeCount: number;
+}
+
+const category: CategoryItem = {
   id: 1,
   name: 'Writing',
   slug: 'writing',
@@ -99,12 +107,14 @@ interface MockApiOptions {
   feedbackStatus?: number;
   dynamicRecipe?: boolean;
   customLayoutRecipe?: boolean;
+  categories?: CategoryItem[];
 }
 
 export async function mockApi(
   page: Page,
   options: MockApiOptions = {},
 ): Promise<ApiMockState> {
+  const categories = options.categories ?? [category];
   const state: ApiMockState = {
     recipeListRequests: [],
     submissionRequests: [],
@@ -315,7 +325,7 @@ export async function mockApi(
           recipeOfDay: recipeCard,
           trending: [recipeCard],
           popular: [recipeCard],
-          categories: [category],
+          categories,
           audiences: [audience],
         }),
       });
@@ -326,7 +336,7 @@ export async function mockApi(
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([category]),
+        body: JSON.stringify(categories),
       });
       return;
     }

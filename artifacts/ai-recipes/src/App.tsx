@@ -116,6 +116,17 @@ function Logo() {
   </Link>;
 }
 
+function ScrollToTop() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [location]);
+
+  return null;
+}
+
 function Header() {
   const [open, setOpen] = useState(false);
   const [location] = useLocation();
@@ -538,7 +549,7 @@ function RecipePage() {
             {recipe.category}
           </Link>
           <ChevronRight size={14} />
-          <span>{recipe.title}</span>
+          <span aria-current="page">{recipe.title}</span>
         </div>
         <div className="recipe-hero-grid">
           <div>
@@ -4331,8 +4342,18 @@ function SimplePage({ type }: { type: 'privacy' | 'terms' | 'disclaimer' }) { co
 
 function SearchPage() { const query = new URLSearchParams(window.location.search).get('q') || ''; return <LibraryPage key={query} />; }
 
-function SignInPage() { return <div className="auth-page"><div className="auth-aside"><Logo /><span className="kicker">A better starting point</span><h1>Keep the useful stuff close.</h1><p>Save workflows, retrace your steps, and build a shelf that knows what kind of work you do.</p><div className="auth-quote">“The right recipe is the one that gets you moving.”</div></div><div className="auth-card"><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></div></div>; }
-function SignUpPage() { return <div className="auth-page"><div className="auth-aside"><Logo /><span className="kicker">Start with one useful thing</span><h1>Your work, a little lighter.</h1><p>Join a growing shelf of practical AI workflows made for real people doing real work.</p><div className="auth-quote">No prompt theatre. Just recipes you can run.</div></div><div className="auth-card"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></div></div>; }
+function AuthBrand() {
+  return <Link href="/" className="auth-brand" aria-label="TaskBakeAI home">
+    <img src={`${basePath}/taskbakeai-wordmark-light.png`} alt="TaskBakeAI — Practical AI workflows for real life" />
+  </Link>;
+}
+
+function SignInPage() {
+  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">A better starting point</span><h1>Keep the useful stuff close.</h1><p>Save workflows, retrace your steps, and build a shelf that knows what kind of work you do.</p><div className="auth-quote">“The right recipe is the one that gets you moving.”</div></div><div className="auth-card"><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></div></div></SiteShell>;
+}
+function SignUpPage() {
+  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">Start with one useful thing</span><h1>Your work, a little lighter.</h1><p>Join a growing shelf of practical AI workflows made for real people doing real work.</p><div className="auth-quote">No prompt theatre. Just recipes you can run.</div></div><div className="auth-card"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></div></div></SiteShell>;
+}
 
 function Router() {
   const stripBase = (path: string) => basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
@@ -4357,7 +4378,7 @@ function ClerkRoutes() {
 
 function App() {
   useMobileEnforcement();
-  return <QueryClientProviderWrapper><WouterRouter base={basePath}><ErrorBoundary><ClerkRoutes /></ErrorBoundary></WouterRouter><Toaster /></QueryClientProviderWrapper>;
+  return <QueryClientProviderWrapper><WouterRouter base={basePath}><ScrollToTop /><ErrorBoundary><ClerkRoutes /></ErrorBoundary></WouterRouter><Toaster /></QueryClientProviderWrapper>;
 }
 
 function QueryClientProviderWrapper({ children }: { children: ReactNode }) {

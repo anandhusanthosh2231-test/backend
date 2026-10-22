@@ -66,11 +66,10 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
           <Link
             href="/submit"
             className="flipkart-mobile-header__action-btn create-btn"
-            aria-label="Create Recipe"
+            aria-label="Create recipe"
             data-testid="mobile-link-submit"
           >
-            <PenLine size={18} />
-            <span>Create</span>
+            <PenLine size={17} strokeWidth={2} />
           </Link>
 
           {isSignedIn ? (

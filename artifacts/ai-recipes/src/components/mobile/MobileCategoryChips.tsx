@@ -1,8 +1,33 @@
 import { useRef } from 'react';
 import { Link, useLocation } from 'wouter';
-import { 
-  Sparkles, Code, PenTool, TrendingUp, BookOpen, Briefcase, 
-  Palette, MessageSquare, Zap, Layers
+import {
+  BookOpen,
+  Briefcase,
+  Calculator,
+  Camera,
+  Code,
+  Dumbbell,
+  FileText,
+  GraduationCap,
+  HeartPulse,
+  Landmark,
+  Leaf,
+  Lightbulb,
+  Megaphone,
+  MessageSquare,
+  Music,
+  Palette,
+  PenTool,
+  Plane,
+  ShoppingBag,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  Utensils,
+  Wallet,
+  Wrench,
+  Zap,
+  Layers,
 } from 'lucide-react';
 
 interface CategoryItem {
@@ -19,18 +44,44 @@ interface MobileCategoryChipsProps {
   showAll?: boolean;
 }
 
-// Map common category slugs or keywords to vibrant icons
+const categoryIconRules = [
+  { keywords: ['code', 'coding', 'developer', 'development', 'software', 'technology', 'tech', 'data', 'automation'], icon: Code },
+  { keywords: ['write', 'writing', 'content', 'copy', 'editing', 'communication', 'document'], icon: PenTool },
+  { keywords: ['market', 'marketing', 'growth', 'seo', 'social', 'sales', 'advertis', 'brand'], icon: TrendingUp },
+  { keywords: ['study', 'student', 'learn', 'learning', 'exam', 'education', 'research', 'course'], icon: GraduationCap },
+  { keywords: ['business', 'work', 'career', 'job', 'office', 'operations', 'startup', 'management'], icon: Briefcase },
+  { keywords: ['design', 'art', 'creative', 'creativity', 'visual', 'photo', 'camera'], icon: Palette },
+  { keywords: ['prompt', 'chat', 'conversation', 'customer', 'whatsapp', 'message', 'support'], icon: MessageSquare },
+  { keywords: ['finance', 'financial', 'money', 'budget', 'account', 'invest', 'bank', 'tax'], icon: Wallet },
+  { keywords: ['health', 'fitness', 'wellness', 'medical', 'mental', 'nutrition'], icon: HeartPulse },
+  { keywords: ['food', 'recipe', 'cook', 'kitchen', 'restaurant'], icon: Utensils },
+  { keywords: ['travel', 'trip', 'tourism', 'journey'], icon: Plane },
+  { keywords: ['shop', 'shopping', 'ecommerce', 'retail', 'product'], icon: ShoppingBag },
+  { keywords: ['legal', 'law', 'compliance', 'policy', 'security', 'privacy'], icon: ShieldCheck },
+  { keywords: ['engineering', 'repair', 'maintenance', 'build', 'construction'], icon: Wrench },
+  { keywords: ['environment', 'sustainability', 'climate', 'nature', 'garden'], icon: Leaf },
+  { keywords: ['music', 'audio', 'podcast', 'sound'], icon: Music },
+  { keywords: ['government', 'public', 'civic', 'history', 'culture'], icon: Landmark },
+  { keywords: ['math', 'mathematics', 'calculation', 'accounting'], icon: Calculator },
+  { keywords: ['video', 'film', 'media', 'photography'], icon: Camera },
+  { keywords: ['fitness', 'sport', 'sports', 'exercise', 'training'], icon: Dumbbell },
+  { keywords: ['strategy', 'planning', 'idea', 'innovation', 'productivity'], icon: Lightbulb },
+  { keywords: ['announcement', 'public relations', 'press', 'promotion'], icon: Megaphone },
+  { keywords: ['file', 'report', 'template', 'workflow'], icon: FileText },
+  { keywords: ['quick', 'tool', 'utility'], icon: Zap },
+];
+
+const fallbackIcons = [Layers, BookOpen, Sparkles, MessageSquare, Lightbulb];
+
 const getCategoryIcon = (name: string, slug: string) => {
-  const lower = (name + ' ' + slug).toLowerCase();
-  if (lower.includes('code') || lower.includes('dev') || lower.includes('tech')) return Code;
-  if (lower.includes('writ') || lower.includes('content') || lower.includes('copy')) return PenTool;
-  if (lower.includes('market') || lower.includes('growth') || lower.includes('seo')) return TrendingUp;
-  if (lower.includes('stud') || lower.includes('learn') || lower.includes('exam')) return BookOpen;
-  if (lower.includes('bus') || lower.includes('work') || lower.includes('ops')) return Briefcase;
-  if (lower.includes('design') || lower.includes('art') || lower.includes('creat')) return Palette;
-  if (lower.includes('prompt') || lower.includes('chat') || lower.includes('talk')) return MessageSquare;
-  if (lower.includes('fast') || lower.includes('tool')) return Zap;
-  return Sparkles;
+  const normalized = `${name} ${slug}`.toLowerCase().replace(/[-_]+/g, ' ');
+  const matchedRule = categoryIconRules.find(({ keywords }) =>
+    keywords.some((keyword) => normalized.includes(keyword)),
+  );
+  if (matchedRule) return matchedRule.icon;
+
+  const stableIndex = Array.from(slug).reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  return fallbackIcons[stableIndex % fallbackIcons.length];
 };
 
 export function MobileCategoryChips({

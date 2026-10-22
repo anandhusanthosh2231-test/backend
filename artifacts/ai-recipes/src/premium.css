@@ -29,11 +29,30 @@ body { background: var(--cream); }
 .auth-page { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .auth-card { width: 100%; min-width: 0; box-sizing: border-box; }
 .auth-card > div { width: 100%; min-width: 0; }
+.auth-brand { position: absolute; top: 38px; left: max(40px, calc((100vw - 1180px) / 2)); display: block; width: min(360px, calc(100% - 80px)); }
+.auth-brand img { display: block; width: 100%; height: auto; object-fit: contain; }
+
+.recipe-hero .breadcrumbs { min-width: 0; }
+.recipe-hero .breadcrumbs > a,
+.recipe-hero .breadcrumbs > svg { flex: 0 0 auto; }
+.recipe-hero .breadcrumbs > span[aria-current="page"] {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  text-overflow: ellipsis;
+}
 
 @media (max-width: 680px) {
-  .auth-page { grid-template-columns: minmax(0, 1fr); width: 100%; }
-  .auth-card { padding: 25px 16px; }
+  .auth-page { grid-template-columns: minmax(0, 1fr); width: 100%; min-height: 0; }
+  .auth-aside { min-height: 240px; padding: 100px 24px 26px; }
+  .auth-aside .auth-brand { top: 22px; left: 24px; width: min(260px, calc(100% - 48px)); }
+  .auth-aside .kicker { margin-top: 0; }
+  .auth-aside h1 { margin: 12px 0 8px; font-size: clamp(35px, 10vw, 48px); line-height: .98; }
+  .auth-aside p { max-width: 440px; margin: 0; font-size: 13px; }
+  .auth-quote { display: none; }
+  .auth-card { padding: 20px 12px 32px; }
   .auth-card [class*="cl-cardBox"] { width: 100%; max-width: 440px; }
+  .recipe-hero .breadcrumbs { gap: 6px; margin-bottom: 18px; font-size: 11px; }
 }
 
 /* ---------- Header ---------- */

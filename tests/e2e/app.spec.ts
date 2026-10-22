@@ -48,6 +48,69 @@ test('TaskBakeAI shows the supplied mark on mobile and wordmark on desktop', asy
   await expect.poll(() => desktopWordmark.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
 });
 
+test('mobile auth uses the light wordmark and keeps the bottom menu available', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/sign-in');
+
+  const authBrand = page.locator('.auth-brand');
+  const authWordmark = authBrand.locator('img');
+  await expect(authBrand).toBeVisible();
+  await expect(authWordmark).toHaveAttribute('src', '/taskbakeai-wordmark-light.png');
+  await expect.poll(() => authWordmark.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  await expect(page.getByTestId('mobile-nav-account')).toBeVisible();
+  await expect(page.getByTestId('mobile-link-submit')).not.toContainText('Create');
+  await expect(page.locator('.auth-page')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test('new category names get distinct, relevant mobile icons', async ({ page }) => {
+  await mockApi(page, {
+    categories: [
+      { id: 1, name: 'Writing', slug: 'writing', recipeCount: 3 },
+      { id: 2, name: 'Business', slug: 'business', recipeCount: 5 },
+      { id: 3, name: 'Travel Planning', slug: 'travel-planning', recipeCount: 2 },
+    ],
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  const writingIcon = page.getByTestId('mobile-chip-writing').locator('.flipkart-category-icon-bubble svg');
+  const businessIcon = page.getByTestId('mobile-chip-business').locator('.flipkart-category-icon-bubble svg');
+  const travelIcon = page.getByTestId('mobile-chip-travel-planning').locator('.flipkart-category-icon-bubble svg');
+  await expect(writingIcon).toHaveClass(/lucide-pen-tool/);
+  await expect(businessIcon).toHaveClass(/lucide-briefcase/);
+  await expect(travelIcon).toHaveClass(/lucide-plane/);
+  expect(await writingIcon.getAttribute('class')).not.toBe(await businessIcon.getAttribute('class'));
+});
+
+test('mobile navigation resets scroll to the top and recipe breadcrumbs stay aligned', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/');
+
+  await page.locator('.site-footer').scrollIntoViewIfNeeded();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await page.getByTestId('link-footer-explore').click();
+  await expect(page).toHaveURL(/\/recipes$/);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+
+  await page.goto('/recipes/brief-to-project-plan');
+  const breadcrumbs = page.locator('.recipe-hero .breadcrumbs');
+  await expect(breadcrumbs.getByTestId('link-breadcrumb-library')).toBeVisible();
+  await expect(breadcrumbs.getByTestId('link-breadcrumb-category')).toBeVisible();
+  await expect(breadcrumbs.locator('[aria-current="page"]')).toContainText('Turn a brief into a project plan');
+  const breadcrumbBounds = await breadcrumbs.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const title = element.querySelector('[aria-current="page"]')!.getBoundingClientRect();
+    return {
+      contained: title.left >= bounds.left && title.right <= bounds.right,
+      noOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    };
+  });
+  expect(breadcrumbBounds).toEqual({ contained: true, noOverflow: true });
+});
+
 test('why AI Recipes page uses the site shell and switches its examples', async ({ page }) => {
   await mockApi(page);
   await page.goto('/why-ai-recipes');
