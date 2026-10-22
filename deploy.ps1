@@ -148,8 +148,19 @@ try {
   }
 
   $stylesheetUrl = [uri]::new([uri]$frontendBaseUrl, $stylesheetMatch.Groups[1].Value).AbsoluteUri
-  $stylesheet = & curl.exe --fail --silent --show-error --max-time 30 $stylesheetUrl
-  if ($LASTEXITCODE -ne 0 -or [string]::Join('', $stylesheet) -notmatch '\.auth-workflow-canvas') {
+  $stylesheetDeadline = (Get-Date).AddSeconds($FrontendTimeoutSeconds)
+  $stylesheetReady = $false
+  while ((Get-Date) -lt $stylesheetDeadline) {
+    $stylesheet = & curl.exe --fail --silent --show-error --max-time 30 $stylesheetUrl
+    if ($LASTEXITCODE -eq 0 -and [string]::Join('', $stylesheet) -match '\.auth-workflow-canvas') {
+      $stylesheetReady = $true
+      break
+    }
+    Write-Host 'Waiting for the deployed stylesheet to become available...'
+    Start-Sleep -Seconds 5
+  }
+
+  if (-not $stylesheetReady) {
     throw 'The deployed stylesheet is missing the desktop authentication redesign.'
   }
 
