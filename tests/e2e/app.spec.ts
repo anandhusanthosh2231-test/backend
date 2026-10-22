@@ -157,33 +157,36 @@ test('mobile navigation resets scroll to the top and recipe breadcrumbs stay ali
       const childBounds = children.map((child) => child.getBoundingClientRect());
       const title = element.querySelector('[aria-current="page"]') as HTMLElement;
       const titleBounds = title.getBoundingClientRect();
+      const mobileLayout = window.innerWidth <= 680;
+      const firstRowCenter = (childBounds[0].top + childBounds[0].bottom) / 2;
       return {
-        oneRow: children.length === 5
-          && childBounds.every((child) =>
-            Math.abs((child.top + child.bottom) / 2 - (childBounds[0].top + childBounds[0].bottom) / 2) < 1,
-          ),
+        rowLayout: children.length === 5 && (mobileLayout
+          ? childBounds.slice(0, 4).every((child) => Math.abs((child.top + child.bottom) / 2 - firstRowCenter) < 1)
+            && titleBounds.top >= childBounds[3].bottom
+          : childBounds.every((child) => Math.abs((child.top + child.bottom) / 2 - firstRowCenter) < 1)),
         ordered: children[0].textContent?.trim() === 'Library'
           && children[1].tagName.toLowerCase() === 'svg'
           && children[2].textContent?.trim() === 'Writing'
           && children[3].tagName.toLowerCase() === 'svg'
           && children[4].getAttribute('aria-current') === 'page',
-        centered: childBounds.every((child) =>
-          Math.abs((child.top + child.bottom) / 2 - (bounds.top + bounds.bottom) / 2) < 1,
+        firstRowCentered: childBounds.slice(0, 4).every((child) =>
+          Math.abs((child.top + child.bottom) / 2 - firstRowCenter) < 1,
         ),
         titleContained: titleBounds.left >= bounds.left && titleBounds.right <= bounds.right,
         titleTruncates: getComputedStyle(title).textOverflow === 'ellipsis'
           && getComputedStyle(title).whiteSpace === 'nowrap',
-        consistentGap: getComputedStyle(element).columnGap === '8px',
+        consistentGaps: getComputedStyle(element).columnGap === '8px'
+          && (!mobileLayout || getComputedStyle(element).rowGap === '8px'),
         noHorizontalOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
       };
     });
     expect(breadcrumbLayout).toEqual({
-      oneRow: true,
+      rowLayout: true,
       ordered: true,
-      centered: true,
+      firstRowCentered: true,
       titleContained: true,
       titleTruncates: true,
-      consistentGap: true,
+      consistentGaps: true,
       noHorizontalOverflow: true,
     });
   }

@@ -56,7 +56,8 @@ body { background: var(--cream); }
   .auth-quote { display: none; }
   .auth-card { padding: 20px 12px 32px; }
   .auth-card [class*="cl-cardBox"] { width: 100%; max-width: 440px; }
-  .recipe-hero .breadcrumbs { margin-bottom: 18px; font-size: 11px; }
+  .recipe-hero .breadcrumbs { flex-wrap: wrap; row-gap: 8px; margin-bottom: 18px; font-size: 11px; }
+  .recipe-hero .breadcrumbs > span[aria-current="page"] { flex: 0 0 100%; max-width: 100%; }
 }
 
 /* ---------- Header ---------- */
