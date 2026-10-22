@@ -16,7 +16,7 @@ import {
   getGetAudienceQueryKey, getGetCategoryQueryKey, getGetRecipeQueryKey, getGetRelatedRecipesQueryKey,
   getGetAdminSummaryQueryKey, getGetHomeQueryKey, getListAdminRecipesQueryKey, getListAdminSubmissionsQueryKey, getListAudiencesQueryKey, getListCategoriesQueryKey, getListRecipesQueryKey, getListSavedRecipesQueryKey,
   useCreateAdminAudience, useCreateAdminCategory, useCreateAdminRecipe, useCreateSubmission, useDeleteAdminRecipe, useDuplicateAdminRecipe,
-  useGenerateDraftRecipe, useGetAdminAnalytics, useGetAdminSummary, useGetAudience, useGetCategory,
+  useBulkUpdateAdminRecipes, useGenerateDraftRecipe, useGetAdminAnalytics, useGetAdminSummary, useGetAudience, useGetCategory,
   useGetHome, useGetMe, useGetRecipe, useGetRelatedRecipes, useListAdminRecipes,
   useImportAdminRecipesCsv, useListAdminSubmissions, useListAudiences, useListCategories, useListHistory, useListRecipes,
   useListSavedRecipes, useSaveRecipe, useSubmitFeedback, useTrackEvent, useUnsaveRecipe,
@@ -2061,9 +2061,14 @@ function AdminOverview() {
 function AdminRecipes() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
+  const [selectedRecipeIds, setSelectedRecipeIds] = useState<Set<number>>(() => new Set());
+  const [bulkCategoryId, setBulkCategoryId] = useState('');
+  const [bulkUpdateMessage, setBulkUpdateMessage] = useState('');
   const query = useListAdminRecipes({ q: q || undefined, status: status || undefined, page: 1 });
+  const bulkSelectableRecipes = query.data?.items.slice(0, 500) ?? [];
   const duplicate = useDuplicateAdminRecipe();
   const deleteMutation = useDeleteAdminRecipe();
+  const bulkUpdate = useBulkUpdateAdminRecipes();
   const importCsv = useImportAdminRecipesCsv();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -2080,6 +2085,52 @@ function AdminRecipes() {
   const audiencesQuery = useListAudiences();
 
   usePageMeta('Manage Recipes — TaskBakeAI', 'Edit, test, and publish recipes.');
+
+  useEffect(() => {
+    setSelectedRecipeIds(new Set());
+    setBulkUpdateMessage('');
+  }, [q, status]);
+
+  const refreshAfterBulkUpdate = (updatedCount: number) => {
+    setSelectedRecipeIds(new Set());
+    setBulkUpdateMessage(`${updatedCount} recipe${updatedCount === 1 ? '' : 's'} updated.`);
+    void queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey({ q: q || undefined, status: status || undefined, page: 1 }) });
+    void queryClient.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: getGetHomeQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: getListRecipesQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: getListCategoriesQueryKey() });
+    void queryClient.invalidateQueries({
+      predicate: ({ queryKey }) => typeof queryKey[0] === 'string' && queryKey[0].startsWith('/api/categories/'),
+    });
+  };
+
+  const publishSelectedRecipes = () => {
+    if (!selectedRecipeIds.size || !window.confirm(`Publish ${selectedRecipeIds.size} selected recipe${selectedRecipeIds.size === 1 ? '' : 's'}? They will become visible in the public recipe library.`)) return;
+    setBulkUpdateMessage('');
+    bulkUpdate.mutate(
+      { data: { ids: [...selectedRecipeIds], status: 'PUBLISHED' } },
+      {
+        onSuccess: ({ updatedCount }) => refreshAfterBulkUpdate(updatedCount),
+        onError: (error) => setBulkUpdateMessage(error instanceof Error ? error.message : 'Could not publish the selected recipes.'),
+      },
+    );
+  };
+
+  const recategorizeSelectedRecipes = () => {
+    const categoryId = Number(bulkCategoryId);
+    if (!selectedRecipeIds.size || !Number.isSafeInteger(categoryId) || categoryId <= 0) return;
+    setBulkUpdateMessage('');
+    bulkUpdate.mutate(
+      { data: { ids: [...selectedRecipeIds], categoryId } },
+      {
+        onSuccess: ({ updatedCount }) => {
+          setBulkCategoryId('');
+          refreshAfterBulkUpdate(updatedCount);
+        },
+        onError: (error) => setBulkUpdateMessage(error instanceof Error ? error.message : 'Could not change the selected recipes’ category.'),
+      },
+    );
+  };
 
   const handleDeleteConfirm = () => {
     if (!recipeToDelete) return;
@@ -2307,10 +2358,67 @@ function AdminRecipes() {
         </div>
       </div>
 
+      <section className="admin-bulk-edit" aria-label="Bulk edit selected recipes">
+        <div className="admin-bulk-edit__selection">
+          <strong>Bulk edit</strong>
+          <span>{selectedRecipeIds.size} selected</span>
+        </div>
+        <div className="admin-bulk-edit__actions">
+          <label htmlFor="bulk-recipe-category">Change category</label>
+          <select
+            id="bulk-recipe-category"
+            value={bulkCategoryId}
+            onChange={(event) => setBulkCategoryId(event.target.value)}
+            data-testid="select-bulk-recipe-category"
+          >
+            <option value="">Choose a category</option>
+            {(categoriesQuery.data ?? []).map((category) => (
+              <option key={category.id} value={category.id}>{category.name}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="button button-outline"
+            onClick={recategorizeSelectedRecipes}
+            disabled={!selectedRecipeIds.size || !bulkCategoryId || bulkUpdate.isPending}
+            data-testid="button-bulk-change-category"
+          >
+            Apply category
+          </button>
+          <button
+            type="button"
+            className="button button-dark"
+            onClick={publishSelectedRecipes}
+            disabled={!selectedRecipeIds.size || bulkUpdate.isPending}
+            data-testid="button-bulk-publish"
+          >
+            {bulkUpdate.isPending ? 'Updating...' : 'Publish selected'}
+          </button>
+        </div>
+        {bulkUpdateMessage && (
+          <p role={bulkUpdate.isError ? 'alert' : 'status'} aria-live="polite">{bulkUpdateMessage}</p>
+        )}
+      </section>
+
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
+              <th>
+                <input
+                  type="checkbox"
+                  className="bulk-select-checkbox"
+                  aria-label={query.data.items.length > 500 ? 'Select first 500 recipes in this list' : 'Select all recipes in this list'}
+                  checked={bulkSelectableRecipes.length > 0 && bulkSelectableRecipes.every((recipe) => selectedRecipeIds.has(recipe.id))}
+                  onChange={(event) => {
+                    setSelectedRecipeIds(event.target.checked
+                      ? new Set(bulkSelectableRecipes.map((recipe) => recipe.id))
+                      : new Set());
+                    setBulkUpdateMessage('');
+                  }}
+                  data-testid="checkbox-select-all-recipes"
+                />
+              </th>
               <th>Recipe Title</th>
               <th>Category & Audience</th>
               <th>Status</th>
@@ -2321,7 +2429,7 @@ function AdminRecipes() {
           <tbody>
             {query.data.items.length === 0 ? (
               <tr>
-                <td colSpan={5} className="table-empty-td">
+                <td colSpan={6} className="table-empty-td">
                   No recipes found matching your filters.
                 </td>
               </tr>
@@ -2330,6 +2438,25 @@ function AdminRecipes() {
                 const currentStatus = getAdminRecipeStatus(recipe);
                 return (
                   <tr key={recipe.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        className="bulk-select-checkbox"
+                        aria-label={`Select ${recipe.title}`}
+                        checked={selectedRecipeIds.has(recipe.id)}
+                        disabled={!selectedRecipeIds.has(recipe.id) && selectedRecipeIds.size >= 500}
+                        onChange={(event) => {
+                          setSelectedRecipeIds((current) => {
+                            const next = new Set(current);
+                            if (event.target.checked) next.add(recipe.id);
+                            else next.delete(recipe.id);
+                            return next;
+                          });
+                          setBulkUpdateMessage('');
+                        }}
+                        data-testid={`checkbox-select-recipe-${recipe.id}`}
+                      />
+                    </td>
                     <td>
                       <Link href={getAdminPath(`/recipes/${recipe.id}`)} className="table-title" data-testid={`link-admin-recipe-${recipe.id}`}>
                         {recipe.title}

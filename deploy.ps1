@@ -12,6 +12,7 @@ $renderReleaseCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/media'
 $audiencesCheckUrl = 'https://backend-xkwn.onrender.com/api/audiences'
 $adminCategoriesCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/categories'
 $adminAudiencesCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/audiences'
+$bulkUpdateCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/recipes/bulk-update'
 
 function Get-HttpStatus {
   param(
@@ -96,7 +97,8 @@ try {
     $audiencesStatus = Get-HttpStatus -Url $audiencesCheckUrl
     $categoryRouteStatus = Get-HttpStatus -Url $adminCategoriesCheckUrl -PostJson
     $adminAudiencesRouteStatus = Get-HttpStatus -Url $adminAudiencesCheckUrl -PostJson
-    if ($healthStatus -eq '200' -and $mediaStatus -eq '401' -and $audiencesStatus -eq '200' -and $categoryRouteStatus -eq '401' -and $adminAudiencesRouteStatus -eq '401') {
+    $bulkUpdateRouteStatus = Get-HttpStatus -Url $bulkUpdateCheckUrl -PostJson
+    if ($healthStatus -eq '200' -and $mediaStatus -eq '401' -and $audiencesStatus -eq '200' -and $categoryRouteStatus -eq '401' -and $adminAudiencesRouteStatus -eq '401' -and $bulkUpdateRouteStatus -eq '401') {
       $renderReady = $true
       break
     }

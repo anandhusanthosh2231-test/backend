@@ -539,6 +539,29 @@ export interface AdminRecipeListResponse {
   query: string;
 }
 
+export type BulkUpdateAdminRecipesBodyStatus = typeof BulkUpdateAdminRecipesBodyStatus[keyof typeof BulkUpdateAdminRecipesBodyStatus];
+
+
+export const BulkUpdateAdminRecipesBodyStatus = {
+  PUBLISHED: 'PUBLISHED',
+} as const;
+
+export interface BulkUpdateAdminRecipesBody {
+  /**
+     * @minItems 1
+     * @maxItems 500
+     * @items.minimum 1
+     */
+  ids: number[];
+  status?: BulkUpdateAdminRecipesBodyStatus;
+  /** @minimum 1 */
+  categoryId?: number;
+}
+
+export interface BulkUpdateAdminRecipesResponse {
+  updatedCount: number;
+}
+
 export interface CollectionResponse {
   name: string;
   slug: string;

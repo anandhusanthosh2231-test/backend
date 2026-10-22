@@ -26,6 +26,8 @@ import type {
   AdminSummary,
   AnalyticsResponse,
   Audience,
+  BulkUpdateAdminRecipesBody,
+  BulkUpdateAdminRecipesResponse,
   Category,
   CollectionResponse,
   ErrorResponse,
@@ -1845,6 +1847,78 @@ export const useCreateAdminRecipe = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateAdminRecipeMutationOptions(options));
+    }
+
+export const getBulkUpdateAdminRecipesUrl = () => {
+
+
+
+
+  return `/api/admin/recipes/bulk-update`
+}
+
+/**
+ * Applies a publication status or category change to up to 500 selected recipes in one transaction.
+ * @summary Publish or recategorize selected recipes
+ */
+export const bulkUpdateAdminRecipes = async (bulkUpdateAdminRecipesBody: BulkUpdateAdminRecipesBody, options?: Parameters<typeof customFetch>[1]): Promise<BulkUpdateAdminRecipesResponse> => {
+
+  return customFetch<BulkUpdateAdminRecipesResponse>(getBulkUpdateAdminRecipesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkUpdateAdminRecipesBody)
+  }
+);}
+
+
+
+
+
+export const getBulkUpdateAdminRecipesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateAdminRecipes>>, TError,{data: BodyType<BulkUpdateAdminRecipesBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateAdminRecipes>>, TError,{data: BodyType<BulkUpdateAdminRecipesBody>}, TContext> => {
+
+const mutationKey = ['bulkUpdateAdminRecipes'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkUpdateAdminRecipes>>, {data: BodyType<BulkUpdateAdminRecipesBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkUpdateAdminRecipes(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkUpdateAdminRecipesMutationResult = NonNullable<Awaited<ReturnType<typeof bulkUpdateAdminRecipes>>>
+    export type BulkUpdateAdminRecipesMutationBody = BodyType<BulkUpdateAdminRecipesBody>
+    export type BulkUpdateAdminRecipesMutationError = ErrorType<void>
+
+    /**
+ * @summary Publish or recategorize selected recipes
+ */
+export const useBulkUpdateAdminRecipes = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpdateAdminRecipes>>, TError,{data: BodyType<BulkUpdateAdminRecipesBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkUpdateAdminRecipes>>,
+        TError,
+        {data: BodyType<BulkUpdateAdminRecipesBody>},
+        TContext
+      > => {
+      return useMutation(getBulkUpdateAdminRecipesMutationOptions(options));
     }
 
 export const getImportAdminRecipesCsvUrl = () => {

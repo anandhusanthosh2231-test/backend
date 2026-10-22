@@ -1400,6 +1400,27 @@ export const CreateAdminRecipeResponse = zod.object({
 
 
 /**
+ * Applies a publication status or category change to up to 500 selected recipes in one transaction.
+ * @summary Publish or recategorize selected recipes
+ */
+
+export const bulkUpdateAdminRecipesBodyIdsMax = 500;
+
+
+
+
+export const BulkUpdateAdminRecipesBody = zod.object({
+  "ids": zod.array(zod.int().min(1)).min(1).max(bulkUpdateAdminRecipesBodyIdsMax),
+  "status": zod.enum(['PUBLISHED']).optional(),
+  "categoryId": zod.int().min(1).optional()
+})
+
+export const BulkUpdateAdminRecipesResponse = zod.object({
+  "updatedCount": zod.int()
+})
+
+
+/**
  * Previews or imports up to 500 recipe rows. Set preview to true to validate without writing; any invalid row prevents the full batch from committing. CSV schema version 2 supports JSON-encoded dynamic inputs, workflow steps, output structures, and custom layout configuration. Existing slugs are create-only unless csv_action explicitly requests an update.
  * @summary Import recipes from a CSV spreadsheet
  */

@@ -98,6 +98,7 @@ export interface ApiMockState {
   csvImportRequests: Array<Record<string, unknown>>;
   recipeSaveRequests: Array<Record<string, unknown>>;
   recipeUpdateRequests: Array<{ id: number; body: Record<string, unknown> }>;
+  bulkUpdateRequests: Array<Record<string, unknown>>;
   adminRequests: string[];
   taxonomyRequests: Array<{ method: string; pathname: string; body: unknown }>;
 }
@@ -107,6 +108,7 @@ interface MockApiOptions {
   feedbackStatus?: number;
   dynamicRecipe?: boolean;
   customLayoutRecipe?: boolean;
+  adminBulkEdit?: boolean;
   categories?: CategoryItem[];
 }
 
@@ -122,6 +124,7 @@ export async function mockApi(
     csvImportRequests: [],
     recipeSaveRequests: [],
     recipeUpdateRequests: [],
+    bulkUpdateRequests: [],
     adminRequests: [],
     taxonomyRequests: [],
   };
@@ -236,6 +239,17 @@ export async function mockApi(
       return;
     }
 
+    if (request.method() === 'POST' && pathname === '/api/admin/recipes/bulk-update') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      state.bulkUpdateRequests.push(body);
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ updatedCount: Array.isArray(body.ids) ? body.ids.length : 0 }),
+      });
+      return;
+    }
+
     if (request.method() === 'POST' && pathname === '/api/events') {
       await route.fulfill({ status: 204 });
       return;
@@ -257,11 +271,12 @@ export async function mockApi(
 
     if (request.method() === 'GET' && pathname === '/api/admin/recipes') {
       const saved = state.recipeSaveRequests[0];
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          items: saved ? [{
+      const items = options.adminBulkEdit
+        ? [
+            { ...recipe, status: 'DRAFT', publishedAt: null },
+            { ...recipe, id: 2, title: 'Prepare a customer follow-up', slug: 'customer-follow-up', status: 'DRAFT', publishedAt: null },
+          ]
+        : saved ? [{
             id: 99,
             ...saved,
             category: category.name,
@@ -277,8 +292,13 @@ export async function mockApi(
             shareCount: 0,
             positiveFeedbackCount: 0,
             negativeFeedbackCount: 0,
-          }] : [],
-          total: saved ? 1 : 0,
+          }] : [];
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items,
+          total: items.length,
           page: 1,
           pageSize: 20,
         }),

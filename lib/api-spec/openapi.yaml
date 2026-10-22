@@ -356,6 +356,27 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Recipe" }
+  /admin/recipes/bulk-update:
+    post:
+      operationId: bulkUpdateAdminRecipes
+      tags: [admin]
+      summary: Publish or recategorize selected recipes
+      description: Applies a publication status or category change to up to 500 selected recipes in one transaction.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BulkUpdateAdminRecipesBody" }
+      responses:
+        "200":
+          description: Number of recipes updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BulkUpdateAdminRecipesResponse" }
+        "400": { description: Invalid bulk update request }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: Category or recipe not found }
   /admin/recipes/import-csv:
     post:
       operationId: importAdminRecipesCsv
@@ -831,6 +852,23 @@ components:
         total: { type: number }
         query: { type: string }
       required: [items, page, pageSize, total, query]
+    BulkUpdateAdminRecipesBody:
+      type: object
+      properties:
+        ids:
+          type: array
+          minItems: 1
+          maxItems: 500
+          uniqueItems: true
+          items: { type: integer, minimum: 1 }
+        status: { type: string, enum: [PUBLISHED] }
+        categoryId: { type: integer, minimum: 1 }
+      required: [ids]
+    BulkUpdateAdminRecipesResponse:
+      type: object
+      properties:
+        updatedCount: { type: integer }
+      required: [updatedCount]
     CollectionResponse:
       type: object
       properties:

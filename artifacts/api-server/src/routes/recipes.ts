@@ -25,6 +25,7 @@ import {
   ListSavedRecipesResponse,
   ListAudiencesResponse,
   ListAdminSubmissionsResponse,
+  BulkUpdateAdminRecipesBody,
   ListAudiencesResponseItem,
   GetRecipeResponse,
   SubmitFeedbackBody,
@@ -626,6 +627,54 @@ router.get("/admin/recipes", requireAdmin, async (req, res): Promise<void> => {
   const rows = await adminRecipeRows();
   const filtered = rows.filter(({ recipe }) => (!parsed.data.q || recipe.title.toLowerCase().includes(parsed.data.q.toLowerCase())) && (!parsed.data.status || recipe.status === parsed.data.status));
   res.json({ items: filtered.map(({ recipe, category, audience }) => recipeResponse(recipe, category, audience)), page: parsed.data.page, pageSize: 50, total: filtered.length, query: parsed.data.q ?? "" });
+});
+
+router.post("/admin/recipes/bulk-update", requireAdmin, async (req, res): Promise<void> => {
+  const parsed = BulkUpdateAdminRecipesBody.safeParse(req.body);
+  if (!parsed.success
+    || (!parsed.data.status && parsed.data.categoryId === undefined)
+    || (parsed.success && new Set(parsed.data.ids).size !== parsed.data.ids.length)) {
+    res.status(400).json({
+      error: !parsed.success
+        ? parsed.error.message
+        : new Set(parsed.data.ids).size !== parsed.data.ids.length
+          ? "Recipe IDs must be unique."
+          : "Choose a status or category update.",
+    });
+    return;
+  }
+  const { categoryId, status } = parsed.data;
+
+  const result = await db.transaction(async (tx) => {
+    if (categoryId !== undefined) {
+      const [category] = await tx.select({ id: categoriesTable.id })
+        .from(categoriesTable)
+        .where(eq(categoriesTable.id, categoryId));
+      if (!category) return { kind: "not-found" as const, error: "Category not found." };
+    }
+
+    const existing = await tx.select({ id: recipesTable.id })
+      .from(recipesTable)
+      .where(inArray(recipesTable.id, parsed.data.ids));
+    if (existing.length !== parsed.data.ids.length) {
+      const existingIds = new Set(existing.map(({ id }) => id));
+      const missingIds = parsed.data.ids.filter((id) => !existingIds.has(id));
+      return { kind: "not-found" as const, error: `Recipes not found: ${missingIds.join(", ")}.` };
+    }
+
+    const updated = await tx.update(recipesTable).set({
+      ...(status ? { status, publishedAt: new Date() } : {}),
+      ...(categoryId !== undefined ? { categoryId } : {}),
+      updatedAt: new Date(),
+    }).where(inArray(recipesTable.id, parsed.data.ids)).returning({ id: recipesTable.id });
+    return { kind: "updated" as const, updatedCount: updated.length };
+  });
+
+  if (result.kind === "not-found") {
+    res.status(404).json({ error: result.error });
+    return;
+  }
+  res.json(result);
 });
 
 router.get("/admin/recipes/export-csv", requireAdmin, async (_req, res): Promise<void> => {

@@ -3173,3 +3173,47 @@ body { background: var(--cream); }
 @media (prefers-reduced-motion: reduce) {
   .auth-workflow-card { animation: none; }
 }
+
+.admin-bulk-edit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--paper);
+}
+
+.admin-bulk-edit__selection,
+.admin-bulk-edit__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.admin-bulk-edit__selection strong { color: var(--ink); font-size: 13px; }
+.admin-bulk-edit__selection span,
+.admin-bulk-edit > p { color: #766f7d; font-size: 11px; }
+.admin-bulk-edit > p { flex-basis: 100%; margin: 0; }
+.admin-bulk-edit__actions label { color: #766f7d; font-size: 11px; }
+.admin-bulk-edit__actions select { min-width: 170px; }
+.bulk-select-checkbox {
+  width: 18px;
+  height: 18px;
+  min-height: 0 !important;
+  margin: 0;
+  accent-color: var(--indigo);
+  cursor: pointer;
+}
+
+@media (max-width: 680px) {
+  .admin-bulk-edit { align-items: stretch; }
+  .admin-bulk-edit__actions { align-items: stretch; width: 100%; }
+  .admin-bulk-edit__actions label { flex-basis: 100%; }
+  .admin-bulk-edit__actions select,
+  .admin-bulk-edit__actions .button { flex: 1 1 100%; justify-content: center; }
+}

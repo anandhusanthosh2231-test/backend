@@ -612,6 +612,33 @@ test('admin previews CSV rows before committing the import', async ({ page }) =>
   expect(api.csvImportRequests[1]).toMatchObject({ preview: false });
 });
 
+test('admin bulk edits selected recipes by category and publication status', async ({ page }) => {
+  const api = await mockApi(page, {
+    adminAuthenticated: true,
+    adminBulkEdit: true,
+    categories: [
+      { id: 1, name: 'Writing', slug: 'writing', recipeCount: 1 },
+      { id: 2, name: 'Career', slug: 'career', recipeCount: 0 },
+    ],
+  });
+  const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
+  await page.goto(`${adminPath}/recipes`);
+  await expect(page.getByTestId('button-bulk-publish')).toBeDisabled();
+
+  await page.getByTestId('checkbox-select-all-recipes').check();
+  await expect(page.getByText('2 selected')).toBeVisible();
+  await page.getByTestId('select-bulk-recipe-category').selectOption('2');
+  await page.getByTestId('button-bulk-change-category').click();
+  await expect(page.getByRole('status')).toContainText('2 recipes updated');
+  expect(api.bulkUpdateRequests[0]).toEqual({ ids: [1, 2], categoryId: 2 });
+
+  await page.getByTestId('checkbox-select-all-recipes').check();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByTestId('button-bulk-publish').click();
+  await expect(page.getByRole('status')).toContainText('2 recipes updated');
+  expect(api.bulkUpdateRequests[1]).toEqual({ ids: [1, 2], status: 'PUBLISHED' });
+});
+
 test('admin can configure and save ordered dynamic prompt inputs', async ({ page }) => {
   const api = await mockApi(page, { adminAuthenticated: true });
   const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
