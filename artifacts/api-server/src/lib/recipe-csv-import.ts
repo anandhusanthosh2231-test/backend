@@ -88,6 +88,19 @@ export function recipeTaxonomySlug(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+export function createRecipeTaxonomyCandidate(name: string) {
+  const displayName = name.charAt(0).toLocaleUpperCase() + name.slice(1);
+  const insertValue = {
+    name: displayName,
+    slug: recipeTaxonomySlug(name),
+    description: `AI recipes for ${displayName}.`,
+  };
+  return {
+    lookup: { id: 1, ...insertValue },
+    insert: insertValue,
+  };
+}
+
 export function findRecipeTaxonomy<T extends { name: string; slug: string }>(
   items: T[],
   name: string,

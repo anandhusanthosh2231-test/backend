@@ -55,6 +55,7 @@ import {
 import { requireAdmin, requireAuth, type AuthenticatedRequest } from "../middlewares/auth";
 import {
   mapRecipeCsvRecord,
+  createRecipeTaxonomyCandidate,
   findRecipeTaxonomy,
   normalizeRecipeCsvHeader,
   parseRecipeCsv,
@@ -817,7 +818,6 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
     db.select().from(audiencesTable),
     db.select({ id: recipesTable.id, slug: recipesTable.slug }).from(recipesTable),
   ]);
-  const displayTaxonomyName = (name: string) => name.charAt(0).toLocaleUpperCase() + name.slice(1);
   const categoryByNameOrSlug = new Map(existingCategories.flatMap((item) => [
     [normalizeRecipeCsvHeader(item.name), item] as const,
     [normalizeRecipeCsvHeader(item.slug), item] as const,
@@ -836,13 +836,11 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
       if (existingBySlug) {
         categoryByNameOrSlug.set(key, existingBySlug);
       } else {
-        const name = displayTaxonomyName(row.categoryName);
-        const slug = recipeTaxonomySlug(row.categoryName);
-        if (slug) {
-          const candidate = { id: 1, name, slug, description: `AI recipes for ${name}.` };
-          categoryByNameOrSlug.set(key, candidate);
-          categoryByNameOrSlug.set(normalizeRecipeCsvHeader(slug), candidate);
-          newCategories.set(key, candidate);
+        const candidate = createRecipeTaxonomyCandidate(row.categoryName);
+        if (candidate.insert.slug) {
+          categoryByNameOrSlug.set(key, candidate.lookup);
+          categoryByNameOrSlug.set(normalizeRecipeCsvHeader(candidate.insert.slug), candidate.lookup);
+          newCategories.set(key, candidate.insert);
         }
       }
     }
@@ -855,13 +853,11 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
         audienceByNameOrSlug.set(audienceKey, existingBySlug);
         continue;
       }
-      const name = displayTaxonomyName(audienceName);
-      const slug = recipeTaxonomySlug(audienceName);
-      if (slug) {
-        const candidate = { id: 1, name, slug, description: `AI recipes for ${name}.` };
-        audienceByNameOrSlug.set(audienceKey, candidate);
-        audienceByNameOrSlug.set(normalizeRecipeCsvHeader(slug), candidate);
-        newAudiences.set(audienceKey, candidate);
+      const candidate = createRecipeTaxonomyCandidate(audienceName);
+      if (candidate.insert.slug) {
+        audienceByNameOrSlug.set(audienceKey, candidate.lookup);
+        audienceByNameOrSlug.set(normalizeRecipeCsvHeader(candidate.insert.slug), candidate.lookup);
+        newAudiences.set(audienceKey, candidate.insert);
       }
     }
   }

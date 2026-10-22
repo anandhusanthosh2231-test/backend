@@ -3,6 +3,7 @@ import { test } from "node:test";
 import type { Recipe } from "@workspace/db";
 import {
   mapRecipeCsvRecord,
+  createRecipeTaxonomyCandidate,
   findRecipeTaxonomy,
   parseRecipeCsv,
   recipeTaxonomySlug,
@@ -19,6 +20,18 @@ test("splits and deduplicates semicolon-separated audience names", () => {
 
 test("creates readable URL-safe taxonomy slugs", () => {
   assert.equal(recipeTaxonomySlug("Design & Media"), "design-media");
+});
+
+test("keeps preview taxonomy IDs out of database insert values", () => {
+  const candidate = createRecipeTaxonomyCandidate("Entertainment");
+
+  assert.equal(candidate.lookup.id, 1);
+  assert.deepEqual(candidate.insert, {
+    name: "Entertainment",
+    slug: "entertainment",
+    description: "AI recipes for Entertainment.",
+  });
+  assert.equal("id" in candidate.insert, false);
 });
 
 test("resolves imported taxonomy names when normalization changes their generated slug", () => {
