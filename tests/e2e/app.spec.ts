@@ -146,18 +146,47 @@ test('mobile navigation resets scroll to the top and recipe breadcrumbs stay ali
 
   await page.goto('/recipes/brief-to-project-plan');
   const breadcrumbs = page.locator('.recipe-hero .breadcrumbs');
-  await expect(breadcrumbs.getByTestId('link-breadcrumb-library')).toBeVisible();
-  await expect(breadcrumbs.getByTestId('link-breadcrumb-category')).toBeVisible();
-  await expect(breadcrumbs.locator('[aria-current="page"]')).toContainText('Turn a brief into a project plan');
-  const breadcrumbBounds = await breadcrumbs.evaluate((element) => {
-    const bounds = element.getBoundingClientRect();
-    const title = element.querySelector('[aria-current="page"]')!.getBoundingClientRect();
-    return {
-      contained: title.left >= bounds.left && title.right <= bounds.right,
-      noOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
-    };
-  });
-  expect(breadcrumbBounds).toEqual({ contained: true, noOverflow: true });
+  for (const width of [320, 375, 412, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(breadcrumbs.getByTestId('link-breadcrumb-library')).toBeVisible();
+    await expect(breadcrumbs.getByTestId('link-breadcrumb-category')).toBeVisible();
+    await expect(breadcrumbs.locator('[aria-current="page"]')).toContainText('Turn a brief into a project plan');
+    const breadcrumbLayout = await breadcrumbs.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      const children = Array.from(element.children);
+      const childBounds = children.map((child) => child.getBoundingClientRect());
+      const title = element.querySelector('[aria-current="page"]') as HTMLElement;
+      const titleBounds = title.getBoundingClientRect();
+      return {
+        oneRow: children.length === 5
+          && childBounds.every((child) =>
+            Math.abs((child.top + child.bottom) / 2 - (childBounds[0].top + childBounds[0].bottom) / 2) < 1,
+          ),
+        ordered: children[0].textContent?.trim() === 'Library'
+          && children[1].tagName.toLowerCase() === 'svg'
+          && children[2].textContent?.trim() === 'Writing'
+          && children[3].tagName.toLowerCase() === 'svg'
+          && children[4].getAttribute('aria-current') === 'page',
+        centered: childBounds.every((child) =>
+          Math.abs((child.top + child.bottom) / 2 - (bounds.top + bounds.bottom) / 2) < 1,
+        ),
+        titleContained: titleBounds.left >= bounds.left && titleBounds.right <= bounds.right,
+        titleTruncates: getComputedStyle(title).textOverflow === 'ellipsis'
+          && getComputedStyle(title).whiteSpace === 'nowrap',
+        consistentGap: getComputedStyle(element).columnGap === '8px',
+        noHorizontalOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      };
+    });
+    expect(breadcrumbLayout).toEqual({
+      oneRow: true,
+      ordered: true,
+      centered: true,
+      titleContained: true,
+      titleTruncates: true,
+      consistentGap: true,
+      noHorizontalOverflow: true,
+    });
+  }
 });
 
 test('why AI Recipes page uses the site shell and switches its examples', async ({ page }) => {
