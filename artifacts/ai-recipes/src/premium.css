@@ -3000,11 +3000,7 @@ body { background: var(--cream); }
       #272235;
   }
 
-  .auth-aside .auth-brand {
-    top: 28px;
-    left: clamp(38px, 6vw, 112px);
-    width: min(300px, calc(100% - 76px));
-  }
+  .auth-aside .auth-brand { display: none; }
 
   .auth-aside .kicker {
     margin-top: 30px;
@@ -3150,6 +3146,16 @@ body { background: var(--cream); }
   .auth-card [class*="cl-formButtonPrimary"] {
     background: #332b43;
     box-shadow: 0 5px 12px rgba(39, 34, 53, .14);
+  }
+
+  .auth-card [class*="cl-socialButtonsBlockButton"] {
+    color: #272235 !important;
+  }
+
+  .auth-card [class*="cl-socialButtonsBlockButtonText"] {
+    color: #272235 !important;
+    font-weight: 600;
+    opacity: 1;
   }
 }
 

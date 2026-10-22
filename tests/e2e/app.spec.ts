@@ -76,6 +76,12 @@ test('desktop auth presents the workflow canvas without clipping', async ({ page
     const canvas = page.locator('.auth-workflow-canvas');
     await expect(canvas).toBeVisible();
     await expect(canvas.locator('.auth-workflow-card')).toHaveCount(3);
+    await expect(page.locator('.auth-aside .auth-brand')).toBeHidden();
+    const googleButtonText = page.locator('.auth-card [class*="cl-socialButtonsBlockButtonText"]');
+    if (await googleButtonText.count()) {
+      await expect.poll(() => googleButtonText.evaluate((element) => getComputedStyle(element).color)).toBe('rgb(39, 34, 53)');
+      await expect(googleButtonText).toBeVisible();
+    }
     const layoutFits = await page.evaluate(() => {
       const aside = document.querySelector('.auth-aside')!.getBoundingClientRect();
       const card = document.querySelector('.auth-card')!.getBoundingClientRect();
