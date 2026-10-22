@@ -159,6 +159,13 @@ test('mobile navigation resets scroll to the top and recipe breadcrumbs stay ali
       const titleBounds = title.getBoundingClientRect();
       const mobileLayout = window.innerWidth <= 680;
       const firstRowCenter = (childBounds[0].top + childBounds[0].bottom) / 2;
+      const labelChevronCentersAligned = mobileLayout && [0, 2].every((index) => {
+        const range = document.createRange();
+        range.selectNodeContents(children[index]);
+        const label = range.getBoundingClientRect();
+        const chevron = childBounds[index + 1];
+        return Math.abs((label.top + label.bottom) / 2 - (chevron.top + chevron.bottom) / 2) < 4;
+      });
       return {
         rowLayout: children.length === 5 && (mobileLayout
           ? childBounds.slice(0, 4).every((child) => Math.abs((child.top + child.bottom) / 2 - firstRowCenter) < 1)
@@ -177,6 +184,9 @@ test('mobile navigation resets scroll to the top and recipe breadcrumbs stay ali
           && getComputedStyle(title).whiteSpace === 'nowrap',
         consistentGaps: getComputedStyle(element).columnGap === '8px'
           && (!mobileLayout || getComputedStyle(element).rowGap === '8px'),
+        mobileLabelsAlignedWithChevrons: !mobileLayout || labelChevronCentersAligned,
+        mobileLinksUseContentHeight: !mobileLayout
+          || childBounds.filter((_, index) => index === 0 || index === 2).every((child) => child.height < 24),
         noHorizontalOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
       };
     });
@@ -187,6 +197,8 @@ test('mobile navigation resets scroll to the top and recipe breadcrumbs stay ali
       titleContained: true,
       titleTruncates: true,
       consistentGaps: true,
+      mobileLabelsAlignedWithChevrons: true,
+      mobileLinksUseContentHeight: true,
       noHorizontalOverflow: true,
     });
   }
