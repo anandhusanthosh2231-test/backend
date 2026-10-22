@@ -11,18 +11,23 @@ $renderHealthUrl = 'https://backend-xkwn.onrender.com/api/healthz'
 $renderReleaseCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/media'
 $audiencesCheckUrl = 'https://backend-xkwn.onrender.com/api/audiences'
 $adminCategoriesCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/categories'
+$categoryDeleteCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/categories/not-a-number'
 $adminAudiencesCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/audiences'
 $bulkUpdateCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/recipes/bulk-update'
 
 function Get-HttpStatus {
   param(
     [string]$Url,
-    [switch]$PostJson
+    [switch]$PostJson,
+    [switch]$Delete
   )
 
   $curlArgs = @('--silent', '--output', 'NUL', '--write-out', '%{http_code}', '--max-time', '15')
   if ($PostJson) {
     $curlArgs += @('--request', 'POST', '--header', 'Content-Type: application/json', '--data', '{}')
+  }
+  if ($Delete) {
+    $curlArgs += @('--request', 'DELETE')
   }
   $curlArgs += $Url
 
@@ -96,9 +101,10 @@ try {
     $mediaStatus = Get-HttpStatus -Url $renderReleaseCheckUrl
     $audiencesStatus = Get-HttpStatus -Url $audiencesCheckUrl
     $categoryRouteStatus = Get-HttpStatus -Url $adminCategoriesCheckUrl -PostJson
+    $categoryDeleteStatus = Get-HttpStatus -Url $categoryDeleteCheckUrl -Delete
     $adminAudiencesRouteStatus = Get-HttpStatus -Url $adminAudiencesCheckUrl -PostJson
     $bulkUpdateRouteStatus = Get-HttpStatus -Url $bulkUpdateCheckUrl -PostJson
-    if ($healthStatus -eq '200' -and $mediaStatus -eq '401' -and $audiencesStatus -eq '200' -and $categoryRouteStatus -eq '401' -and $adminAudiencesRouteStatus -eq '401' -and $bulkUpdateRouteStatus -eq '401') {
+    if ($healthStatus -eq '200' -and $mediaStatus -eq '401' -and $audiencesStatus -eq '200' -and $categoryRouteStatus -eq '401' -and $categoryDeleteStatus -eq '401' -and $adminAudiencesRouteStatus -eq '401' -and $bulkUpdateRouteStatus -eq '401') {
       $renderReady = $true
       break
     }

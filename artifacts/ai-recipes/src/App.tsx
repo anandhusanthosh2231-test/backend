@@ -15,7 +15,7 @@ import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation, use
 import {
   getGetAudienceQueryKey, getGetCategoryQueryKey, getGetRecipeQueryKey, getGetRelatedRecipesQueryKey,
   getGetAdminSummaryQueryKey, getGetHomeQueryKey, getListAdminRecipesQueryKey, getListAdminSubmissionsQueryKey, getListAudiencesQueryKey, getListCategoriesQueryKey, getListRecipesQueryKey, getListSavedRecipesQueryKey,
-  useCreateAdminAudience, useCreateAdminCategory, useCreateAdminRecipe, useCreateSubmission, useDeleteAdminRecipe, useDuplicateAdminRecipe,
+  useCreateAdminAudience, useCreateAdminCategory, useCreateAdminRecipe, useCreateSubmission, useDeleteAdminCategory, useDeleteAdminRecipe, useDuplicateAdminRecipe,
   useBulkUpdateAdminRecipes, useGenerateDraftRecipe, useGetAdminAnalytics, useGetAdminSummary, useGetAudience, useGetCategory,
   useGetHome, useGetMe, useGetRecipe, useGetRelatedRecipes, useListAdminRecipes,
   useImportAdminRecipesCsv, useListAdminSubmissions, useListAudiences, useListCategories, useListHistory, useListRecipes,
@@ -2061,11 +2061,13 @@ function AdminOverview() {
 function AdminRecipes() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
+  const [categorySlug, setCategorySlug] = useState('');
   const [selectedRecipeIds, setSelectedRecipeIds] = useState<Set<number>>(() => new Set());
   const [bulkCategoryId, setBulkCategoryId] = useState('');
   const [bulkUpdateMessage, setBulkUpdateMessage] = useState('');
   const query = useListAdminRecipes({ q: q || undefined, status: status || undefined, page: 1 });
-  const bulkSelectableRecipes = query.data?.items.slice(0, 500) ?? [];
+  const filteredRecipes = (query.data?.items ?? []).filter((recipe) => !categorySlug || recipe.categorySlug === categorySlug);
+  const bulkSelectableRecipes = filteredRecipes.slice(0, 500);
   const duplicate = useDuplicateAdminRecipe();
   const deleteMutation = useDeleteAdminRecipe();
   const bulkUpdate = useBulkUpdateAdminRecipes();
@@ -2089,7 +2091,7 @@ function AdminRecipes() {
   useEffect(() => {
     setSelectedRecipeIds(new Set());
     setBulkUpdateMessage('');
-  }, [q, status]);
+  }, [q, status, categorySlug]);
 
   const refreshAfterBulkUpdate = (updatedCount: number) => {
     setSelectedRecipeIds(new Set());
@@ -2270,7 +2272,7 @@ function AdminRecipes() {
       <div className="admin-page-heading">
         <div>
           <span className="kicker">Content Library</span>
-          <h1>Recipe Shelf ({query.data.total})</h1>
+          <h1>Recipe Shelf ({filteredRecipes.length})</h1>
           <p className="admin-subtitle">Search, edit, test, and manage published and drafted recipes.</p>
         </div>
         <div className="admin-heading-actions">
@@ -2344,6 +2346,20 @@ function AdminRecipes() {
             data-testid="input-admin-recipes-search"
           />
         </div>
+        <label className="admin-category-filter">
+          <span>Category</span>
+          <select
+            value={categorySlug}
+            onChange={(event) => setCategorySlug(event.target.value)}
+            aria-label="Filter recipes by category"
+            data-testid="select-admin-recipe-category"
+          >
+            <option value="">All categories</option>
+            {(categoriesQuery.data ?? []).map((category) => (
+              <option key={category.id} value={category.slug}>{category.name}</option>
+            ))}
+          </select>
+        </label>
         <div className="admin-filter-pills">
           {['', 'PUBLISHED', 'TESTING', 'DRAFT'].map((s) => (
             <button
@@ -2408,7 +2424,7 @@ function AdminRecipes() {
                 <input
                   type="checkbox"
                   className="bulk-select-checkbox"
-                  aria-label={query.data.items.length > 500 ? 'Select first 500 recipes in this list' : 'Select all recipes in this list'}
+                  aria-label={filteredRecipes.length > 500 ? 'Select first 500 recipes in this list' : 'Select all recipes in this list'}
                   checked={bulkSelectableRecipes.length > 0 && bulkSelectableRecipes.every((recipe) => selectedRecipeIds.has(recipe.id))}
                   onChange={(event) => {
                     setSelectedRecipeIds(event.target.checked
@@ -2427,14 +2443,14 @@ function AdminRecipes() {
             </tr>
           </thead>
           <tbody>
-            {query.data.items.length === 0 ? (
+            {filteredRecipes.length === 0 ? (
               <tr>
                 <td colSpan={6} className="table-empty-td">
                   No recipes found matching your filters.
                 </td>
               </tr>
             ) : (
-              query.data.items.map((recipe) => {
+              filteredRecipes.map((recipe) => {
                 const currentStatus = getAdminRecipeStatus(recipe);
                 return (
                   <tr key={recipe.id}>
@@ -3991,12 +4007,14 @@ function AdminCollections({ type }: { type: 'categories' | 'audiences' }) {
   const updateCategory = useUpdateAdminCategory();
   const createAudience = useCreateAdminAudience();
   const updateAudience = useUpdateAdminAudience();
+  const deleteCategory = useDeleteAdminCategory();
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<{ id: number; name: string; slug: string; description: string } | null>(null);
   const [form, setForm] = useState<TaxonomyInput>({ name: '', slug: '', description: '' });
   const [slugEdited, setSlugEdited] = useState(false);
   const [formError, setFormError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
   const isCategory = type === 'categories';
   const title = isCategory ? 'Category' : 'Audience';
   const entityKey = isCategory ? 'category' : 'audience';
@@ -4043,6 +4061,24 @@ function AdminCollections({ type }: { type: 'categories' | 'audiences' }) {
       createAudience.mutate({ data: form }, { onSuccess, onError });
     }
   };
+  const removeCategory = (item: { id: number; name: string }) => {
+    if (!isCategory || !window.confirm(`Delete the “${item.name}” category? Categories with assigned recipes cannot be deleted.`)) return;
+    setDeleteError('');
+    deleteCategory.mutate(
+      { id: item.id },
+      {
+        onSuccess: () => {
+          void queryClient.invalidateQueries({ queryKey: getListCategoriesQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getGetHomeQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getListRecipesQueryKey() });
+          void queryClient.invalidateQueries({
+            predicate: ({ queryKey }) => typeof queryKey[0] === 'string' && queryKey[0].startsWith('/api/categories/'),
+          });
+        },
+        onError: (error) => setDeleteError(error instanceof Error ? error.message : 'Could not delete the category.'),
+      },
+    );
+  };
 
   if (query.isLoading) return <LoadingState />;
   if (query.isError || !query.data) return <ErrorState retry={() => query.refetch()} />;
@@ -4074,10 +4110,22 @@ function AdminCollections({ type }: { type: 'categories' | 'audiences' }) {
               >
                 Edit
               </button>
+              {isCategory && (
+                <button
+                  type="button"
+                  className="button button-small button-outline delete-btn"
+                  onClick={() => removeCategory(item)}
+                  disabled={deleteCategory.isPending}
+                  data-testid={`button-delete-category-${item.id}`}
+                >
+                  {deleteCategory.isPending ? 'Deleting...' : 'Delete'}
+                </button>
+              )}
             </div>
           </div>
         ))}
       </div>
+      {deleteError && <div className="gateway-error-banner" role="alert">{deleteError}</div>}
       {isFormOpen && (
         <div className="modal-backdrop" onClick={closeForm}>
           <div

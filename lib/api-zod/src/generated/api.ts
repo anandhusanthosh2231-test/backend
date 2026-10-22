@@ -1515,6 +1515,16 @@ export const UpdateAdminCategoryResponse = zod.object({
 
 
 /**
+ * @summary Delete an unused recipe category
+ */
+export const DeleteAdminCategoryParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteAdminCategoryResponse = zod.void()
+
+
+/**
  * @summary Create a recipe audience
  */
 export const createAdminAudienceBodyNameMax = 100;

@@ -458,6 +458,19 @@ paths:
         "403": { description: Admin access required }
         "404": { description: Category not found }
         "409": { description: Category name or slug already exists }
+    delete:
+      operationId: deleteAdminCategory
+      tags: [admin]
+      summary: Delete an unused recipe category
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      responses:
+        "204": { description: Category deleted }
+        "400": { description: Invalid category ID }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: Category not found }
+        "409": { description: Category still has recipes assigned }
   /admin/audiences:
     post:
       operationId: createAdminAudience

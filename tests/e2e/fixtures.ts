@@ -250,6 +250,24 @@ export async function mockApi(
       return;
     }
 
+    if (request.method() === 'DELETE' && /^\/api\/admin\/categories\/\d+$/.test(pathname)) {
+      state.taxonomyRequests.push({ method: 'DELETE', pathname, body: null });
+      const id = Number(pathname.split('/').at(-1));
+      const categoryToDelete = categories.find((item) => item.id === id);
+      if (categoryToDelete?.recipeCount) {
+        await route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: `Category cannot be deleted while ${categoryToDelete.recipeCount} recipes are assigned to it.` }),
+        });
+      } else {
+        const categoryIndex = categories.findIndex((item) => item.id === id);
+        if (categoryIndex >= 0) categories.splice(categoryIndex, 1);
+        await route.fulfill({ status: 204 });
+      }
+      return;
+    }
+
     if (request.method() === 'POST' && pathname === '/api/events') {
       await route.fulfill({ status: 204 });
       return;
@@ -274,7 +292,7 @@ export async function mockApi(
       const items = options.adminBulkEdit
         ? [
             { ...recipe, status: 'DRAFT', publishedAt: null },
-            { ...recipe, id: 2, title: 'Prepare a customer follow-up', slug: 'customer-follow-up', status: 'DRAFT', publishedAt: null },
+            { ...recipe, id: 2, title: 'Prepare a customer follow-up', slug: 'customer-follow-up', category: 'Career', categorySlug: 'career', status: 'DRAFT', publishedAt: null },
           ]
         : saved ? [{
             id: 99,

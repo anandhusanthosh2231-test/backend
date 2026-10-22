@@ -6,6 +6,7 @@ import {
   CreateAdminCategoryBody,
   CreateAdminAudienceBody,
   CreateSubmissionBody,
+  DeleteAdminCategoryParams,
   DeleteAdminRecipeParams,
   DuplicateAdminRecipeParams,
   GenerateDraftRecipeBody,
@@ -567,6 +568,52 @@ router.patch("/admin/categories/:id", requireAdmin, async (req, res): Promise<vo
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") {
       res.status(409).json({ error: "A category with this slug already exists." });
+      return;
+    }
+    throw error;
+  }
+});
+
+router.delete("/admin/categories/:id", requireAdmin, async (req, res): Promise<void> => {
+  const params = DeleteAdminCategoryParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid category ID." });
+    return;
+  }
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [category] = await tx.select({ id: categoriesTable.id })
+        .from(categoriesTable)
+        .where(eq(categoriesTable.id, params.data.id));
+      if (!category) return { kind: "not-found" as const };
+
+      const [usage] = await tx.select({ recipeCount: count(recipesTable.id) })
+        .from(recipesTable)
+        .where(eq(recipesTable.categoryId, category.id));
+      const recipeCount = Number(usage?.recipeCount ?? 0);
+      if (recipeCount > 0) return { kind: "in-use" as const, recipeCount };
+
+      const [deleted] = await tx.delete(categoriesTable)
+        .where(eq(categoriesTable.id, category.id))
+        .returning({ id: categoriesTable.id });
+      return deleted ? { kind: "deleted" as const } : { kind: "not-found" as const };
+    });
+
+    if (result.kind === "not-found") {
+      res.status(404).json({ error: "Category not found." });
+      return;
+    }
+    if (result.kind === "in-use") {
+      res.status(409).json({
+        error: `Category cannot be deleted while ${result.recipeCount} recipe${result.recipeCount === 1 ? " is" : "s are"} assigned to it.`,
+      });
+      return;
+    }
+    res.status(204).end();
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "23503") {
+      res.status(409).json({ error: "Category cannot be deleted while recipes are assigned to it." });
       return;
     }
     throw error;

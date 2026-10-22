@@ -2111,6 +2111,15 @@ body { background: var(--cream); }
   gap: 6px;
 }
 
+.admin-category-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6c6573;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .filter-pill {
   border: 1px solid var(--line);
   background: var(--paper);

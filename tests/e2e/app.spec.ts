@@ -639,6 +639,27 @@ test('admin bulk edits selected recipes by category and publication status', asy
   expect(api.bulkUpdateRequests[1]).toEqual({ ids: [1, 2], status: 'PUBLISHED' });
 });
 
+test('admin filters recipes by category', async ({ page }) => {
+  await mockApi(page, {
+    adminAuthenticated: true,
+    adminBulkEdit: true,
+    categories: [
+      { id: 1, name: 'Writing', slug: 'writing', recipeCount: 1 },
+      { id: 2, name: 'Career', slug: 'career', recipeCount: 1 },
+    ],
+  });
+  const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
+  await page.goto(`${adminPath}/recipes`);
+
+  await expect(page.getByTestId('link-admin-recipe-1')).toBeVisible();
+  await expect(page.getByTestId('link-admin-recipe-2')).toBeVisible();
+  await page.getByTestId('select-admin-recipe-category').selectOption('career');
+
+  await expect(page.getByTestId('link-admin-recipe-1')).toHaveCount(0);
+  await expect(page.getByTestId('link-admin-recipe-2')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Recipe Shelf (1)' })).toBeVisible();
+});
+
 test('admin can configure and save ordered dynamic prompt inputs', async ({ page }) => {
   const api = await mockApi(page, { adminAuthenticated: true });
   const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
@@ -794,6 +815,35 @@ test('admin can create and edit categories and audiences', async ({ page }) => {
       name: 'Content creators',
       slug: 'content-creators',
     },
+  });
+});
+
+test('admin can delete unused categories but cannot delete categories assigned to recipes', async ({ page }) => {
+  const api = await mockApi(page, {
+    adminAuthenticated: true,
+    categories: [
+      { id: 1, name: 'Writing', slug: 'writing', recipeCount: 2 },
+      { id: 2, name: 'Empty category', slug: 'empty-category', recipeCount: 0 },
+    ],
+  });
+  const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
+  await page.goto(`${adminPath}/categories`);
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByTestId('button-delete-category-2').click();
+  await expect.poll(() => api.taxonomyRequests.length).toBe(1);
+  expect(api.taxonomyRequests[0]).toMatchObject({
+    method: 'DELETE',
+    pathname: '/api/admin/categories/2',
+  });
+  await expect(page.getByTestId('button-delete-category-2')).toHaveCount(0);
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByTestId('button-delete-category-1').click();
+  await expect(page.getByRole('alert')).toContainText('2 recipes are assigned');
+  expect(api.taxonomyRequests[1]).toMatchObject({
+    method: 'DELETE',
+    pathname: '/api/admin/categories/1',
   });
 });
 
