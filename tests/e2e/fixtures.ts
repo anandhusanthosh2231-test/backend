@@ -116,13 +116,7 @@ export async function mockApi(
     taxonomyRequests: [],
   };
 
-  await page.route('https://**/*', (route) =>
-    route.fulfill({
-      status: 503,
-      contentType: 'text/plain',
-      body: 'External services are disabled during browser tests.',
-    }),
-  );
+  await page.route('https://**/*', (route) => route.abort('blockedbyclient'));
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());

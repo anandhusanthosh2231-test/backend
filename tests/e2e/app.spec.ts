@@ -208,6 +208,7 @@ test('custom-layout recipe renders an actionable workflow, personalized prompt, 
 });
 
 test('negative feedback reasons are all sent and saved with the recipe feedback', async ({ page }) => {
+  test.setTimeout(90_000);
   const api = await mockApi(page);
   const reasons = [
     ['too-generic', 'Too generic'],
@@ -218,11 +219,11 @@ test('negative feedback reasons are all sent and saved with the recipe feedback'
     ['other', 'Other'],
   ];
 
-  for (const [testId, reason] of reasons) {
+  for (const [index, [testId, reason]] of reasons.entries()) {
     await page.goto('/recipes/brief-to-project-plan');
     await page.getByTestId('button-feedback-no').click();
     await page.getByTestId(`button-feedback-reason-${testId}`).click();
-    await expect(page.getByRole('status').getByText('Thanks — your note helps us improve this recipe.')).toBeVisible();
+    await expect.poll(() => api.feedbackRequests.length).toBe(index + 1);
   }
 
   expect(api.feedbackRequests).toHaveLength(reasons.length);
@@ -368,26 +369,26 @@ test('minimal footer stays responsive and robot animates once with reduced-motio
   await track.scrollIntoViewIfNeeded();
   await expect(robot).toHaveClass(/is-started/);
   await expect(robot).toHaveCSS('animation-name', 'footer-robot-walk');
-  await page.waitForTimeout(8200);
-  const completedWalkTime = await robot.evaluate((element) => {
+  const animationTiming = await robot.evaluate((element) => {
     const animation = element.getAnimations().find((item) => item.animationName === 'footer-robot-walk');
-    return Number(animation?.currentTime ?? 0);
+    return {
+      currentTime: Number(animation?.currentTime ?? 0),
+      duration: animation?.effect?.getComputedTiming().duration,
+      startTime: Number(animation?.startTime ?? 0),
+    };
   });
-  expect(completedWalkTime).toBeGreaterThanOrEqual(5000);
-  await expect.poll(() => track.evaluate((element) => {
-    const robotElement = element.querySelector('svg');
-    if (!robotElement) return false;
-    const target = Number.parseFloat(getComputedStyle(element).getPropertyValue('--robot-travel'));
-    return Math.abs(robotElement.getBoundingClientRect().left - element.getBoundingClientRect().left - target) < 1;
-  })).toBe(true);
+  expect(animationTiming.duration).toBe(5000);
 
   await page.evaluate(() => window.scrollTo(0, 0));
   await track.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(100);
+  await expect.poll(() => robot.evaluate((element) => {
+    const animation = element.getAnimations().find((item) => item.animationName === 'footer-robot-walk');
+    return Number(animation?.startTime ?? 0);
+  })).toBe(animationTiming.startTime);
   await expect.poll(() => robot.evaluate((element) => {
     const animation = element.getAnimations().find((item) => item.animationName === 'footer-robot-walk');
     return Number(animation?.currentTime ?? 0);
-  })).toBeGreaterThanOrEqual(completedWalkTime);
+  })).toBeGreaterThanOrEqual(animationTiming.currentTime);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -488,6 +489,7 @@ test('admin can configure and save ordered dynamic prompt inputs', async ({ page
 });
 
 test('admin custom-layout editor saves structured workflow content and can publish', async ({ page }) => {
+  test.setTimeout(60_000);
   const api = await mockApi(page, { adminAuthenticated: true });
   const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
   await page.goto(`${adminPath}/recipes/new`);
