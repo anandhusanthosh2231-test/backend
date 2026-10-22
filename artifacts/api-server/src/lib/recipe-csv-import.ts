@@ -88,6 +88,17 @@ export function recipeTaxonomySlug(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+export function findRecipeTaxonomy<T extends { name: string; slug: string }>(
+  items: T[],
+  name: string,
+): T | undefined {
+  const key = normalizeRecipeCsvHeader(name);
+  const slugKey = normalizeRecipeCsvHeader(recipeTaxonomySlug(name));
+  return items.find((item) =>
+    normalizeRecipeCsvHeader(item.name) === key || normalizeRecipeCsvHeader(item.slug) === key,
+  ) ?? items.find((item) => normalizeRecipeCsvHeader(item.slug) === slugKey);
+}
+
 function parseObjectArray(value: string): unknown[] | undefined {
   if (!value.trim().startsWith("[")) return undefined;
   try {

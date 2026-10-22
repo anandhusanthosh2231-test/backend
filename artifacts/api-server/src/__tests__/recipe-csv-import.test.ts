@@ -3,6 +3,7 @@ import { test } from "node:test";
 import type { Recipe } from "@workspace/db";
 import {
   mapRecipeCsvRecord,
+  findRecipeTaxonomy,
   parseRecipeCsv,
   recipeTaxonomySlug,
   splitRecipeCsvAudiences,
@@ -18,6 +19,14 @@ test("splits and deduplicates semicolon-separated audience names", () => {
 
 test("creates readable URL-safe taxonomy slugs", () => {
   assert.equal(recipeTaxonomySlug("Design & Media"), "design-media");
+});
+
+test("resolves imported taxonomy names when normalization changes their generated slug", () => {
+  const categories = [
+    { id: 1, name: "Cafe Culture", slug: "cafe-culture" },
+  ];
+
+  assert.deepEqual(findRecipeTaxonomy(categories, "Café Culture"), categories[0]);
 });
 
 test("parses quoted CSV cells containing commas and line breaks", () => {

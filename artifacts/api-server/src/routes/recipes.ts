@@ -55,6 +55,7 @@ import {
 import { requireAdmin, requireAuth, type AuthenticatedRequest } from "../middlewares/auth";
 import {
   mapRecipeCsvRecord,
+  findRecipeTaxonomy,
   normalizeRecipeCsvHeader,
   parseRecipeCsv,
   recipeTaxonomySlug,
@@ -829,19 +830,31 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
   const newAudiences = new Map<string, { name: string; slug: string; description: string }>();
   for (const row of rows) {
     const key = normalizeRecipeCsvHeader(row.categoryName);
+    const categorySlugKey = normalizeRecipeCsvHeader(recipeTaxonomySlug(row.categoryName));
     if (key && !categoryByNameOrSlug.has(key)) {
-      const name = displayTaxonomyName(row.categoryName);
-      const slug = recipeTaxonomySlug(row.categoryName);
-      if (slug) {
-        const candidate = { id: 1, name, slug, description: `AI recipes for ${name}.` };
-        categoryByNameOrSlug.set(key, candidate);
-        categoryByNameOrSlug.set(normalizeRecipeCsvHeader(slug), candidate);
-        newCategories.set(key, candidate);
+      const existingBySlug = categoryByNameOrSlug.get(categorySlugKey);
+      if (existingBySlug) {
+        categoryByNameOrSlug.set(key, existingBySlug);
+      } else {
+        const name = displayTaxonomyName(row.categoryName);
+        const slug = recipeTaxonomySlug(row.categoryName);
+        if (slug) {
+          const candidate = { id: 1, name, slug, description: `AI recipes for ${name}.` };
+          categoryByNameOrSlug.set(key, candidate);
+          categoryByNameOrSlug.set(normalizeRecipeCsvHeader(slug), candidate);
+          newCategories.set(key, candidate);
+        }
       }
     }
     for (const audienceName of row.audienceNames) {
       const audienceKey = normalizeRecipeCsvHeader(audienceName);
       if (!audienceKey || audienceByNameOrSlug.has(audienceKey)) continue;
+      const audienceSlugKey = normalizeRecipeCsvHeader(recipeTaxonomySlug(audienceName));
+      const existingBySlug = audienceByNameOrSlug.get(audienceSlugKey);
+      if (existingBySlug) {
+        audienceByNameOrSlug.set(audienceKey, existingBySlug);
+        continue;
+      }
       const name = displayTaxonomyName(audienceName);
       const slug = recipeTaxonomySlug(audienceName);
       if (slug) {
@@ -860,7 +873,9 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
     slug: string;
     data: ReturnType<typeof CreateAdminRecipeBody.parse>;
     categoryKey: string;
+    categorySlug: string;
     audienceKeys: string[];
+    audienceSlugs: string[];
     action: "create" | "update";
     existingRecipeId?: number;
   }> = [];
@@ -927,7 +942,9 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
         slug,
         data: parsed.data,
         categoryKey,
+        categorySlug: recipeTaxonomySlug(row.categoryName),
         audienceKeys,
+        audienceSlugs: row.audienceNames.map(recipeTaxonomySlug),
         action,
         existingRecipeId: existingRecipe?.id,
       });
@@ -965,17 +982,13 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
       }
       const categories = await tx.select().from(categoriesTable);
       const audiences = await tx.select().from(audiencesTable);
-      const categoryMap = new Map(categories.flatMap((item) => [
-        [normalizeRecipeCsvHeader(item.name), item] as const,
-        [normalizeRecipeCsvHeader(item.slug), item] as const,
-      ]));
-      const audienceMap = new Map(audiences.flatMap((item) => [
-        [normalizeRecipeCsvHeader(item.name), item] as const,
-        [normalizeRecipeCsvHeader(item.slug), item] as const,
-      ]));
       for (const row of plannedRows) {
-        const category = categoryMap.get(row.categoryKey);
-        const recipeAudiences = row.audienceKeys.map((key) => audienceMap.get(key));
+        const category = findRecipeTaxonomy(categories, row.categoryKey)
+          ?? findRecipeTaxonomy(categories, row.categorySlug);
+        const recipeAudiences = row.audienceKeys.map((key, index) =>
+          findRecipeTaxonomy(audiences, key)
+          ?? findRecipeTaxonomy(audiences, row.audienceSlugs[index] ?? ""),
+        );
         if (!category || recipeAudiences.some((item) => !item)) {
           throw new Error(`Could not resolve taxonomy for recipe "${row.slug}" during commit.`);
         }
