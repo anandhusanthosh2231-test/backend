@@ -640,7 +640,7 @@ test('admin bulk edits selected recipes by category and publication status', asy
 });
 
 test('admin filters recipes by category', async ({ page }) => {
-  await mockApi(page, {
+  const api = await mockApi(page, {
     adminAuthenticated: true,
     adminBulkEdit: true,
     categories: [
@@ -658,6 +658,27 @@ test('admin filters recipes by category', async ({ page }) => {
   await expect(page.getByTestId('link-admin-recipe-1')).toHaveCount(0);
   await expect(page.getByTestId('link-admin-recipe-2')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Recipe Shelf (1)' })).toBeVisible();
+  expect(api.adminRecipeListRequests.some((request) => request.searchParams.get('category') === 'career')).toBe(true);
+});
+
+test('admin recipe list paginates results from the API', async ({ page }) => {
+  const api = await mockApi(page, {
+    adminAuthenticated: true,
+    adminBulkEdit: true,
+    adminRecipeCount: 53,
+  });
+  const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
+  await page.goto(`${adminPath}/recipes`);
+
+  await expect(page.getByRole('heading', { name: 'Recipe Shelf (53)' })).toBeVisible();
+  expect(api.adminRecipeListResponses).toContainEqual({ page: 1, total: 53 });
+  await expect(page.getByTestId('link-admin-recipe-1')).toBeVisible();
+  await page.getByTestId('button-admin-recipes-page-next').click();
+
+  await expect(page.getByText('Page 2 of 2')).toBeVisible();
+  await expect(page.getByTestId('link-admin-recipe-1')).toHaveCount(0);
+  await expect(page.getByTestId('link-admin-recipe-53')).toBeVisible();
+  expect(api.adminRecipeListRequests.some((request) => request.searchParams.get('page') === '2')).toBe(true);
 });
 
 test('admin can configure and save ordered dynamic prompt inputs', async ({ page }) => {

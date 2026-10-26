@@ -5,10 +5,10 @@
  * API for AI Recipes, an Indian-first library of practical AI workflows.
  * OpenAPI spec version: 0.1.0
  */
-import type { Recipe } from './recipe';
+import type { AdminRecipeListItem } from './adminRecipeListItem';
 
 export interface AdminRecipeListResponse {
-  items: Recipe[];
+  items: AdminRecipeListItem[];
   page: number;
   pageSize: number;
   total: number;

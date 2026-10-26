@@ -2062,11 +2062,12 @@ function AdminRecipes() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [categorySlug, setCategorySlug] = useState('');
+  const [page, setPage] = useState(1);
   const [selectedRecipeIds, setSelectedRecipeIds] = useState<Set<number>>(() => new Set());
   const [bulkCategoryId, setBulkCategoryId] = useState('');
   const [bulkUpdateMessage, setBulkUpdateMessage] = useState('');
-  const query = useListAdminRecipes({ q: q || undefined, status: status || undefined, page: 1 });
-  const filteredRecipes = (query.data?.items ?? []).filter((recipe) => !categorySlug || recipe.categorySlug === categorySlug);
+  const query = useListAdminRecipes({ q: q || undefined, status: status || undefined, category: categorySlug || undefined, page });
+  const filteredRecipes = query.data?.items ?? [];
   const bulkSelectableRecipes = filteredRecipes.slice(0, 500);
   const duplicate = useDuplicateAdminRecipe();
   const deleteMutation = useDeleteAdminRecipe();
@@ -2091,12 +2092,13 @@ function AdminRecipes() {
   useEffect(() => {
     setSelectedRecipeIds(new Set());
     setBulkUpdateMessage('');
+    setPage(1);
   }, [q, status, categorySlug]);
 
   const refreshAfterBulkUpdate = (updatedCount: number) => {
     setSelectedRecipeIds(new Set());
     setBulkUpdateMessage(`${updatedCount} recipe${updatedCount === 1 ? '' : 's'} updated.`);
-    void queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey({ q: q || undefined, status: status || undefined, page: 1 }) });
+    void queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
     void queryClient.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
     void queryClient.invalidateQueries({ queryKey: getGetHomeQueryKey() });
     void queryClient.invalidateQueries({ queryKey: getListRecipesQueryKey() });
@@ -2141,7 +2143,7 @@ function AdminRecipes() {
       {
         onSuccess: () => {
           setRecipeToDelete(null);
-          queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey({ q: q || undefined, status: status || undefined, page: 1 }) });
+          queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
         },
       }
     );
@@ -2190,7 +2192,7 @@ function AdminRecipes() {
       onSuccess: (report) => {
         setImportReport(report);
         if (report.createdCount) {
-          void queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey({ q: q || undefined, status: status || undefined, page: 1 }) });
+          void queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
           void queryClient.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
           void queryClient.invalidateQueries({ queryKey: getGetHomeQueryKey() });
           void queryClient.invalidateQueries({ queryKey: getListRecipesQueryKey() });
@@ -2272,7 +2274,7 @@ function AdminRecipes() {
       <div className="admin-page-heading">
         <div>
           <span className="kicker">Content Library</span>
-          <h1>Recipe Shelf ({filteredRecipes.length})</h1>
+          <h1>Recipe Shelf ({query.data.total})</h1>
           <p className="admin-subtitle">Search, edit, test, and manage published and drafted recipes.</p>
         </div>
         <div className="admin-heading-actions">
@@ -2424,12 +2426,24 @@ function AdminRecipes() {
                 <input
                   type="checkbox"
                   className="bulk-select-checkbox"
-                  aria-label={filteredRecipes.length > 500 ? 'Select first 500 recipes in this list' : 'Select all recipes in this list'}
+                  aria-label="Select all recipes on this page"
                   checked={bulkSelectableRecipes.length > 0 && bulkSelectableRecipes.every((recipe) => selectedRecipeIds.has(recipe.id))}
                   onChange={(event) => {
-                    setSelectedRecipeIds(event.target.checked
-                      ? new Set(bulkSelectableRecipes.map((recipe) => recipe.id))
-                      : new Set());
+                    setSelectedRecipeIds((current) => {
+                      const next = new Set(current);
+                      if (event.target.checked) {
+                        const alreadySelectedOnPage = bulkSelectableRecipes.filter((recipe) => current.has(recipe.id)).length;
+                        const selectedOutsidePage = current.size - alreadySelectedOnPage;
+                        const targetCount = selectedOutsidePage + Math.min(500 - selectedOutsidePage, bulkSelectableRecipes.length);
+                        for (const recipe of bulkSelectableRecipes) {
+                          if (next.size >= targetCount) break;
+                          next.add(recipe.id);
+                        }
+                      } else {
+                        for (const recipe of bulkSelectableRecipes) next.delete(recipe.id);
+                      }
+                      return next;
+                    });
                     setBulkUpdateMessage('');
                   }}
                   data-testid="checkbox-select-all-recipes"
@@ -2502,7 +2516,7 @@ function AdminRecipes() {
                           type="button"
                           className="table-action"
                           title="Duplicate as draft"
-                          onClick={() => duplicate.mutate({ id: recipe.id }, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey({ q: q || undefined, status: status || undefined, page: 1 }) }) })}
+                          onClick={() => duplicate.mutate({ id: recipe.id }, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() }) })}
                           data-testid={`button-duplicate-recipe-${recipe.id}`}
                         >
                           <Copy size={14} />
@@ -2530,6 +2544,29 @@ function AdminRecipes() {
           </tbody>
         </table>
       </div>
+      {query.data.total > query.data.pageSize && (
+        <div className="pagination" aria-label="Admin recipe pagination">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            aria-label="Previous recipe page"
+            data-testid="button-admin-recipes-page-prev"
+          >
+            <ChevronLeft size={17} />
+          </button>
+          <span>Page {page} of {Math.max(1, Math.ceil(query.data.total / query.data.pageSize))}</span>
+          <button
+            type="button"
+            disabled={page >= Math.ceil(query.data.total / query.data.pageSize)}
+            onClick={() => setPage((current) => current + 1)}
+            aria-label="Next recipe page"
+            data-testid="button-admin-recipes-page-next"
+          >
+            <ChevronRight size={17} />
+          </button>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {recipeToDelete && (

@@ -334,7 +334,8 @@ paths:
       parameters:
         - { name: q, in: query, schema: { type: string } }
         - { name: status, in: query, schema: { type: string } }
-        - { name: page, in: query, schema: { type: number, minimum: 1, default: 1 } }
+        - { name: category, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
       responses:
         "200":
           description: Admin recipe list
@@ -859,12 +860,19 @@ components:
     AdminRecipeListResponse:
       type: object
       properties:
-        items: { type: array, items: { $ref: "#/components/schemas/Recipe" } }
+        items: { type: array, items: { $ref: "#/components/schemas/AdminRecipeListItem" } }
         page: { type: number }
         pageSize: { type: number }
         total: { type: number }
         query: { type: string }
       required: [items, page, pageSize, total, query]
+    AdminRecipeListItem:
+      allOf:
+        - $ref: "#/components/schemas/RecipeCard"
+        - type: object
+          properties:
+            status: { type: string }
+          required: [status]
     BulkUpdateAdminRecipesBody:
       type: object
       properties:

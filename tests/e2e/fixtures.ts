@@ -99,6 +99,8 @@ export interface ApiMockState {
   recipeSaveRequests: Array<Record<string, unknown>>;
   recipeUpdateRequests: Array<{ id: number; body: Record<string, unknown> }>;
   bulkUpdateRequests: Array<Record<string, unknown>>;
+  adminRecipeListRequests: URL[];
+  adminRecipeListResponses: Array<{ page: number; total: number }>;
   adminRequests: string[];
   taxonomyRequests: Array<{ method: string; pathname: string; body: unknown }>;
 }
@@ -109,6 +111,7 @@ interface MockApiOptions {
   dynamicRecipe?: boolean;
   customLayoutRecipe?: boolean;
   adminBulkEdit?: boolean;
+  adminRecipeCount?: number;
   categories?: CategoryItem[];
 }
 
@@ -125,6 +128,8 @@ export async function mockApi(
     recipeSaveRequests: [],
     recipeUpdateRequests: [],
     bulkUpdateRequests: [],
+    adminRecipeListRequests: [],
+    adminRecipeListResponses: [],
     adminRequests: [],
     taxonomyRequests: [],
   };
@@ -288,11 +293,20 @@ export async function mockApi(
     }
 
     if (request.method() === 'GET' && pathname === '/api/admin/recipes') {
+      state.adminRecipeListRequests.push(url);
       const saved = state.recipeSaveRequests[0];
-      const items = options.adminBulkEdit
+      const allItems = options.adminBulkEdit
         ? [
             { ...recipe, status: 'DRAFT', publishedAt: null },
             { ...recipe, id: 2, title: 'Prepare a customer follow-up', slug: 'customer-follow-up', category: 'Career', categorySlug: 'career', status: 'DRAFT', publishedAt: null },
+            ...Array.from({ length: Math.max(0, (options.adminRecipeCount ?? 2) - 2) }, (_, index) => ({
+              ...recipe,
+              id: index + 3,
+              title: `Admin recipe ${index + 3}`,
+              slug: `admin-recipe-${index + 3}`,
+              status: 'DRAFT',
+              publishedAt: null,
+            })),
           ]
         : saved ? [{
             id: 99,
@@ -311,14 +325,27 @@ export async function mockApi(
             positiveFeedbackCount: 0,
             negativeFeedbackCount: 0,
           }] : [];
+      const search = url.searchParams.get('q')?.toLowerCase();
+      const categorySlug = url.searchParams.get('category');
+      const status = url.searchParams.get('status');
+      const filteredItems = allItems.filter((item) =>
+        (!search || item.title.toLowerCase().includes(search))
+        && (!categorySlug || item.categorySlug === categorySlug)
+        && (!status || item.status === status),
+      );
+      const page = Number(url.searchParams.get('page') ?? 1);
+      const pageSize = 50;
+      const items = filteredItems.slice((page - 1) * pageSize, page * pageSize);
+      state.adminRecipeListResponses.push({ page, total: filteredItems.length });
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           items,
-          total: items.length,
-          page: 1,
-          pageSize: 20,
+          total: filteredItems.length,
+          page,
+          pageSize,
+          query: url.searchParams.get('q') ?? '',
         }),
       });
       return;

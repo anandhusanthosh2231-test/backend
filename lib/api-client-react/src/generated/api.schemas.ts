@@ -531,8 +531,12 @@ export interface RecipeListResponse {
   query: string;
 }
 
+export type AdminRecipeListItem = RecipeCard & {
+  status: string;
+};
+
 export interface AdminRecipeListResponse {
-  items: Recipe[];
+  items: AdminRecipeListItem[];
   page: number;
   pageSize: number;
   total: number;
@@ -808,6 +812,7 @@ export const UploadAdminRecipeMediaPurpose = {
 export type ListAdminRecipesParams = {
 q?: string;
 status?: string;
+category?: string;
 /**
  * @minimum 1
  */

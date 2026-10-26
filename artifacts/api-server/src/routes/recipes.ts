@@ -302,14 +302,14 @@ router.get("/recipes/:slug/related", async (req, res): Promise<void> => {
 });
 
 router.get("/home", async (_req, res): Promise<void> => {
-  const [recipeOfDayRow] = await db
-    .select(cardColumns)
-    .from(recipesTable)
-    .innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id))
-    .innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id))
-    .where(and(eq(recipesTable.status, "PUBLISHED"), eq(recipesTable.recipeOfDay, true)))
-    .limit(1);
-  const [trending, popular, categories, audiences] = await Promise.all([
+  const [[recipeOfDayRow], trending, popular, categories, audiences] = await Promise.all([
+    db
+      .select(cardColumns)
+      .from(recipesTable)
+      .innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id))
+      .innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id))
+      .where(and(eq(recipesTable.status, "PUBLISHED"), eq(recipesTable.recipeOfDay, true)))
+      .limit(1),
     fetchCards({ where: eq(recipesTable.status, "PUBLISHED"), orderBy: desc(sql`${recipesTable.viewCount} + ${recipesTable.copyCount} * 3 + ${recipesTable.saveCount} * 4`), limit: 6 }),
     fetchCards({ where: eq(recipesTable.status, "PUBLISHED"), orderBy: desc(recipesTable.copyCount), limit: 6 }),
     db.select({ id: categoriesTable.id, name: categoriesTable.name, slug: categoriesTable.slug, description: categoriesTable.description, recipeCount: count(recipesTable.id) }).from(categoriesTable).leftJoin(recipesTable, and(eq(recipesTable.categoryId, categoriesTable.id), eq(recipesTable.status, "PUBLISHED"))).groupBy(categoriesTable.id).orderBy(asc(categoriesTable.name)),
@@ -418,8 +418,10 @@ router.post("/submissions", async (req, res): Promise<void> => {
 
 router.get("/me", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   const userId = req.userId!;
-  const [saved] = await db.select({ count: count() }).from(savedRecipesTable).where(eq(savedRecipesTable.userId, userId));
-  const [history] = await db.select({ count: count() }).from(historyTable).where(eq(historyTable.userId, userId));
+  const [[saved], [history]] = await Promise.all([
+    db.select({ count: count() }).from(savedRecipesTable).where(eq(savedRecipesTable.userId, userId)),
+    db.select({ count: count() }).from(historyTable).where(eq(historyTable.userId, userId)),
+  ]);
   res.json({ userId, displayName: "AI Recipes member", savedCount: Number(saved?.count ?? 0), historyCount: Number(history?.count ?? 0) });
 });
 
@@ -453,24 +455,22 @@ router.get("/me/history", requireAuth, async (req: AuthenticatedRequest, res): P
   res.json(ListHistoryResponse.parse(rows));
 });
 
-async function adminRecipeRows() {
-  return db.select({ recipe: recipesTable, category: categoriesTable, audience: audiencesTable }).from(recipesTable).innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id)).innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id)).orderBy(desc(recipesTable.updatedAt));
-}
-
 router.get("/admin/summary", requireAdmin, async (_req, res): Promise<void> => {
-  const [totals] = await db.select({
-    totalRecipes: count(recipesTable.id),
-    publishedRecipes: sql<number>`count(*) filter (where ${recipesTable.status} = 'PUBLISHED')`,
-    draftRecipes: sql<number>`count(*) filter (where ${recipesTable.status} in ('DRAFT', 'IDEA'))`,
-    testingRecipes: sql<number>`count(*) filter (where ${recipesTable.status} = 'TESTING')`,
-    views: sql<number>`coalesce(sum(${recipesTable.viewCount}), 0)`,
-    copies: sql<number>`coalesce(sum(${recipesTable.copyCount}), 0)`,
-    saves: sql<number>`coalesce(sum(${recipesTable.saveCount}), 0)`,
-    shares: sql<number>`coalesce(sum(${recipesTable.shareCount}), 0)`,
-    positiveFeedback: sql<number>`coalesce(sum(${recipesTable.positiveFeedbackCount}), 0)`,
-    negativeFeedback: sql<number>`coalesce(sum(${recipesTable.negativeFeedbackCount}), 0)`,
-  }).from(recipesTable);
-  const [submissionCount] = await db.select({ pendingSubmissions: count() }).from(submissionsTable).where(eq(submissionsTable.status, "PENDING"));
+  const [[totals], [submissionCount]] = await Promise.all([
+    db.select({
+      totalRecipes: count(recipesTable.id),
+      publishedRecipes: sql<number>`count(*) filter (where ${recipesTable.status} = 'PUBLISHED')`,
+      draftRecipes: sql<number>`count(*) filter (where ${recipesTable.status} in ('DRAFT', 'IDEA'))`,
+      testingRecipes: sql<number>`count(*) filter (where ${recipesTable.status} = 'TESTING')`,
+      views: sql<number>`coalesce(sum(${recipesTable.viewCount}), 0)`,
+      copies: sql<number>`coalesce(sum(${recipesTable.copyCount}), 0)`,
+      saves: sql<number>`coalesce(sum(${recipesTable.saveCount}), 0)`,
+      shares: sql<number>`coalesce(sum(${recipesTable.shareCount}), 0)`,
+      positiveFeedback: sql<number>`coalesce(sum(${recipesTable.positiveFeedbackCount}), 0)`,
+      negativeFeedback: sql<number>`coalesce(sum(${recipesTable.negativeFeedbackCount}), 0)`,
+    }).from(recipesTable),
+    db.select({ pendingSubmissions: count() }).from(submissionsTable).where(eq(submissionsTable.status, "PENDING")),
+  ]);
   res.json(GetAdminSummaryResponse.parse(Object.fromEntries(Object.entries({ ...totals, ...submissionCount }).map(([key, value]) => [key, Number(value)]))));
 });
 
@@ -673,9 +673,36 @@ router.patch("/admin/audiences/:id", requireAdmin, async (req, res): Promise<voi
 router.get("/admin/recipes", requireAdmin, async (req, res): Promise<void> => {
   const parsed = ListAdminRecipesQueryParams.safeParse(req.query);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const rows = await adminRecipeRows();
-  const filtered = rows.filter(({ recipe }) => (!parsed.data.q || recipe.title.toLowerCase().includes(parsed.data.q.toLowerCase())) && (!parsed.data.status || recipe.status === parsed.data.status));
-  res.json({ items: filtered.map(({ recipe, category, audience }) => recipeResponse(recipe, category, audience)), page: parsed.data.page, pageSize: 50, total: filtered.length, query: parsed.data.q ?? "" });
+  const pageSize = 50;
+  const offset = (parsed.data.page - 1) * pageSize;
+  const search = parsed.data.q?.trim();
+  const where = and(
+    search
+      ? or(
+          ilike(recipesTable.title, `%${search}%`),
+          ilike(recipesTable.shortDescription, `%${search}%`),
+          ilike(recipesTable.problem, `%${search}%`),
+          ilike(recipesTable.subcategory, `%${search}%`),
+        )
+      : undefined,
+    parsed.data.status ? eq(recipesTable.status, parsed.data.status) : undefined,
+    parsed.data.category ? eq(categoriesTable.slug, parsed.data.category) : undefined,
+  );
+  const [items, [totalRow]] = await Promise.all([
+    db.select({ ...cardColumns, status: recipesTable.status })
+      .from(recipesTable)
+      .innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id))
+      .innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id))
+      .where(where)
+      .orderBy(desc(recipesTable.updatedAt))
+      .limit(pageSize)
+      .offset(offset),
+    db.select({ total: count(recipesTable.id) })
+      .from(recipesTable)
+      .innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id))
+      .where(where),
+  ]);
+  res.json({ items, page: parsed.data.page, pageSize, total: Number(totalRow?.total ?? 0), query: search ?? "" });
 });
 
 router.post("/admin/recipes/bulk-update", requireAdmin, async (req, res): Promise<void> => {
