@@ -135,8 +135,8 @@ export function Footer({
             <div className="footer-brand-copy shrink-0">
               <Link href="/" className="brand-mark taskbakeai-footer-brand group inline-flex items-center gap-2.5" aria-label="TaskBakeAI home" data-testid="link-logo">
                 <picture className="brand-picture">
-                  <source srcSet="/taskbakeai-mark.webp" type="image/webp" />
-                  <img className="taskbakeai-footer-mark" src="/taskbakeai-mark.png" width="768" height="768" alt="" decoding="async" />
+                  <source srcSet="/taskbakeai-mark-96.webp" type="image/webp" />
+                  <img className="taskbakeai-footer-mark" src="/taskbakeai-mark.png" width="96" height="96" alt="" decoding="async" />
                 </picture>
                 <span className="text-base sm:text-lg font-bold tracking-tight text-white font-sans transition-colors duration-200 group-hover:text-amber-200">
                   TaskBakeAI

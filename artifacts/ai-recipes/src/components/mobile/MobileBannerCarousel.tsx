@@ -17,9 +17,10 @@ interface BannerItem {
 
 interface MobileBannerCarouselProps {
   recipeOfDay?: RecipeCard | null;
+  loading?: boolean;
 }
 
-export function MobileBannerCarousel({ recipeOfDay }: MobileBannerCarouselProps) {
+export function MobileBannerCarousel({ recipeOfDay, loading = false }: MobileBannerCarouselProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -97,7 +98,7 @@ export function MobileBannerCarousel({ recipeOfDay }: MobileBannerCarouselProps)
   };
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (loading || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const timer = setInterval(() => {
       setActiveIndex((prev) => {
         const next = (prev + 1) % banners.length;
@@ -113,7 +114,16 @@ export function MobileBannerCarousel({ recipeOfDay }: MobileBannerCarouselProps)
     }, 5500);
 
     return () => clearInterval(timer);
-  }, [banners.length]);
+  }, [banners.length, loading]);
+
+  if (loading) {
+    return (
+      <div className="flipkart-banner-section flipkart-banner-section--loading" aria-hidden="true">
+        <div className="flipkart-banner-loading-card" />
+        <div className="flipkart-banner-loading-dots"><i /><i /><i /></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flipkart-banner-section" aria-label="Featured Highlights">

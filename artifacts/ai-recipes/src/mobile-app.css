@@ -572,6 +572,16 @@ html[data-mobile-mode="true"] main {
   font-weight: 700;
 }
 
+.flipkart-category-skeleton {
+  flex: 0 0 62px;
+  width: 62px;
+  height: 76px;
+  border-radius: 12px;
+  background: linear-gradient(100deg, #f5eee3 30%, #e9dfd0 45%, #f5eee3 60%);
+  background-size: 200% 100%;
+  animation: mobile-home-skeleton 1.6s ease-in-out infinite;
+}
+
 /* ==========================================================================
    HORIZONTAL SWIPEABLE BANNER CAROUSEL (FLIPKART-STYLE)
    ========================================================================== */
@@ -579,6 +589,38 @@ html[data-mobile-mode="true"] main {
 .flipkart-banner-section {
   width: 100%;
   padding: 14px 0 6px;
+}
+
+.flipkart-banner-loading-card {
+  height: 176px;
+  margin: 8px 16px 0;
+  border-radius: 18px;
+  background: linear-gradient(100deg, #211d27 30%, #302a38 45%, #211d27 60%);
+  background-size: 200% 100%;
+  animation: mobile-home-skeleton 1.6s ease-in-out infinite;
+}
+
+.flipkart-banner-loading-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 0 4px;
+}
+
+.flipkart-banner-loading-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #c9c0b4;
+}
+
+@keyframes mobile-home-skeleton {
+  to { background-position-x: -200%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flipkart-category-skeleton,
+  .flipkart-banner-loading-card { animation: none; }
 }
 
 .flipkart-banner-rail {

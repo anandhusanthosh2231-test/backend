@@ -43,7 +43,7 @@ test('TaskBakeAI shows the supplied mark on mobile and wordmark on desktop', asy
   await expect(mobileBrand).toBeVisible();
   await expect(mobileMark).toHaveAttribute('src', '/taskbakeai-mark.png');
   await expect.poll(() => mobileMark.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
-  await expect.poll(() => mobileMark.evaluate((image) => (image as HTMLImageElement).currentSrc)).toMatch(/taskbakeai-mark\.webp$/);
+  await expect.poll(() => mobileMark.evaluate((image) => (image as HTMLImageElement).currentSrc)).toMatch(/taskbakeai-mark-96\.webp$/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -62,6 +62,16 @@ test('homepage renders its primary heading before home API data arrives', async 
   await expect(page.getByRole('heading', { name: 'Practical AI workflows you can actually use.' })).toBeVisible();
   await expect(page.getByTestId('status-loading')).toHaveCount(0);
   await expect(page.getByTestId('status-loading-grid')).toBeVisible();
+});
+
+test('mobile homepage reserves space for category and featured recipe loading', async ({ page }) => {
+  await mockApi(page, { homeResponseDelayMs: 1500 });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  await expect(page.locator('.flipkart-category-scroll-container--loading')).toBeVisible();
+  await expect(page.locator('.flipkart-banner-section--loading')).toBeVisible();
+  await expect(page.locator('.flipkart-category-scroll-container--loading .flipkart-category-skeleton')).toHaveCount(6);
 });
 
 test('mobile auth uses the light wordmark and keeps the bottom menu available', async ({ page }) => {

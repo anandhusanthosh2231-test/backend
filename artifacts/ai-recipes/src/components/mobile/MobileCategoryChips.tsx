@@ -42,6 +42,7 @@ interface MobileCategoryChipsProps {
   activeSlug?: string;
   onSelectCategory?: (slug: string) => void;
   showAll?: boolean;
+  loading?: boolean;
 }
 
 const categoryIconRules = [
@@ -89,9 +90,20 @@ export function MobileCategoryChips({
   activeSlug,
   onSelectCategory,
   showAll = true,
+  loading = false,
 }: MobileCategoryChipsProps) {
   const [location] = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  if (loading) {
+    return (
+      <div className="flipkart-category-scroll-container flipkart-category-scroll-container--loading" aria-hidden="true">
+        <div className="flipkart-category-scroll-rail">
+          {Array.from({ length: 6 }, (_, index) => <span className="flipkart-category-skeleton" key={index} />)}
+        </div>
+      </div>
+    );
+  }
 
   if (!categories || categories.length === 0) {
     return null;
