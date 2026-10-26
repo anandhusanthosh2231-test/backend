@@ -3,6 +3,9 @@ export interface Env {
   API_URL?: string;
 }
 
+const HOME_CACHE_FRESH_MS = 5 * 60 * 1000;
+const HOME_CACHE_RETENTION_SECONDS = 24 * 60 * 60;
+
 export default {
   async fetch(
     request: Request,
@@ -21,9 +24,21 @@ export default {
       const edgeCache = cacheKey
         ? (caches as CacheStorage & { default: Cache }).default
         : null;
-      if (cacheKey && edgeCache) {
-        const cachedResponse = await edgeCache.match(cacheKey);
-        if (cachedResponse) return cachedResponse;
+      const cachedResponse = cacheKey && edgeCache
+        ? await edgeCache.match(cacheKey)
+        : undefined;
+      if (cachedResponse) {
+        const cachedAt = Number(cachedResponse.headers.get('X-Home-Cache-Timestamp'));
+        if (!Number.isFinite(cachedAt) || Date.now() - cachedAt < HOME_CACHE_FRESH_MS) {
+          const headers = new Headers(cachedResponse.headers);
+          headers.delete('X-Home-Cache-Timestamp');
+          headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+          return new Response(cachedResponse.body, {
+            status: cachedResponse.status,
+            statusText: cachedResponse.statusText,
+            headers,
+          });
+        }
       }
 
       const backendBase = env.API_URL || 'https://backend-xkwn.onrender.com';
@@ -36,6 +51,39 @@ export default {
         body: ['GET', 'HEAD'].includes(request.method) ? undefined : request.body,
       });
 
+      if (cachedResponse && cacheKey && edgeCache) {
+        const refresh = fetch(proxyRequest)
+          .then(async (response) => {
+            const headers = new Headers(response.headers);
+            if (!response.ok || headers.has('Set-Cookie')) return;
+            headers.set('Access-Control-Allow-Origin', '*');
+            headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+            headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+            headers.set('X-Home-Cache-Timestamp', Date.now().toString());
+            headers.set('Cache-Control', `public, max-age=${HOME_CACHE_RETENTION_SECONDS}`);
+            const refreshedResponse = new Response(response.body, {
+              status: response.status,
+              statusText: response.statusText,
+              headers,
+            });
+            await edgeCache.put(cacheKey, refreshedResponse);
+          })
+          .catch((error: unknown) => {
+            console.error('Failed to refresh cached /api/home response', error);
+          });
+        if (context) context.waitUntil(refresh);
+        else await refresh;
+
+        const headers = new Headers(cachedResponse.headers);
+        headers.delete('X-Home-Cache-Timestamp');
+        headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+        return new Response(cachedResponse.body, {
+          status: cachedResponse.status,
+          statusText: cachedResponse.statusText,
+          headers,
+        });
+      }
+
       const response = await fetch(proxyRequest);
       const headers = new Headers(response.headers);
       headers.set('Access-Control-Allow-Origin', '*');
@@ -47,16 +95,26 @@ export default {
       }
 
       if (cacheKey && edgeCache && response.ok && !headers.has('Set-Cookie')) {
-        headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+        headers.set('X-Home-Cache-Timestamp', Date.now().toString());
+        headers.set('Cache-Control', `public, max-age=${HOME_CACHE_RETENTION_SECONDS}`);
         const cacheableResponse = new Response(response.body, {
           status: response.status,
           statusText: response.statusText,
           headers,
         });
-        const cacheWrite = edgeCache.put(cacheKey, cacheableResponse.clone());
+        const cacheWrite = edgeCache.put(cacheKey, cacheableResponse.clone())
+          .catch((error: unknown) => {
+            console.error('Failed to cache /api/home response', error);
+          });
         if (context) context.waitUntil(cacheWrite);
         else await cacheWrite;
-        return cacheableResponse;
+        headers.delete('X-Home-Cache-Timestamp');
+        headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+        return new Response(cacheableResponse.body, {
+          status: cacheableResponse.status,
+          statusText: cacheableResponse.statusText,
+          headers,
+        });
       }
 
       return new Response(response.body, {

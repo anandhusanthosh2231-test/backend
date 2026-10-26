@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import './loader.css';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
-import { ClerkProvider, Show, SignIn, SignUp, useAuth, useClerk, useUser } from '@clerk/react';
+import { ClerkProvider, useAuth, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import {
   AlertCircle, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bookmark, BookmarkCheck, Check, CheckCircle2,
@@ -31,7 +31,7 @@ import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
 import { MobileTopHeader } from '@/components/mobile/MobileTopHeader';
 import { MobileCategoryChips } from '@/components/mobile/MobileCategoryChips';
 import { MobileBannerCarousel } from '@/components/mobile/MobileBannerCarousel';
-import { createDefaultRecipeLayout, isValidRecipeLayout, RecipeLayoutBuilder, RecipeLayoutRenderer, RecipePromptInputEditor } from '@/components/recipe-layout';
+import { createDefaultRecipeLayout, isValidRecipeLayout } from '@/lib/recipe-layout-utils';
 import type { RecipeLayoutData } from '@/components/recipe-layout';
 import { RecipePromptInputs } from '@/components/recipe-prompt-inputs';
 import { PromptStudio } from '@/components/admin/PromptStudio';
@@ -42,6 +42,20 @@ import { Footer } from '@/components/Footer';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+const ClerkSignIn = lazy(() => import('@/components/ClerkSignIn'));
+const ClerkSignUp = lazy(() => import('@/components/ClerkSignUp'));
+const RecipeLayoutBuilder = lazy(async () => {
+  const module = await import('@/components/recipe-layout');
+  return { default: module.RecipeLayoutBuilder };
+});
+const RecipeLayoutRenderer = lazy(async () => {
+  const module = await import('@/components/recipe-layout');
+  return { default: module.RecipeLayoutRenderer };
+});
+const RecipePromptInputEditor = lazy(async () => {
+  const module = await import('@/components/recipe-layout');
+  return { default: module.RecipePromptInputEditor };
+});
 
 const clerkProxyUrl = import.meta.env.DEV ? "" : import.meta.env.VITE_CLERK_PROXY_URL;
 
@@ -541,7 +555,7 @@ function RecipePage() {
     />
   );
   if (recipe.layoutMode === 'custom' && isValidRecipeLayout(recipe.layoutConfig)) {
-    return <SiteShell>{visualShowcase}<div className="shell custom-recipe-page"><RecipeLayoutRenderer
+    return <SiteShell>{visualShowcase}<div className="shell custom-recipe-page"><Suspense fallback={<LoadingState />}><RecipeLayoutRenderer
       recipe={recipe}
       config={recipe.layoutConfig}
       related={related.data ?? []}
@@ -549,7 +563,7 @@ function RecipePage() {
       promptInputErrors={promptInputErrors}
       resolvedPrompt={finalPrompt}
       onPromptValueChange={(name, value) => setVariableValues((current) => ({ ...current, [name]: value }))}
-    /></div></SiteShell>;
+    /></Suspense></div></SiteShell>;
   }
   return (
     <SiteShell>
@@ -2889,7 +2903,7 @@ function CustomLayoutRecipeEditor({
     </label>
     <div className="repeatable-object-list">
       <div className="repeatable-object-heading"><div><strong>Dynamic prompt inputs</strong><p>Use each variable in the prompt as <code>{'{{variable_name}}'}</code>.</p></div></div>
-      <RecipePromptInputEditor fields={guide.promptVariables ?? []} onChange={(promptVariables) => updateGuide({ promptVariables })} />
+      <Suspense fallback={<LoadingState />}><RecipePromptInputEditor fields={guide.promptVariables ?? []} onChange={(promptVariables) => updateGuide({ promptVariables })} /></Suspense>
     </div>
     <label>The Copyable Prompt
       <textarea required className="tall-input code-input" value={form.prompt} onChange={set('prompt')} placeholder="Use {{target_role}} and {{location}} to create a concrete search plan." data-testid="input-editor-prompt" />
@@ -3299,7 +3313,7 @@ function AdminRecipeEditor() {
                 <strong>Custom Layout</strong><span>Arrange reusable content blocks and preview the page.</span>
               </button>
             </div>
-            {form.layoutMode === 'custom' && <RecipeLayoutBuilder value={layoutConfig} onChange={(next) => setForm((current) => ({ ...current, layoutConfig: next }))} recipe={layoutPreviewRecipe} recipeId={isNew ? undefined : Number(id)} />}
+            {form.layoutMode === 'custom' && <Suspense fallback={<LoadingState />}><RecipeLayoutBuilder value={layoutConfig} onChange={(next) => setForm((current) => ({ ...current, layoutConfig: next }))} recipe={layoutPreviewRecipe} recipeId={isNew ? undefined : Number(id)} /></Suspense>}
           </section>
           <PromptStudio value={guide} onChange={updateGuide} />
           <div className="editor-main">
@@ -3696,7 +3710,7 @@ function AdminRecipeEditor() {
         <div className="editor-preview-container">
           {form.layoutMode === 'custom' ? <div className="preview-section-box">
             <span className="preview-label">2. Custom Recipe Page Preview</span>
-            <div className="preview-page-wrap"><RecipeLayoutRenderer recipe={layoutPreviewRecipe} config={layoutConfig} editorPreview /></div>
+            <div className="preview-page-wrap"><Suspense fallback={<LoadingState />}><RecipeLayoutRenderer recipe={layoutPreviewRecipe} config={layoutConfig} editorPreview /></Suspense></div>
           </div> : <div className="preview-section-box">
             <span className="preview-label">1. Card View Preview (As seen in Library Grid)</span>
             <div className="preview-card-wrap">
@@ -4625,10 +4639,10 @@ function AuthWorkflowCanvas() {
 }
 
 function SignInPage() {
-  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">A better starting point</span><h1>Keep the useful stuff close.</h1><p>Save workflows, retrace your steps, and build a shelf that knows what kind of work you do.</p><AuthWorkflowCanvas /><div className="auth-quote">“The right recipe is the one that gets you moving.”</div></div><div className="auth-card"><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></div></div></SiteShell>;
+  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">A better starting point</span><h1>Keep the useful stuff close.</h1><p>Save workflows, retrace your steps, and build a shelf that knows what kind of work you do.</p><AuthWorkflowCanvas /><div className="auth-quote">“The right recipe is the one that gets you moving.”</div></div><div className="auth-card"><Suspense fallback={<LoadingState label="Loading sign in" />}><ClerkSignIn basePath={basePath} /></Suspense></div></div></SiteShell>;
 }
 function SignUpPage() {
-  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">Start with one useful thing</span><h1>Your work, a little lighter.</h1><p>Join a growing shelf of practical AI workflows made for real people doing real work.</p><AuthWorkflowCanvas /><div className="auth-quote">No prompt theatre. Just recipes you can run.</div></div><div className="auth-card"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></div></div></SiteShell>;
+  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">Start with one useful thing</span><h1>Your work, a little lighter.</h1><p>Join a growing shelf of practical AI workflows made for real people doing real work.</p><AuthWorkflowCanvas /><div className="auth-quote">No prompt theatre. Just recipes you can run.</div></div><div className="auth-card"><Suspense fallback={<LoadingState label="Loading sign up" />}><ClerkSignUp basePath={basePath} /></Suspense></div></div></SiteShell>;
 }
 
 function Router() {
