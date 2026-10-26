@@ -1,14 +1,16 @@
 {
-  "ard_version": "0.1",
-  "publisher": {
-    "name": "TaskBakeAI",
-    "url": "https://quiet-haze-04ca.trilogenix.workers.dev/"
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "TaskBakeAI",
+    "identifier": "did:web:quiet-haze-04ca.trilogenix.workers.dev",
+    "documentationUrl": "https://quiet-haze-04ca.trilogenix.workers.dev/"
   },
-  "capabilities": [
+  "entries": [
     {
-      "id": "practical-ai-workflow-library",
-      "kind": "tool",
-      "name": "TaskBakeAI recipe library",
+      "identifier": "urn:air:quiet-haze-04ca.trilogenix.workers.dev:catalog:practical-ai-workflow-library",
+      "displayName": "TaskBakeAI practical AI workflow library",
+      "type": "text/html",
+      "url": "https://quiet-haze-04ca.trilogenix.workers.dev/recipes",
       "description": "Browse and search practical AI workflows, reusable prompts, examples, and verification guidance.",
       "tags": [
         "AI workflows",
@@ -16,7 +18,10 @@
         "prompts",
         "India"
       ],
-      "url": "https://quiet-haze-04ca.trilogenix.workers.dev/recipes"
+      "representativeQueries": [
+        "Find a practical AI workflow for writing, studying, or running a business",
+        "Browse tested AI prompts with examples and verification guidance"
+      ]
     }
   ]
 }

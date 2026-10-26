@@ -72,6 +72,30 @@ test('homepage renders its primary heading before home API data arrives', async 
   await expect(page.getByTestId('status-loading-grid')).toBeVisible();
 });
 
+test('root ARD manifest is valid JSON with the required discovery fields', async ({ request }) => {
+  const rootResponse = await request.get('/ai-catalog.json');
+  expect(rootResponse.ok()).toBe(true);
+  expect(rootResponse.headers()['content-type']).toContain('application/json');
+  const catalog = await rootResponse.json();
+  expect(catalog).toMatchObject({
+    specVersion: '1.0',
+    host: {
+      displayName: 'TaskBakeAI',
+      identifier: expect.stringMatching(/^did:web:/),
+    },
+    entries: [
+      {
+        identifier: expect.stringMatching(/^urn:air:/),
+        displayName: expect.any(String),
+        type: 'text/html',
+        url: expect.stringMatching(/^https:\/\//),
+        representativeQueries: expect.arrayContaining([expect.any(String)]),
+      },
+    ],
+  });
+
+});
+
 test('mobile homepage keeps the trending card height stable while data loads', async ({ page }) => {
   await mockApi(page, { homeResponseDelayMs: 1500 });
   await page.setViewportSize({ width: 390, height: 844 });

@@ -83,3 +83,37 @@ test('preloads homepage data from the root HTML response', async () => {
   assert.equal(response.headers.get('Content-Length'), null);
   assert.equal(response.headers.get('ETag'), null);
 });
+
+test('serves ARD well-known manifest paths from the JSON catalog asset', async () => {
+  const catalog = JSON.stringify({
+    specVersion: '1.0',
+    host: { displayName: 'TaskBakeAI', identifier: 'did:web:example.com' },
+    entries: [],
+  });
+  const assetRequests: string[] = [];
+  const env = {
+    ASSETS: {
+      fetch: async (request: Request) => {
+        assetRequests.push(new URL(request.url).pathname);
+        return new URL(request.url).pathname === '/ai-catalog.json'
+          ? new Response(catalog, { status: 200, headers: { 'Content-Type': 'application/json' } })
+          : new Response('<!DOCTYPE html>', { status: 404, headers: { 'Content-Type': 'text/html' } });
+      },
+    },
+  };
+
+  for (const path of ['/.well-known/ard.json', '/.well-known/ai-catalog.json']) {
+    const response = await worker.fetch(new Request(`https://site.test${path}`), env);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('Content-Type') ?? '', /application\/json/);
+    assert.deepEqual(await response.json(), JSON.parse(catalog));
+  }
+
+  assert.deepEqual(assetRequests, ['/ai-catalog.json', '/ai-catalog.json']);
+
+  const missingManifest = await worker.fetch(new Request('https://site.test/.well-known/ard.json'), {
+    ASSETS: { fetch: async () => new Response('<!DOCTYPE html>', { status: 404 }) },
+  });
+  assert.equal(missingManifest.status, 404);
+  assert.equal(await missingManifest.text(), 'ARD manifest not found');
+});

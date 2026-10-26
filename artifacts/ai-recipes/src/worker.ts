@@ -124,7 +124,21 @@ export default {
       });
     }
 
-    const assetResponse = await env.ASSETS.fetch(request);
+    const isArdManifestPath = url.pathname === '/.well-known/ard.json'
+      || url.pathname === '/.well-known/ai-catalog.json';
+    const assetRequest = isArdManifestPath
+      ? new Request(new URL('/ai-catalog.json', request.url), {
+        method: request.method,
+        headers: request.headers,
+      })
+      : request;
+    const assetResponse = await env.ASSETS.fetch(assetRequest);
+    if (isArdManifestPath && assetResponse.status === 404) {
+      return new Response('ARD manifest not found', {
+        status: 404,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
     if (assetResponse.status !== 404) {
       const headers = new Headers(assetResponse.headers);
       let body: BodyInit | null = assetResponse.body;
