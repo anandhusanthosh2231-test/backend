@@ -4,10 +4,28 @@ export interface Env {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    context?: { waitUntil(promise: Promise<unknown>): void },
+  ): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith('/api')) {
+      const cacheableHomeRequest = request.method === 'GET'
+        && url.pathname === '/api/home'
+        && !request.headers.has('Authorization');
+      const cacheKey = cacheableHomeRequest
+        ? new Request(url.toString(), { method: 'GET' })
+        : null;
+      const edgeCache = cacheKey
+        ? (caches as CacheStorage & { default: Cache }).default
+        : null;
+      if (cacheKey && edgeCache) {
+        const cachedResponse = await edgeCache.match(cacheKey);
+        if (cachedResponse) return cachedResponse;
+      }
+
       const backendBase = env.API_URL || 'https://backend-xkwn.onrender.com';
       const backendUrl = new URL(url.pathname, backendBase);
       backendUrl.search = url.search;
@@ -26,6 +44,19 @@ export default {
 
       if (request.method === 'OPTIONS') {
         return new Response(null, { status: 204, headers });
+      }
+
+      if (cacheKey && edgeCache && response.ok && !headers.has('Set-Cookie')) {
+        headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+        const cacheableResponse = new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers,
+        });
+        const cacheWrite = edgeCache.put(cacheKey, cacheableResponse.clone());
+        if (context) context.waitUntil(cacheWrite);
+        else await cacheWrite;
+        return cacheableResponse;
       }
 
       return new Response(response.body, {

@@ -924,6 +924,16 @@ components:
     RecipeGuide:
       type: object
       properties:
+        promptType:
+          type: string
+          enum: [text, image, game, website]
+          default: text
+        imagesJson:
+          type: array
+          maxItems: 20
+          items: { $ref: "#/components/schemas/RecipeVisualImage" }
+        promptStudio:
+          $ref: "#/components/schemas/RecipePromptStudio"
         snapshot:
           type: object
           properties:
@@ -1016,13 +1026,7 @@ components:
             images:
               type: array
               maxItems: 20
-              items:
-                type: object
-                properties:
-                  url: { type: string, format: uri, maxLength: 2048 }
-                  alt: { type: string, maxLength: 500 }
-                  caption: { type: string, maxLength: 500 }
-                required: [url, alt]
+              items: { $ref: "#/components/schemas/RecipeVisualImage" }
         examples:
           type: array
           items:
@@ -1053,6 +1057,25 @@ components:
             lastTested: { type: ["string", "null"], format: date }
             version: { type: string }
             testedWith: { type: array, items: { type: string } }
+    RecipeVisualImage:
+      type: object
+      properties:
+        url: { type: string, format: uri, maxLength: 2048 }
+        alt: { type: string, minLength: 1, maxLength: 500 }
+        caption: { type: string, maxLength: 500 }
+      required: [url, alt]
+    RecipePromptStudio:
+      type: object
+      properties:
+        style: { type: string, maxLength: 200 }
+        model: { type: string, maxLength: 200 }
+        aspectRatio: { type: string, maxLength: 50 }
+        gameGenre: { type: string, maxLength: 100 }
+        gamePlatform: { type: string, maxLength: 100 }
+        gameEngine: { type: string, maxLength: 100 }
+        websiteFramework: { type: string, maxLength: 100 }
+        websiteStyle: { type: string, maxLength: 100 }
+        previewUrl: { type: string, format: uri, maxLength: 2048 }
     RecipeOutputConfig:
       type: object
       properties:

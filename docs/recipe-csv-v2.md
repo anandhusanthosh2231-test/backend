@@ -18,10 +18,12 @@ The regular recipe columns remain supported: `Recipe Title`, `URL Slug`, `Short 
 | `troubleshooting_json` | JSON array of actionable recovery tips. |
 | `verification_checklist_json` | JSON array of checks users should complete before relying on the output. |
 | `workflow_diagram_mermaid` | Optional Mermaid source text. The public recipe renders it as a diagram using strict Mermaid security settings. |
-| `images_json` | JSON array of `{ "url": "https://…", "alt": "…", "caption": "…" }` image records. URLs must be HTTP(S), and alt text is required. |
-| `recipe_guide_json` | Optional complete guide JSON for round trips; structured input/output columns override its corresponding dynamic input/output settings when supplied. |
+| `images_json` | JSON array of `{ "url": "https://…", "alt": "…", "caption": "…" }` image records. URLs must be HTTP(S), and alt text is required. Imported images remain available in legacy `customContent.images` and are also used as `imagesJson` when the full guide does not define that newer field. |
+| `recipe_guide_json` | Optional complete guide JSON for round trips; includes visual prompt `promptType`, `imagesJson`, and `promptStudio` metadata. Structured input/output columns override their corresponding dynamic input/output settings when supplied. |
 
 Each input object supports `name`, `label`, `type`, `placeholder`, `helpText`, `required`, `defaultValue`, `options`, and `validation`. Input types are `text`, `textarea`, `number`, `url`, `date`, `select`, `dropdown` (legacy alias), `checkbox`, and `file`. File inputs add only the selected file name to the prompt; they do not upload the selected file. Validation supports `minLength`, `maxLength`, `minimum`, `maximum`, and `pattern`. Names must match `[A-Za-z_][A-Za-z0-9_.-]*`, and every declared prompt token must have a matching input.
+
+Visual prompts set `promptType` to `image`, `game`, or `website` inside `recipe_guide_json`; omit it or set it to `text` for the existing standard recipe view. `promptStudio` stores optional subtype metadata such as image style/model/aspect ratio, game genre/platform/engine, or website framework/style/preview URL. Visual image references use `imagesJson` in the guide and can also be supplied through the existing `images_json` column.
 
 Custom-layout recipes keep page content in recipe fields and `recipe_guide_json.customContent`; `layout_config_json` contains presentation only. Custom content supports `troubleshooting`, `verificationChecklist`, `workflowDiagram`, and `images`. Layout block types include `outcome`, `refinements`, `troubleshooting`, `diagram`, and `images` in addition to the existing types. Optional blocks are omitted from public pages when they have no content. Existing image and hero blocks with image URLs remain supported.
 

@@ -10,6 +10,7 @@ import type { RecipeGuideCustomContent } from './recipeGuideCustomContent';
 import type { RecipeGuideExamplesItem } from './recipeGuideExamplesItem';
 import type { RecipeGuideExpectedOutput } from './recipeGuideExpectedOutput';
 import type { RecipeGuideInputs } from './recipeGuideInputs';
+import type { RecipeGuidePromptType } from './recipeGuidePromptType';
 import type { RecipeGuidePromptVariablesItem } from './recipeGuidePromptVariablesItem';
 import type { RecipeGuideQuality } from './recipeGuideQuality';
 import type { RecipeGuideSituationsItem } from './recipeGuideSituationsItem';
@@ -17,8 +18,14 @@ import type { RecipeGuideSnapshot } from './recipeGuideSnapshot';
 import type { RecipeGuideToolsItem } from './recipeGuideToolsItem';
 import type { RecipeGuideUseCasesItem } from './recipeGuideUseCasesItem';
 import type { RecipeOutputConfig } from './recipeOutputConfig';
+import type { RecipePromptStudio } from './recipePromptStudio';
+import type { RecipeVisualImage } from './recipeVisualImage';
 
 export interface RecipeGuide {
+  promptType?: RecipeGuidePromptType;
+  /** @maxItems 20 */
+  imagesJson?: RecipeVisualImage[];
+  promptStudio?: RecipePromptStudio;
   snapshot?: RecipeGuideSnapshot;
   useCases?: RecipeGuideUseCasesItem[];
   whenNotToUse?: string[];

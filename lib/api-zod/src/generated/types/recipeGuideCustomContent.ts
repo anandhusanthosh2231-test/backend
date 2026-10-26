@@ -5,7 +5,7 @@
  * API for AI Recipes, an Indian-first library of practical AI workflows.
  * OpenAPI spec version: 0.1.0
  */
-import type { RecipeGuideCustomContentImagesItem } from './recipeGuideCustomContentImagesItem';
+import type { RecipeVisualImage } from './recipeVisualImage';
 
 export type RecipeGuideCustomContent = {
   /**
@@ -21,5 +21,5 @@ export type RecipeGuideCustomContent = {
   /** @maxLength 20000 */
   workflowDiagram?: string;
   /** @maxItems 20 */
-  images?: RecipeGuideCustomContentImagesItem[];
+  images?: RecipeVisualImage[];
 };

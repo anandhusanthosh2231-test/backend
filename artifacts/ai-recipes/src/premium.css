@@ -72,6 +72,7 @@ body { background: var(--cream); }
 .brand-mark { font-family: var(--app-font-sans); font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
 .brand-dot { width: 9px; height: 9px; background: var(--indigo); border-radius: 3px; transform: rotate(45deg); }
 .taskbakeai-desktop-brand { display: inline-flex; align-items: center; flex: 0 0 auto; }
+.brand-picture { display: contents; }
 .taskbakeai-desktop-brand img { display: block; width: 166px; height: 56px; object-fit: contain; }
 .taskbakeai-footer-brand { gap: 10px; }
 .taskbakeai-footer-mark { display: block; width: 34px; height: 34px; object-fit: contain; border-radius: 9px; background: #f5eee3; padding: 2px; box-sizing: border-box; }

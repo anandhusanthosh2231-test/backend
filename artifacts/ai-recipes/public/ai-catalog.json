@@ -1,0 +1,31 @@
+{
+  "name": "TaskBakeAI",
+  "description": "An Indian-first library of practical AI workflows with reusable prompts, examples, and verification guidance.",
+  "url": "/",
+  "resources": [
+    {
+      "name": "Recipe library",
+      "description": "Browse and search the published AI workflows.",
+      "url": "/recipes",
+      "type": "collection"
+    },
+    {
+      "name": "Categories",
+      "description": "Browse workflows by category.",
+      "url": "/categories",
+      "type": "collection"
+    },
+    {
+      "name": "Audiences",
+      "description": "Browse workflows by audience.",
+      "url": "/audiences",
+      "type": "collection"
+    },
+    {
+      "name": "Large language model guidance",
+      "description": "Instructions for AI agents browsing the site.",
+      "url": "/llms.txt",
+      "type": "documentation"
+    }
+  ]
+}

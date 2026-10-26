@@ -1,0 +1,16 @@
+# TaskBakeAI
+
+TaskBakeAI is an Indian-first library of practical AI workflows. Recipes include the task context, reusable prompt, examples, verification guidance, and tools needed to apply a workflow.
+
+## Browse
+
+- [Recipe library](/recipes): browse and search published AI recipes.
+- [Categories](/categories): browse recipes by category.
+- [Audiences](/audiences): find workflows by audience.
+- [About TaskBakeAI](/about): learn about the project and its editorial approach.
+- [Privacy](/privacy): read the privacy policy.
+- [Terms](/terms): read the site terms.
+
+## Use recipes responsibly
+
+Recipes are starting points, not guarantees. Verify AI-generated results and avoid sharing passwords, API keys, payment details, private customer information, or confidential material with AI services.

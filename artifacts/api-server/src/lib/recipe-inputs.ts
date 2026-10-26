@@ -83,15 +83,29 @@ const outputConfigSchema = z.object({
   fields: z.array(z.string().trim().min(1).max(200)).max(50).optional(),
 }).strict();
 
+const recipeVisualImageSchema = z.object({
+  url: z.string().url().max(2_048),
+  alt: z.string().trim().min(1).max(500),
+  caption: z.string().max(500).optional(),
+}).strict();
+
+const promptStudioSchema = z.object({
+  style: z.string().max(200).optional(),
+  model: z.string().max(200).optional(),
+  aspectRatio: z.string().max(50).optional(),
+  gameGenre: z.string().max(100).optional(),
+  gamePlatform: z.string().max(100).optional(),
+  gameEngine: z.string().max(100).optional(),
+  websiteFramework: z.string().max(100).optional(),
+  websiteStyle: z.string().max(100).optional(),
+  previewUrl: z.string().url().max(2_048).optional(),
+}).strict();
+
 const customContentSchema = z.object({
   troubleshooting: z.array(z.string().trim().min(1).max(2_000)).max(100).optional(),
   verificationChecklist: z.array(z.string().trim().min(1).max(2_000)).max(100).optional(),
   workflowDiagram: z.string().max(20_000).optional(),
-  images: z.array(z.object({
-    url: z.string().url().max(2_048),
-    alt: z.string().trim().min(1).max(500),
-    caption: z.string().max(500).optional(),
-  }).strict()).max(20).optional(),
+  images: z.array(recipeVisualImageSchema).max(20).optional(),
 }).strict();
 
 export function validateRecipePromptConfiguration(guide: unknown, prompt: string): string | undefined {
@@ -99,6 +113,33 @@ export function validateRecipePromptConfiguration(guide: unknown, prompt: string
   const record = guide as Record<string, unknown>;
   const variables = record.promptVariables;
   const errors: string[] = [];
+
+  if (record.promptType !== undefined) {
+    const parsed = z.enum(["text", "image", "game", "website"]).safeParse(record.promptType);
+    if (!parsed.success) errors.push("promptType must be text, image, game, or website.");
+  }
+
+  if (record.imagesJson !== undefined && record.imagesJson !== null) {
+    const parsed = z.array(recipeVisualImageSchema).max(20).safeParse(record.imagesJson);
+    if (!parsed.success) {
+      errors.push(...parsed.error.issues.map((issue) => `imagesJson.${issue.path.join(".")}: ${issue.message}`));
+    } else {
+      for (const [index, image] of parsed.data.entries()) {
+        if (!["http:", "https:"].includes(new URL(image.url).protocol)) {
+          errors.push(`imagesJson.${index}.url must use HTTP or HTTPS.`);
+        }
+      }
+    }
+  }
+
+  if (record.promptStudio !== undefined && record.promptStudio !== null) {
+    const parsed = promptStudioSchema.safeParse(record.promptStudio);
+    if (!parsed.success) {
+      errors.push(...parsed.error.issues.map((issue) => `promptStudio.${issue.path.join(".")}: ${issue.message}`));
+    } else if (parsed.data.previewUrl && !["http:", "https:"].includes(new URL(parsed.data.previewUrl).protocol)) {
+      errors.push("promptStudio.previewUrl must use HTTP or HTTPS.");
+    }
+  }
 
   if (variables !== undefined) {
     if (!Array.isArray(variables) || variables.length > 100) {

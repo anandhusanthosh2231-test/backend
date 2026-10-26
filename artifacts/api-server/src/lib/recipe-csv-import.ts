@@ -407,6 +407,7 @@ export function mapRecipeCsvRecord(
     betterApproach: getCell(record, "Better Approach"),
     proTips: splitList(getCell(record, "Pro Tips")),
     safetyNotes: splitList(getCell(record, "Additional Safety Notes")),
+    ...(images === undefined ? {} : { imagesJson: images }),
     ...((troubleshooting !== undefined || verificationChecklist !== undefined || images !== undefined || workflowDiagram)
       ? {
           customContent: {
@@ -428,6 +429,9 @@ export function mapRecipeCsvRecord(
     ? mappedGuide
     : {
         ...(guideJson as Record<string, unknown>),
+        ...(images === undefined || Array.isArray((guideJson as Record<string, unknown>).imagesJson)
+          ? {}
+          : { imagesJson: images }),
         ...(hasJsonInputs ? {
           promptVariables,
           inputs: {

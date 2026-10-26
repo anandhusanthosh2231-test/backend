@@ -31,6 +31,23 @@ test("validates custom-layout prompt inputs, workflow content, and screenshots",
   assert.match(error ?? "", /customContent\.images/);
 });
 
+test("validates visual prompt types, structured images, and website preview URLs", () => {
+  assert.equal(validateRecipePromptConfiguration({
+    promptType: "game",
+    imagesJson: [{ url: "https://cdn.example.test/game.webp", alt: "Game world" }],
+    promptStudio: { gameGenre: "Puzzle adventure", gamePlatform: "PC" },
+  }, "Create a game concept."), undefined);
+
+  const invalid = validateRecipePromptConfiguration({
+    promptType: "video",
+    imagesJson: [{ url: "javascript:alert(1)", alt: " " }],
+    promptStudio: { previewUrl: "javascript:alert(1)" },
+  }, "Create a visual concept.");
+  assert.match(invalid ?? "", /promptType/);
+  assert.match(invalid ?? "", /imagesJson/);
+  assert.match(invalid ?? "", /previewUrl must use HTTP or HTTPS/);
+});
+
 test("rejects missing prompt definitions, invalid input rules, and invalid output configuration", () => {
   const error = validateRecipePromptConfiguration({
     promptVariables: [

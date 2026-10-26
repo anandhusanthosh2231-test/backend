@@ -80,6 +80,49 @@ export const RecipeLayoutMode = {
   custom: 'custom',
 } as const;
 
+export type RecipeGuidePromptType = typeof RecipeGuidePromptType[keyof typeof RecipeGuidePromptType];
+
+
+export const RecipeGuidePromptType = {
+  text: 'text',
+  image: 'image',
+  game: 'game',
+  website: 'website',
+} as const;
+
+export interface RecipeVisualImage {
+  /** @maxLength 2048 */
+  url: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  alt: string;
+  /** @maxLength 500 */
+  caption?: string;
+}
+
+export interface RecipePromptStudio {
+  /** @maxLength 200 */
+  style?: string;
+  /** @maxLength 200 */
+  model?: string;
+  /** @maxLength 50 */
+  aspectRatio?: string;
+  /** @maxLength 100 */
+  gameGenre?: string;
+  /** @maxLength 100 */
+  gamePlatform?: string;
+  /** @maxLength 100 */
+  gameEngine?: string;
+  /** @maxLength 100 */
+  websiteFramework?: string;
+  /** @maxLength 100 */
+  websiteStyle?: string;
+  /** @maxLength 2048 */
+  previewUrl?: string;
+}
+
 export type RecipeGuideToolsItemSupport = typeof RecipeGuideToolsItemSupport[keyof typeof RecipeGuideToolsItemSupport];
 
 
@@ -214,15 +257,6 @@ export type RecipeGuideExpectedOutput = {
   characteristics?: string[];
 };
 
-export type RecipeGuideCustomContentImagesItem = {
-  /** @maxLength 2048 */
-  url: string;
-  /** @maxLength 500 */
-  alt: string;
-  /** @maxLength 500 */
-  caption?: string;
-};
-
 export type RecipeGuideCustomContent = {
   /**
      * @maxItems 100
@@ -237,7 +271,7 @@ export type RecipeGuideCustomContent = {
   /** @maxLength 20000 */
   workflowDiagram?: string;
   /** @maxItems 20 */
-  images?: RecipeGuideCustomContentImagesItem[];
+  images?: RecipeVisualImage[];
 };
 
 export type RecipeGuideExamplesItem = {
@@ -262,6 +296,10 @@ export type RecipeGuideQuality = {
 };
 
 export interface RecipeGuide {
+  promptType?: RecipeGuidePromptType;
+  /** @maxItems 20 */
+  imagesJson?: RecipeVisualImage[];
+  promptStudio?: RecipePromptStudio;
   snapshot?: RecipeGuideSnapshot;
   useCases?: RecipeGuideUseCasesItem[];
   whenNotToUse?: string[];

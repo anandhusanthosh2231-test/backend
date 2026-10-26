@@ -181,6 +181,9 @@ test("round-trips dynamic inputs, guide data, output config, and custom layout t
     refinementPrompts: ["Make it more concise."],
     verificationNotes: "Verify every claim.",
     guide: {
+      promptType: "image",
+      imagesJson: [{ url: "https://cdn.example.test/visual.png", alt: "Visual prompt reference" }],
+      promptStudio: { style: "Editorial", model: "Imagen", aspectRatio: "3:2" },
       promptVariables: [
         { name: "resume", label: "Current resume", type: "textarea", required: true, helpText: "Remove private data." },
         { name: "tone", label: "Tone", type: "dropdown", required: false, defaultValue: "Concise", options: ["Concise", "Warm"] },
@@ -241,6 +244,9 @@ test("round-trips dynamic inputs, guide data, output config, and custom layout t
   assert.deepEqual(imported.steps, recipe.steps);
   assert.deepEqual(importedGuide.promptVariables, originalGuide.promptVariables);
   assert.deepEqual(importedGuide.outputConfig, originalGuide.outputConfig);
+  assert.equal(importedGuide.promptType, originalGuide.promptType);
+  assert.deepEqual(importedGuide.imagesJson, originalGuide.imagesJson);
+  assert.deepEqual(importedGuide.promptStudio, originalGuide.promptStudio);
   assert.deepEqual(importedGuide.customContent, originalGuide.customContent);
   assert.deepEqual(importedGuide.customGuideData, originalGuide.customGuideData);
   assert.deepEqual(imported.layoutConfig, recipe.layoutConfig);

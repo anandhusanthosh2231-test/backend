@@ -110,6 +110,8 @@ interface MockApiOptions {
   feedbackStatus?: number;
   dynamicRecipe?: boolean;
   customLayoutRecipe?: boolean;
+  visualPromptType?: 'image' | 'game' | 'website';
+  homeResponseDelayMs?: number;
   adminBulkEdit?: boolean;
   adminRecipeCount?: number;
   categories?: CategoryItem[];
@@ -383,6 +385,9 @@ export async function mockApi(
     }
 
     if (request.method() === 'GET' && pathname === '/api/home') {
+      if (options.homeResponseDelayMs) {
+        await new Promise((resolve) => setTimeout(resolve, options.homeResponseDelayMs));
+      }
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -499,6 +504,17 @@ export async function mockApi(
               workflowDiagram: 'flowchart TD\n  A[Collect target role] --> B[Build action plan]',
               images: [],
             },
+          },
+        } : options.visualPromptType ? {
+          ...recipe,
+          guide: {
+            promptType: options.visualPromptType,
+            imagesJson: [{ url: 'https://images.example.test/concept.webp', alt: 'A colorful concept illustration', caption: 'Concept reference' }],
+            promptStudio: options.visualPromptType === 'image'
+              ? { style: 'Editorial', model: 'Imagen', aspectRatio: '3:2' }
+              : options.visualPromptType === 'game'
+                ? { gameGenre: 'Puzzle adventure', gamePlatform: 'PC', gameEngine: 'Godot' }
+                : { websiteFramework: 'React', websiteStyle: 'Editorial', previewUrl: 'https://preview.example.test' },
           },
         } : options.dynamicRecipe ? {
           ...recipe,

@@ -10,14 +10,14 @@
   "theme_color": "#211d27",
   "icons": [
     {
-      "src": "/taskbakeai-mark.png",
+      "src": "/taskbakeai-mark.webp",
       "sizes": "768x768",
-      "type": "image/png",
+      "type": "image/webp",
       "purpose": "any maskable"
     },
     {
-      "src": "/taskbakeai-wordmark.png",
-      "sizes": "2172x724",
+      "src": "/taskbakeai-touch.png",
+      "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     }

@@ -26,6 +26,11 @@ test('mobile bottom navigation opens Why TaskBakeAI instead of a cart', async ({
   await whyLink.click();
   await expect(page).toHaveURL(/\/why-ai-recipes$/);
   await expect(page.getByRole('heading', { name: /Good work needs more than a prompt/ })).toBeVisible();
+
+  await page.goto('/');
+  const slideNavigation = page.getByRole('group', { name: 'Choose a featured highlight' });
+  await expect(slideNavigation.getByRole('button')).toHaveCount(4);
+  await expect(slideNavigation.locator('[aria-current="true"]')).toHaveCount(1);
 });
 
 test('TaskBakeAI shows the supplied mark on mobile and wordmark on desktop', async ({ page }) => {
@@ -38,6 +43,7 @@ test('TaskBakeAI shows the supplied mark on mobile and wordmark on desktop', asy
   await expect(mobileBrand).toBeVisible();
   await expect(mobileMark).toHaveAttribute('src', '/taskbakeai-mark.png');
   await expect.poll(() => mobileMark.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  await expect.poll(() => mobileMark.evaluate((image) => (image as HTMLImageElement).currentSrc)).toMatch(/taskbakeai-mark\.webp$/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -46,6 +52,16 @@ test('TaskBakeAI shows the supplied mark on mobile and wordmark on desktop', asy
   await expect(desktopBrand).toBeVisible();
   await expect(desktopWordmark).toHaveAttribute('src', '/taskbakeai-wordmark.png');
   await expect.poll(() => desktopWordmark.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  await expect.poll(() => desktopWordmark.evaluate((image) => (image as HTMLImageElement).currentSrc)).toMatch(/taskbakeai-wordmark\.webp$/);
+});
+
+test('homepage renders its primary heading before home API data arrives', async ({ page }) => {
+  await mockApi(page, { homeResponseDelayMs: 1500 });
+  await page.goto('/');
+
+  await expect(page.getByRole('heading', { name: 'Practical AI workflows you can actually use.' })).toBeVisible();
+  await expect(page.getByTestId('status-loading')).toHaveCount(0);
+  await expect(page.getByTestId('status-loading-grid')).toBeVisible();
 });
 
 test('mobile auth uses the light wordmark and keeps the bottom menu available', async ({ page }) => {
@@ -311,6 +327,7 @@ test('recipe prompt copy and helpful feedback work', async ({ page }) => {
   const api = await mockApi(page);
   await page.goto('/recipes/brief-to-project-plan');
 
+  await expect(page.locator('[data-testid^="prompt-showcase-"]')).toHaveCount(0);
   await page.getByTestId('button-quick-copy').click();
   await expect(page.getByTestId('button-quick-copy')).toContainText('Copied');
   await page.getByTestId('button-feedback-yes').click();
@@ -323,6 +340,20 @@ test('recipe prompt copy and helpful feedback work', async ({ page }) => {
     helpful: true,
   });
   await expect(page.getByTestId('button-feedback-yes')).toBeDisabled();
+});
+
+test('visual prompts show a visual gallery and subtype metadata without replacing recipe actions', async ({ page }) => {
+  await mockApi(page, { visualPromptType: 'image' });
+  await page.goto('/recipes/brief-to-project-plan');
+
+  const showcase = page.getByTestId('prompt-showcase-image');
+  await expect(showcase).toBeVisible();
+  await expect(showcase.getByRole('heading', { name: 'Turn a brief into a project plan' })).toBeVisible();
+  await expect(showcase.getByRole('img', { name: 'A colorful concept illustration' })).toBeVisible();
+  await expect(showcase).toContainText('Editorial');
+  await expect(showcase).toContainText('Imagen');
+  await expect(showcase.getByTestId('button-showcase-copy')).toBeVisible();
+  await expect(page.getByTestId('button-share-recipe')).toBeVisible();
 });
 
 test('dynamic recipe inputs validate, resolve safely, and preserve unknown prompt variables', async ({ page }) => {
@@ -589,6 +620,54 @@ test('recipe editor links to the visible CSV import action', async ({ page }) =>
   await page.getByTestId('link-editor-import-csv').click();
   await expect(page).toHaveURL(/\/recipes#import-csv$/);
   await expect(page.getByTestId('button-admin-recipes-import-csv')).toBeVisible();
+});
+
+test('admin Prompt Studio selects subtypes and previews external image references', async ({ page }) => {
+  const api = await mockApi(page, { adminAuthenticated: true });
+  const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
+  await page.goto(`${adminPath}/recipes/new`);
+
+  const promptType = page.getByTestId('select-prompt-type');
+  await promptType.selectOption('image');
+  await expect(page.getByText('Image model')).toBeVisible();
+  await page.getByTestId('button-prompt-add-image').click();
+  await page.getByTestId('input-prompt-image-url-0').fill('https://images.example.test/reference.webp');
+  await expect(page.getByTestId('prompt-image-preview-0')).toBeVisible();
+  await page.getByLabel('Alt text').fill('A visual reference');
+
+  await promptType.selectOption('game');
+  await expect(page.getByText('Game engine')).toBeVisible();
+  await page.getByLabel('Genre').fill('Puzzle adventure');
+  await page.getByLabel('Platform').fill('PC');
+  await page.getByLabel('Game engine').fill('Godot');
+  await promptType.selectOption('website');
+  await expect(page.getByText('Framework', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Live preview URL')).toBeVisible();
+  await page.getByLabel('Framework').fill('React');
+  await page.getByLabel('Visual style').fill('Editorial');
+  await page.getByLabel('Live preview URL').fill('https://preview.example.test');
+  await promptType.selectOption('image');
+
+  await page.getByTestId('input-editor-title').fill('Visual prompt recipe');
+  await page.getByTestId('input-editor-slug').fill('visual-prompt-recipe');
+  await page.getByTestId('input-editor-description').fill('Create polished visual concepts with a reusable prompt.');
+  await page.getByTestId('input-editor-problem').fill('Visual concepts often lack a clear, reusable direction.');
+  await page.getByTestId('input-editor-prompt').fill('Create a concept for {{subject}} with the chosen visual style.');
+  await page.getByTestId('button-save-editor').click();
+
+  await expect.poll(() => api.recipeSaveRequests.length).toBe(1);
+  expect(api.recipeSaveRequests[0].guide).toMatchObject({
+    promptType: 'image',
+    imagesJson: [{ url: 'https://images.example.test/reference.webp', alt: 'A visual reference' }],
+    promptStudio: {
+      gameGenre: 'Puzzle adventure',
+      gamePlatform: 'PC',
+      gameEngine: 'Godot',
+      websiteFramework: 'React',
+      websiteStyle: 'Editorial',
+      previewUrl: 'https://preview.example.test',
+    },
+  });
 });
 
 test('admin previews CSV rows before committing the import', async ({ page }) => {

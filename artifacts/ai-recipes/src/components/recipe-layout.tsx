@@ -120,7 +120,7 @@ function ImageBlock({ block, eager = false }: { block: RecipeLayoutBlock; eager?
   if (!block.imageUrl) return null;
   if (failed) return <div className="layout-image-placeholder">Image unavailable</div>;
   return <figure className="layout-image">
-    <img src={block.imageUrl} alt={block.alt ?? ''} loading={eager ? 'eager' : 'lazy'} onError={() => setFailed(true)} />
+    <img src={block.imageUrl} width="1600" height="900" alt={block.alt ?? ''} loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : 'auto'} decoding="async" onError={() => setFailed(true)} />
     {block.caption && <figcaption>{block.caption}</figcaption>}
   </figure>;
 }
@@ -152,7 +152,7 @@ function MermaidDiagram({ source }: { source: string }) {
 
   if (failed) return <div className="layout-diagram-error" role="status">Diagram syntax could not be rendered. Review the Mermaid source.</div>;
   if (!image) return <div className="layout-diagram-loading" role="status">Rendering workflow diagram…</div>;
-  return <img className="layout-diagram" src={image} alt="Workflow diagram" />;
+  return <img className="layout-diagram" src={image} width="1600" height="900" alt="Workflow diagram" decoding="async" />;
 }
 
 export function RecipePromptInputEditor({
@@ -316,7 +316,7 @@ export function RecipeLayoutRenderer({
         content = block.imageUrl ? <ImageBlock block={block} /> : null;
         break;
       case 'images':
-        content = customContent?.images?.length ? <div className="layout-image-gallery">{customContent.images.map((image, index) => <figure className="layout-image" key={`${image.url}-${index}`}><img src={image.url} alt={image.alt} loading="lazy" />{image.caption && <figcaption>{image.caption}</figcaption>}</figure>)}</div> : null;
+        content = customContent?.images?.length ? <div className="layout-image-gallery">{customContent.images.map((image, index) => <figure className="layout-image" key={`${image.url}-${index}`}><img src={image.url} width="1600" height="900" alt={image.alt} loading="lazy" decoding="async" />{image.caption && <figcaption>{image.caption}</figcaption>}</figure>)}</div> : null;
         break;
       case 'diagram':
         content = customContent?.workflowDiagram?.trim() ? <MermaidDiagram source={customContent.workflowDiagram} /> : null;

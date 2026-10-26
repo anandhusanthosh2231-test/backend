@@ -73,6 +73,33 @@ export const GetRecipeParams = zod.object({
   "slug": zod.coerce.string()
 })
 
+export const getRecipeResponseTwoGuideOnePromptTypeDefault = `text`;
+export const getRecipeResponseTwoGuideOneImagesJsonItemUrlMax = 2048;
+
+export const getRecipeResponseTwoGuideOneImagesJsonItemAltMax = 500;
+
+export const getRecipeResponseTwoGuideOneImagesJsonItemCaptionMax = 500;
+
+export const getRecipeResponseTwoGuideOneImagesJsonMax = 20;
+
+export const getRecipeResponseTwoGuideOnePromptStudioStyleMax = 200;
+
+export const getRecipeResponseTwoGuideOnePromptStudioModelMax = 200;
+
+export const getRecipeResponseTwoGuideOnePromptStudioAspectRatioMax = 50;
+
+export const getRecipeResponseTwoGuideOnePromptStudioGameGenreMax = 100;
+
+export const getRecipeResponseTwoGuideOnePromptStudioGamePlatformMax = 100;
+
+export const getRecipeResponseTwoGuideOnePromptStudioGameEngineMax = 100;
+
+export const getRecipeResponseTwoGuideOnePromptStudioWebsiteFrameworkMax = 100;
+
+export const getRecipeResponseTwoGuideOnePromptStudioWebsiteStyleMax = 100;
+
+export const getRecipeResponseTwoGuideOnePromptStudioPreviewUrlMax = 2048;
+
 export const getRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax = 1000;
 
 export const getRecipeResponseTwoGuideOnePromptVariablesItemDefaultValueMax = 10000;
@@ -174,6 +201,23 @@ export const GetRecipeResponse = zod.object({
   "updatedAt": zod.coerce.date().optional(),
   "publishedAt": zod.coerce.date().nullish(),
   "guide": zod.union([zod.object({
+  "promptType": zod.enum(['text', 'image', 'game', 'website']).default(getRecipeResponseTwoGuideOnePromptTypeDefault),
+  "imagesJson": zod.array(zod.object({
+  "url": zod.url().max(getRecipeResponseTwoGuideOneImagesJsonItemUrlMax),
+  "alt": zod.string().min(1).max(getRecipeResponseTwoGuideOneImagesJsonItemAltMax),
+  "caption": zod.string().max(getRecipeResponseTwoGuideOneImagesJsonItemCaptionMax).optional()
+})).max(getRecipeResponseTwoGuideOneImagesJsonMax).optional(),
+  "promptStudio": zod.object({
+  "style": zod.string().max(getRecipeResponseTwoGuideOnePromptStudioStyleMax).optional(),
+  "model": zod.string().max(getRecipeResponseTwoGuideOnePromptStudioModelMax).optional(),
+  "aspectRatio": zod.string().max(getRecipeResponseTwoGuideOnePromptStudioAspectRatioMax).optional(),
+  "gameGenre": zod.string().max(getRecipeResponseTwoGuideOnePromptStudioGameGenreMax).optional(),
+  "gamePlatform": zod.string().max(getRecipeResponseTwoGuideOnePromptStudioGamePlatformMax).optional(),
+  "gameEngine": zod.string().max(getRecipeResponseTwoGuideOnePromptStudioGameEngineMax).optional(),
+  "websiteFramework": zod.string().max(getRecipeResponseTwoGuideOnePromptStudioWebsiteFrameworkMax).optional(),
+  "websiteStyle": zod.string().max(getRecipeResponseTwoGuideOnePromptStudioWebsiteStyleMax).optional(),
+  "previewUrl": zod.url().max(getRecipeResponseTwoGuideOnePromptStudioPreviewUrlMax).optional()
+}).optional(),
   "snapshot": zod.object({
   "bestFor": zod.string().optional(),
   "worksBestWhen": zod.string().optional(),
@@ -234,7 +278,7 @@ export const GetRecipeResponse = zod.object({
   "workflowDiagram": zod.string().max(getRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax).optional(),
   "images": zod.array(zod.object({
   "url": zod.url().max(getRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax),
-  "alt": zod.string().max(getRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
+  "alt": zod.string().min(1).max(getRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
   "caption": zod.string().max(getRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional()
 })).max(getRecipeResponseTwoGuideOneCustomContentImagesMax).optional()
 }).optional(),
@@ -787,6 +831,33 @@ export const createAdminRecipeBodyProblemMin = 10;
 
 export const createAdminRecipeBodyPromptMin = 20;
 
+export const createAdminRecipeBodyGuidePromptTypeDefault = `text`;
+export const createAdminRecipeBodyGuideImagesJsonItemUrlMax = 2048;
+
+export const createAdminRecipeBodyGuideImagesJsonItemAltMax = 500;
+
+export const createAdminRecipeBodyGuideImagesJsonItemCaptionMax = 500;
+
+export const createAdminRecipeBodyGuideImagesJsonMax = 20;
+
+export const createAdminRecipeBodyGuidePromptStudioStyleMax = 200;
+
+export const createAdminRecipeBodyGuidePromptStudioModelMax = 200;
+
+export const createAdminRecipeBodyGuidePromptStudioAspectRatioMax = 50;
+
+export const createAdminRecipeBodyGuidePromptStudioGameGenreMax = 100;
+
+export const createAdminRecipeBodyGuidePromptStudioGamePlatformMax = 100;
+
+export const createAdminRecipeBodyGuidePromptStudioGameEngineMax = 100;
+
+export const createAdminRecipeBodyGuidePromptStudioWebsiteFrameworkMax = 100;
+
+export const createAdminRecipeBodyGuidePromptStudioWebsiteStyleMax = 100;
+
+export const createAdminRecipeBodyGuidePromptStudioPreviewUrlMax = 2048;
+
 export const createAdminRecipeBodyGuidePromptVariablesItemHelpTextMax = 1000;
 
 export const createAdminRecipeBodyGuidePromptVariablesItemDefaultValueMax = 10000;
@@ -880,6 +951,23 @@ export const CreateAdminRecipeBody = zod.object({
   "seoTitle": zod.string(),
   "seoDescription": zod.string(),
   "guide": zod.object({
+  "promptType": zod.enum(['text', 'image', 'game', 'website']).default(createAdminRecipeBodyGuidePromptTypeDefault),
+  "imagesJson": zod.array(zod.object({
+  "url": zod.url().max(createAdminRecipeBodyGuideImagesJsonItemUrlMax),
+  "alt": zod.string().min(1).max(createAdminRecipeBodyGuideImagesJsonItemAltMax),
+  "caption": zod.string().max(createAdminRecipeBodyGuideImagesJsonItemCaptionMax).optional()
+})).max(createAdminRecipeBodyGuideImagesJsonMax).optional(),
+  "promptStudio": zod.object({
+  "style": zod.string().max(createAdminRecipeBodyGuidePromptStudioStyleMax).optional(),
+  "model": zod.string().max(createAdminRecipeBodyGuidePromptStudioModelMax).optional(),
+  "aspectRatio": zod.string().max(createAdminRecipeBodyGuidePromptStudioAspectRatioMax).optional(),
+  "gameGenre": zod.string().max(createAdminRecipeBodyGuidePromptStudioGameGenreMax).optional(),
+  "gamePlatform": zod.string().max(createAdminRecipeBodyGuidePromptStudioGamePlatformMax).optional(),
+  "gameEngine": zod.string().max(createAdminRecipeBodyGuidePromptStudioGameEngineMax).optional(),
+  "websiteFramework": zod.string().max(createAdminRecipeBodyGuidePromptStudioWebsiteFrameworkMax).optional(),
+  "websiteStyle": zod.string().max(createAdminRecipeBodyGuidePromptStudioWebsiteStyleMax).optional(),
+  "previewUrl": zod.url().max(createAdminRecipeBodyGuidePromptStudioPreviewUrlMax).optional()
+}).optional(),
   "snapshot": zod.object({
   "bestFor": zod.string().optional(),
   "worksBestWhen": zod.string().optional(),
@@ -940,7 +1028,7 @@ export const CreateAdminRecipeBody = zod.object({
   "workflowDiagram": zod.string().max(createAdminRecipeBodyGuideCustomContentWorkflowDiagramMax).optional(),
   "images": zod.array(zod.object({
   "url": zod.url().max(createAdminRecipeBodyGuideCustomContentImagesItemUrlMax),
-  "alt": zod.string().max(createAdminRecipeBodyGuideCustomContentImagesItemAltMax),
+  "alt": zod.string().min(1).max(createAdminRecipeBodyGuideCustomContentImagesItemAltMax),
   "caption": zod.string().max(createAdminRecipeBodyGuideCustomContentImagesItemCaptionMax).optional()
 })).max(createAdminRecipeBodyGuideCustomContentImagesMax).optional()
 }).optional(),
@@ -992,6 +1080,33 @@ export const CreateAdminRecipeBody = zod.object({
 })).max(createAdminRecipeBodyLayoutConfigOneBlocksMax)
 }),zod.null()]).optional()
 })
+
+export const createAdminRecipeResponseTwoGuideOnePromptTypeDefault = `text`;
+export const createAdminRecipeResponseTwoGuideOneImagesJsonItemUrlMax = 2048;
+
+export const createAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax = 500;
+
+export const createAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax = 500;
+
+export const createAdminRecipeResponseTwoGuideOneImagesJsonMax = 20;
+
+export const createAdminRecipeResponseTwoGuideOnePromptStudioStyleMax = 200;
+
+export const createAdminRecipeResponseTwoGuideOnePromptStudioModelMax = 200;
+
+export const createAdminRecipeResponseTwoGuideOnePromptStudioAspectRatioMax = 50;
+
+export const createAdminRecipeResponseTwoGuideOnePromptStudioGameGenreMax = 100;
+
+export const createAdminRecipeResponseTwoGuideOnePromptStudioGamePlatformMax = 100;
+
+export const createAdminRecipeResponseTwoGuideOnePromptStudioGameEngineMax = 100;
+
+export const createAdminRecipeResponseTwoGuideOnePromptStudioWebsiteFrameworkMax = 100;
+
+export const createAdminRecipeResponseTwoGuideOnePromptStudioWebsiteStyleMax = 100;
+
+export const createAdminRecipeResponseTwoGuideOnePromptStudioPreviewUrlMax = 2048;
 
 export const createAdminRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax = 1000;
 
@@ -1094,6 +1209,23 @@ export const CreateAdminRecipeResponse = zod.object({
   "updatedAt": zod.coerce.date().optional(),
   "publishedAt": zod.coerce.date().nullish(),
   "guide": zod.union([zod.object({
+  "promptType": zod.enum(['text', 'image', 'game', 'website']).default(createAdminRecipeResponseTwoGuideOnePromptTypeDefault),
+  "imagesJson": zod.array(zod.object({
+  "url": zod.url().max(createAdminRecipeResponseTwoGuideOneImagesJsonItemUrlMax),
+  "alt": zod.string().min(1).max(createAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax),
+  "caption": zod.string().max(createAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax).optional()
+})).max(createAdminRecipeResponseTwoGuideOneImagesJsonMax).optional(),
+  "promptStudio": zod.object({
+  "style": zod.string().max(createAdminRecipeResponseTwoGuideOnePromptStudioStyleMax).optional(),
+  "model": zod.string().max(createAdminRecipeResponseTwoGuideOnePromptStudioModelMax).optional(),
+  "aspectRatio": zod.string().max(createAdminRecipeResponseTwoGuideOnePromptStudioAspectRatioMax).optional(),
+  "gameGenre": zod.string().max(createAdminRecipeResponseTwoGuideOnePromptStudioGameGenreMax).optional(),
+  "gamePlatform": zod.string().max(createAdminRecipeResponseTwoGuideOnePromptStudioGamePlatformMax).optional(),
+  "gameEngine": zod.string().max(createAdminRecipeResponseTwoGuideOnePromptStudioGameEngineMax).optional(),
+  "websiteFramework": zod.string().max(createAdminRecipeResponseTwoGuideOnePromptStudioWebsiteFrameworkMax).optional(),
+  "websiteStyle": zod.string().max(createAdminRecipeResponseTwoGuideOnePromptStudioWebsiteStyleMax).optional(),
+  "previewUrl": zod.url().max(createAdminRecipeResponseTwoGuideOnePromptStudioPreviewUrlMax).optional()
+}).optional(),
   "snapshot": zod.object({
   "bestFor": zod.string().optional(),
   "worksBestWhen": zod.string().optional(),
@@ -1154,7 +1286,7 @@ export const CreateAdminRecipeResponse = zod.object({
   "workflowDiagram": zod.string().max(createAdminRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax).optional(),
   "images": zod.array(zod.object({
   "url": zod.url().max(createAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax),
-  "alt": zod.string().max(createAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
+  "alt": zod.string().min(1).max(createAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
   "caption": zod.string().max(createAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional()
 })).max(createAdminRecipeResponseTwoGuideOneCustomContentImagesMax).optional()
 }).optional(),
@@ -1410,6 +1542,33 @@ export const updateAdminRecipeBodyOneProblemMin = 10;
 
 export const updateAdminRecipeBodyOnePromptMin = 20;
 
+export const updateAdminRecipeBodyOneGuidePromptTypeDefault = `text`;
+export const updateAdminRecipeBodyOneGuideImagesJsonItemUrlMax = 2048;
+
+export const updateAdminRecipeBodyOneGuideImagesJsonItemAltMax = 500;
+
+export const updateAdminRecipeBodyOneGuideImagesJsonItemCaptionMax = 500;
+
+export const updateAdminRecipeBodyOneGuideImagesJsonMax = 20;
+
+export const updateAdminRecipeBodyOneGuidePromptStudioStyleMax = 200;
+
+export const updateAdminRecipeBodyOneGuidePromptStudioModelMax = 200;
+
+export const updateAdminRecipeBodyOneGuidePromptStudioAspectRatioMax = 50;
+
+export const updateAdminRecipeBodyOneGuidePromptStudioGameGenreMax = 100;
+
+export const updateAdminRecipeBodyOneGuidePromptStudioGamePlatformMax = 100;
+
+export const updateAdminRecipeBodyOneGuidePromptStudioGameEngineMax = 100;
+
+export const updateAdminRecipeBodyOneGuidePromptStudioWebsiteFrameworkMax = 100;
+
+export const updateAdminRecipeBodyOneGuidePromptStudioWebsiteStyleMax = 100;
+
+export const updateAdminRecipeBodyOneGuidePromptStudioPreviewUrlMax = 2048;
+
 export const updateAdminRecipeBodyOneGuidePromptVariablesItemHelpTextMax = 1000;
 
 export const updateAdminRecipeBodyOneGuidePromptVariablesItemDefaultValueMax = 10000;
@@ -1503,6 +1662,23 @@ export const UpdateAdminRecipeBody = zod.object({
   "seoTitle": zod.string(),
   "seoDescription": zod.string(),
   "guide": zod.object({
+  "promptType": zod.enum(['text', 'image', 'game', 'website']).default(updateAdminRecipeBodyOneGuidePromptTypeDefault),
+  "imagesJson": zod.array(zod.object({
+  "url": zod.url().max(updateAdminRecipeBodyOneGuideImagesJsonItemUrlMax),
+  "alt": zod.string().min(1).max(updateAdminRecipeBodyOneGuideImagesJsonItemAltMax),
+  "caption": zod.string().max(updateAdminRecipeBodyOneGuideImagesJsonItemCaptionMax).optional()
+})).max(updateAdminRecipeBodyOneGuideImagesJsonMax).optional(),
+  "promptStudio": zod.object({
+  "style": zod.string().max(updateAdminRecipeBodyOneGuidePromptStudioStyleMax).optional(),
+  "model": zod.string().max(updateAdminRecipeBodyOneGuidePromptStudioModelMax).optional(),
+  "aspectRatio": zod.string().max(updateAdminRecipeBodyOneGuidePromptStudioAspectRatioMax).optional(),
+  "gameGenre": zod.string().max(updateAdminRecipeBodyOneGuidePromptStudioGameGenreMax).optional(),
+  "gamePlatform": zod.string().max(updateAdminRecipeBodyOneGuidePromptStudioGamePlatformMax).optional(),
+  "gameEngine": zod.string().max(updateAdminRecipeBodyOneGuidePromptStudioGameEngineMax).optional(),
+  "websiteFramework": zod.string().max(updateAdminRecipeBodyOneGuidePromptStudioWebsiteFrameworkMax).optional(),
+  "websiteStyle": zod.string().max(updateAdminRecipeBodyOneGuidePromptStudioWebsiteStyleMax).optional(),
+  "previewUrl": zod.url().max(updateAdminRecipeBodyOneGuidePromptStudioPreviewUrlMax).optional()
+}).optional(),
   "snapshot": zod.object({
   "bestFor": zod.string().optional(),
   "worksBestWhen": zod.string().optional(),
@@ -1563,7 +1739,7 @@ export const UpdateAdminRecipeBody = zod.object({
   "workflowDiagram": zod.string().max(updateAdminRecipeBodyOneGuideCustomContentWorkflowDiagramMax).optional(),
   "images": zod.array(zod.object({
   "url": zod.url().max(updateAdminRecipeBodyOneGuideCustomContentImagesItemUrlMax),
-  "alt": zod.string().max(updateAdminRecipeBodyOneGuideCustomContentImagesItemAltMax),
+  "alt": zod.string().min(1).max(updateAdminRecipeBodyOneGuideCustomContentImagesItemAltMax),
   "caption": zod.string().max(updateAdminRecipeBodyOneGuideCustomContentImagesItemCaptionMax).optional()
 })).max(updateAdminRecipeBodyOneGuideCustomContentImagesMax).optional()
 }).optional(),
@@ -1615,6 +1791,33 @@ export const UpdateAdminRecipeBody = zod.object({
 })).max(updateAdminRecipeBodyOneLayoutConfigOneBlocksMax)
 }),zod.null()]).optional()
 }).describe('Full replacement payload for an admin recipe.')
+
+export const updateAdminRecipeResponseTwoGuideOnePromptTypeDefault = `text`;
+export const updateAdminRecipeResponseTwoGuideOneImagesJsonItemUrlMax = 2048;
+
+export const updateAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax = 500;
+
+export const updateAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax = 500;
+
+export const updateAdminRecipeResponseTwoGuideOneImagesJsonMax = 20;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptStudioStyleMax = 200;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptStudioModelMax = 200;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptStudioAspectRatioMax = 50;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptStudioGameGenreMax = 100;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptStudioGamePlatformMax = 100;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptStudioGameEngineMax = 100;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptStudioWebsiteFrameworkMax = 100;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptStudioWebsiteStyleMax = 100;
+
+export const updateAdminRecipeResponseTwoGuideOnePromptStudioPreviewUrlMax = 2048;
 
 export const updateAdminRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax = 1000;
 
@@ -1717,6 +1920,23 @@ export const UpdateAdminRecipeResponse = zod.object({
   "updatedAt": zod.coerce.date().optional(),
   "publishedAt": zod.coerce.date().nullish(),
   "guide": zod.union([zod.object({
+  "promptType": zod.enum(['text', 'image', 'game', 'website']).default(updateAdminRecipeResponseTwoGuideOnePromptTypeDefault),
+  "imagesJson": zod.array(zod.object({
+  "url": zod.url().max(updateAdminRecipeResponseTwoGuideOneImagesJsonItemUrlMax),
+  "alt": zod.string().min(1).max(updateAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax),
+  "caption": zod.string().max(updateAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax).optional()
+})).max(updateAdminRecipeResponseTwoGuideOneImagesJsonMax).optional(),
+  "promptStudio": zod.object({
+  "style": zod.string().max(updateAdminRecipeResponseTwoGuideOnePromptStudioStyleMax).optional(),
+  "model": zod.string().max(updateAdminRecipeResponseTwoGuideOnePromptStudioModelMax).optional(),
+  "aspectRatio": zod.string().max(updateAdminRecipeResponseTwoGuideOnePromptStudioAspectRatioMax).optional(),
+  "gameGenre": zod.string().max(updateAdminRecipeResponseTwoGuideOnePromptStudioGameGenreMax).optional(),
+  "gamePlatform": zod.string().max(updateAdminRecipeResponseTwoGuideOnePromptStudioGamePlatformMax).optional(),
+  "gameEngine": zod.string().max(updateAdminRecipeResponseTwoGuideOnePromptStudioGameEngineMax).optional(),
+  "websiteFramework": zod.string().max(updateAdminRecipeResponseTwoGuideOnePromptStudioWebsiteFrameworkMax).optional(),
+  "websiteStyle": zod.string().max(updateAdminRecipeResponseTwoGuideOnePromptStudioWebsiteStyleMax).optional(),
+  "previewUrl": zod.url().max(updateAdminRecipeResponseTwoGuideOnePromptStudioPreviewUrlMax).optional()
+}).optional(),
   "snapshot": zod.object({
   "bestFor": zod.string().optional(),
   "worksBestWhen": zod.string().optional(),
@@ -1777,7 +1997,7 @@ export const UpdateAdminRecipeResponse = zod.object({
   "workflowDiagram": zod.string().max(updateAdminRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax).optional(),
   "images": zod.array(zod.object({
   "url": zod.url().max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax),
-  "alt": zod.string().max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
+  "alt": zod.string().min(1).max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
   "caption": zod.string().max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional()
 })).max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesMax).optional()
 }).optional(),
@@ -1847,6 +2067,33 @@ export const DeleteAdminRecipeResponse = zod.void()
 export const DuplicateAdminRecipeParams = zod.object({
   "id": zod.coerce.number()
 })
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptTypeDefault = `text`;
+export const duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemUrlMax = 2048;
+
+export const duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax = 500;
+
+export const duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax = 500;
+
+export const duplicateAdminRecipeResponseTwoGuideOneImagesJsonMax = 20;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptStudioStyleMax = 200;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptStudioModelMax = 200;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptStudioAspectRatioMax = 50;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptStudioGameGenreMax = 100;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptStudioGamePlatformMax = 100;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptStudioGameEngineMax = 100;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptStudioWebsiteFrameworkMax = 100;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptStudioWebsiteStyleMax = 100;
+
+export const duplicateAdminRecipeResponseTwoGuideOnePromptStudioPreviewUrlMax = 2048;
 
 export const duplicateAdminRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax = 1000;
 
@@ -1949,6 +2196,23 @@ export const DuplicateAdminRecipeResponse = zod.object({
   "updatedAt": zod.coerce.date().optional(),
   "publishedAt": zod.coerce.date().nullish(),
   "guide": zod.union([zod.object({
+  "promptType": zod.enum(['text', 'image', 'game', 'website']).default(duplicateAdminRecipeResponseTwoGuideOnePromptTypeDefault),
+  "imagesJson": zod.array(zod.object({
+  "url": zod.url().max(duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemUrlMax),
+  "alt": zod.string().min(1).max(duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax),
+  "caption": zod.string().max(duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax).optional()
+})).max(duplicateAdminRecipeResponseTwoGuideOneImagesJsonMax).optional(),
+  "promptStudio": zod.object({
+  "style": zod.string().max(duplicateAdminRecipeResponseTwoGuideOnePromptStudioStyleMax).optional(),
+  "model": zod.string().max(duplicateAdminRecipeResponseTwoGuideOnePromptStudioModelMax).optional(),
+  "aspectRatio": zod.string().max(duplicateAdminRecipeResponseTwoGuideOnePromptStudioAspectRatioMax).optional(),
+  "gameGenre": zod.string().max(duplicateAdminRecipeResponseTwoGuideOnePromptStudioGameGenreMax).optional(),
+  "gamePlatform": zod.string().max(duplicateAdminRecipeResponseTwoGuideOnePromptStudioGamePlatformMax).optional(),
+  "gameEngine": zod.string().max(duplicateAdminRecipeResponseTwoGuideOnePromptStudioGameEngineMax).optional(),
+  "websiteFramework": zod.string().max(duplicateAdminRecipeResponseTwoGuideOnePromptStudioWebsiteFrameworkMax).optional(),
+  "websiteStyle": zod.string().max(duplicateAdminRecipeResponseTwoGuideOnePromptStudioWebsiteStyleMax).optional(),
+  "previewUrl": zod.url().max(duplicateAdminRecipeResponseTwoGuideOnePromptStudioPreviewUrlMax).optional()
+}).optional(),
   "snapshot": zod.object({
   "bestFor": zod.string().optional(),
   "worksBestWhen": zod.string().optional(),
@@ -2009,7 +2273,7 @@ export const DuplicateAdminRecipeResponse = zod.object({
   "workflowDiagram": zod.string().max(duplicateAdminRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax).optional(),
   "images": zod.array(zod.object({
   "url": zod.url().max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax),
-  "alt": zod.string().max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
+  "alt": zod.string().min(1).max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
   "caption": zod.string().max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional()
 })).max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesMax).optional()
 }).optional(),
@@ -2085,6 +2349,33 @@ export const generateDraftRecipeResponseShortDescriptionMin = 10;
 export const generateDraftRecipeResponseProblemMin = 10;
 
 export const generateDraftRecipeResponsePromptMin = 20;
+
+export const generateDraftRecipeResponseGuidePromptTypeDefault = `text`;
+export const generateDraftRecipeResponseGuideImagesJsonItemUrlMax = 2048;
+
+export const generateDraftRecipeResponseGuideImagesJsonItemAltMax = 500;
+
+export const generateDraftRecipeResponseGuideImagesJsonItemCaptionMax = 500;
+
+export const generateDraftRecipeResponseGuideImagesJsonMax = 20;
+
+export const generateDraftRecipeResponseGuidePromptStudioStyleMax = 200;
+
+export const generateDraftRecipeResponseGuidePromptStudioModelMax = 200;
+
+export const generateDraftRecipeResponseGuidePromptStudioAspectRatioMax = 50;
+
+export const generateDraftRecipeResponseGuidePromptStudioGameGenreMax = 100;
+
+export const generateDraftRecipeResponseGuidePromptStudioGamePlatformMax = 100;
+
+export const generateDraftRecipeResponseGuidePromptStudioGameEngineMax = 100;
+
+export const generateDraftRecipeResponseGuidePromptStudioWebsiteFrameworkMax = 100;
+
+export const generateDraftRecipeResponseGuidePromptStudioWebsiteStyleMax = 100;
+
+export const generateDraftRecipeResponseGuidePromptStudioPreviewUrlMax = 2048;
 
 export const generateDraftRecipeResponseGuidePromptVariablesItemHelpTextMax = 1000;
 
@@ -2179,6 +2470,23 @@ export const GenerateDraftRecipeResponse = zod.object({
   "seoTitle": zod.string(),
   "seoDescription": zod.string(),
   "guide": zod.object({
+  "promptType": zod.enum(['text', 'image', 'game', 'website']).default(generateDraftRecipeResponseGuidePromptTypeDefault),
+  "imagesJson": zod.array(zod.object({
+  "url": zod.url().max(generateDraftRecipeResponseGuideImagesJsonItemUrlMax),
+  "alt": zod.string().min(1).max(generateDraftRecipeResponseGuideImagesJsonItemAltMax),
+  "caption": zod.string().max(generateDraftRecipeResponseGuideImagesJsonItemCaptionMax).optional()
+})).max(generateDraftRecipeResponseGuideImagesJsonMax).optional(),
+  "promptStudio": zod.object({
+  "style": zod.string().max(generateDraftRecipeResponseGuidePromptStudioStyleMax).optional(),
+  "model": zod.string().max(generateDraftRecipeResponseGuidePromptStudioModelMax).optional(),
+  "aspectRatio": zod.string().max(generateDraftRecipeResponseGuidePromptStudioAspectRatioMax).optional(),
+  "gameGenre": zod.string().max(generateDraftRecipeResponseGuidePromptStudioGameGenreMax).optional(),
+  "gamePlatform": zod.string().max(generateDraftRecipeResponseGuidePromptStudioGamePlatformMax).optional(),
+  "gameEngine": zod.string().max(generateDraftRecipeResponseGuidePromptStudioGameEngineMax).optional(),
+  "websiteFramework": zod.string().max(generateDraftRecipeResponseGuidePromptStudioWebsiteFrameworkMax).optional(),
+  "websiteStyle": zod.string().max(generateDraftRecipeResponseGuidePromptStudioWebsiteStyleMax).optional(),
+  "previewUrl": zod.url().max(generateDraftRecipeResponseGuidePromptStudioPreviewUrlMax).optional()
+}).optional(),
   "snapshot": zod.object({
   "bestFor": zod.string().optional(),
   "worksBestWhen": zod.string().optional(),
@@ -2239,7 +2547,7 @@ export const GenerateDraftRecipeResponse = zod.object({
   "workflowDiagram": zod.string().max(generateDraftRecipeResponseGuideCustomContentWorkflowDiagramMax).optional(),
   "images": zod.array(zod.object({
   "url": zod.url().max(generateDraftRecipeResponseGuideCustomContentImagesItemUrlMax),
-  "alt": zod.string().max(generateDraftRecipeResponseGuideCustomContentImagesItemAltMax),
+  "alt": zod.string().min(1).max(generateDraftRecipeResponseGuideCustomContentImagesItemAltMax),
   "caption": zod.string().max(generateDraftRecipeResponseGuideCustomContentImagesItemCaptionMax).optional()
 })).max(generateDraftRecipeResponseGuideCustomContentImagesMax).optional()
 }).optional(),

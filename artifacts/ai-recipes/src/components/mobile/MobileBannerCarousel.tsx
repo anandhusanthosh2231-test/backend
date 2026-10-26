@@ -96,8 +96,8 @@ export function MobileBannerCarousel({ recipeOfDay }: MobileBannerCarouselProps)
     setActiveIndex(index);
   };
 
-  // Auto rotate banner every 5 seconds if not actively touched
   useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const timer = setInterval(() => {
       setActiveIndex((prev) => {
         const next = (prev + 1) % banners.length;
@@ -160,7 +160,7 @@ export function MobileBannerCarousel({ recipeOfDay }: MobileBannerCarouselProps)
         ))}
       </div>
 
-      <div className="flipkart-banner-dots" aria-hidden="true">
+      <div className="flipkart-banner-dots" role="group" aria-label="Choose a featured highlight">
         {banners.map((_, index) => (
           <button
             key={index}
@@ -168,6 +168,7 @@ export function MobileBannerCarousel({ recipeOfDay }: MobileBannerCarouselProps)
             className={`flipkart-banner-dot ${index === activeIndex ? 'is-active' : ''}`}
             onClick={() => scrollToSlide(index)}
             aria-label={`Go to slide ${index + 1}`}
+            aria-current={index === activeIndex ? 'true' : undefined}
           />
         ))}
       </div>

@@ -35,6 +35,8 @@ import { useMobileEnforcement } from '@/hooks/useMobileEnforcement';
 import { createDefaultRecipeLayout, isValidRecipeLayout, RecipeLayoutBuilder, RecipeLayoutRenderer, RecipePromptInputEditor } from '@/components/recipe-layout';
 import type { RecipeLayoutData } from '@/components/recipe-layout';
 import { RecipePromptInputs } from '@/components/recipe-prompt-inputs';
+import { PromptStudio } from '@/components/admin/PromptStudio';
+import { RecipePromptShowcase } from '@/components/RecipePromptShowcase';
 import { getRecipePromptInputErrors, resolveRecipePrompt } from '@/lib/recipe-prompt';
 import { ADMIN_PATH, getAdminPath } from '@/lib/admin-path';
 import { Footer } from '@/components/Footer';
@@ -112,7 +114,10 @@ function usePageMeta(title: string, description: string, structured?: unknown) {
 
 function Logo() {
   return <Link href="/" className="brand-mark taskbakeai-desktop-brand" aria-label="TaskBakeAI home" data-testid="link-logo">
-    <img src={`${basePath}/taskbakeai-wordmark.png`} alt="TaskBakeAI — Practical AI workflows for real life" />
+    <picture className="brand-picture">
+      <source srcSet={`${basePath}/taskbakeai-wordmark.webp`} type="image/webp" />
+      <img src={`${basePath}/taskbakeai-wordmark.png`} width="2172" height="724" alt="TaskBakeAI — Practical AI workflows for real life" decoding="async" />
+    </picture>
   </Link>;
 }
 
@@ -234,16 +239,16 @@ function HomePage() {
   const exampleSearches = ['Create a LinkedIn post', 'Build a presentation', 'Analyze data', 'Create an Instagram campaign', 'Study for an exam', 'Generate an image'];
   const runExampleSearch = (example: string) => setLocation(`/search?q=${encodeURIComponent(example)}`);
   usePageMeta('TaskBakeAI — Practical AI workflows for real work', 'A trusted, Indian-first field guide to practical AI workflows you can copy, run, and make your own.');
-  if (isLoading) return <SiteShell><LoadingState /></SiteShell>;
-  if (isError || !data) return <SiteShell><ErrorState retry={() => refetch()} /></SiteShell>;
+  if (isError) return <SiteShell><ErrorState retry={() => refetch()} /></SiteShell>;
+  const home = data ?? { recipeOfDay: null, trending: [], popular: [], categories: [], audiences: [] };
   return <SiteShell>
-    <MobileCategoryChips categories={data.categories} />
-    <MobileBannerCarousel recipeOfDay={data.recipeOfDay} />
+    <MobileCategoryChips categories={home.categories.slice(0, 8)} />
+    <MobileBannerCarousel recipeOfDay={home.recipeOfDay} />
     <div className="home-hero"><div className="shell hero-grid"><div className="hero-copy"><span className="kicker"><span className="kicker-mark" />A field guide for the AI age</span><h1>Practical AI workflows you can actually use.</h1><p>Tested, outcome-focused recipes for writing, studying, running a business, making things, and getting through the everyday.</p><div className="hero-cta-row"><Link href="/recipes" className="button button-dark" data-testid="link-hero-explore">Explore Recipes <ArrowRight size={16} /></Link><Link href="/submit" className="button button-outline" data-testid="link-hero-create">Create a Recipe</Link></div><form className="hero-search" onSubmit={(e) => { e.preventDefault(); if (search.trim()) setLocation(`/search?q=${encodeURIComponent(search.trim())}`); }}><Search size={19} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search AI recipes, workflows, and use cases..." aria-label="Search workflows" data-testid="input-home-search" /><button type="submit" data-testid="button-home-search">Search <ArrowRight size={16} /></button></form><div className="hero-examples">{exampleSearches.map((example) => <button key={example} type="button" className="hero-example-chip" onClick={() => runExampleSearch(example)} data-testid={`chip-example-${example.toLowerCase().replace(/\s+/g, '-')}`}>{example}</button>)}</div><div className="hero-proof"><span className="proof-avatars"><i>AS</i><i>RK</i><i>MP</i></span><span>Made for real work, not prompt theatre.</span></div></div><div className="hero-art"><div className="hero-index-card"><span className="hero-index-card__label">A curated index</span><strong>01—30</strong><span>tested workflows<br />for the workday</span><i>AI<br />RECIPES</i></div><div className="hero-side-note"><span>FIELD NOTE / 001</span><strong>Start with the problem.</strong><p>Not the tool.</p></div><div className="hero-art-footer"><span>Vol. 01</span><span>India / Everywhere</span></div></div></div></div>
-    <section className="shell home-section feature-section">{data.recipeOfDay && <div className="feature-card"><div className="feature-side"><span className="kicker">Recipe of the day</span><span className="feature-number">01</span><p>One thoughtful workflow, picked for the way people actually work today.</p></div><div className="feature-main"><div className="card-topline"><span className="eyebrow">{data.recipeOfDay.category}</span><span className="verified-label"><Check size={13} /> Tested workflow</span></div><Link href={`/recipes/${data.recipeOfDay.slug}`} data-testid="link-recipe-of-day"><h2>{data.recipeOfDay.title}</h2></Link><p>{data.recipeOfDay.shortDescription}</p><div className="feature-bottom"><span><Clock3 size={14} /> {data.recipeOfDay.estimatedTime}</span><Link href={`/recipes/${data.recipeOfDay.slug}`} className="arrow-link" data-testid="link-recipe-of-day-read">Read the recipe <ArrowRight size={16} /></Link></div></div></div>}</section>
-    <section className="shell home-section"><div className="section-heading"><div><span className="kicker">The shelf, refreshed</span><h2>For the thing you need to do next.</h2></div><Link href="/recipes" className="arrow-link" data-testid="link-all-recipes">Browse all recipes <ArrowRight size={16} /></Link></div><RecipeGrid recipes={data.trending || []} /></section>
-    <section className="categories-band"><div className="shell home-section"><div className="section-heading"><div><span className="kicker">Browse by context</span><h2>Start where the work lives.</h2></div></div><div className="category-list">{data.categories.map((category) => <Link href={`/categories/${category.slug}`} className="category-row" key={category.id} data-testid={`link-category-${category.id}`}><span className="category-index">{String(category.id).padStart(2, '0')}</span><span className="category-name">{category.name}</span><span className="category-count">{category.recipeCount} recipes</span><ArrowRight size={18} /></Link>)}</div></div></section>
-     <section className="shell home-section audience-section"><div><span className="kicker">Made for</span><h2>Different desks.<br /><em>Same clarity.</em></h2></div><div className="audience-pills">{data.audiences.map((audience) => <Link href={`/audiences/${audience.slug}`} key={audience.id} className="audience-pill" data-testid={`link-audience-${audience.id}`}>{audience.name}<span>{audience.recipeCount}</span></Link>)}</div></section>
+    <section className="shell home-section feature-section">{home.recipeOfDay ? <div className="feature-card"><div className="feature-side"><span className="kicker">Recipe of the day</span><span className="feature-number">01</span><p>One thoughtful workflow, picked for the way people actually work today.</p></div><div className="feature-main"><div className="card-topline"><span className="eyebrow">{home.recipeOfDay.category}</span><span className="verified-label"><Check size={13} /> Tested workflow</span></div><Link href={`/recipes/${home.recipeOfDay.slug}`} data-testid="link-recipe-of-day"><h2>{home.recipeOfDay.title}</h2></Link><p>{home.recipeOfDay.shortDescription}</p><div className="feature-bottom"><span><Clock3 size={14} /> {home.recipeOfDay.estimatedTime}</span><Link href={`/recipes/${home.recipeOfDay.slug}`} className="arrow-link" data-testid="link-recipe-of-day-read">Read the recipe <ArrowRight size={16} /></Link></div></div></div> : isLoading ? <div className="feature-card feature-card-skeleton" aria-hidden="true" /> : null}</section>
+    <section className="shell home-section"><div className="section-heading"><div><span className="kicker">The shelf, refreshed</span><h2>For the thing you need to do next.</h2></div><Link href="/recipes" className="arrow-link" data-testid="link-all-recipes">Browse all recipes <ArrowRight size={16} /></Link></div>{isLoading ? <RecipeGridSkeleton count={6} /> : <RecipeGrid recipes={home.trending || []} />}</section>
+    <section className="categories-band"><div className="shell home-section"><div className="section-heading"><div><span className="kicker">Browse by context</span><h2>Start where the work lives.</h2></div></div><div className="category-list">{isLoading ? Array.from({ length: 8 }, (_, index) => <div className="category-row category-row-skeleton" key={index} aria-hidden="true" />) : home.categories.slice(0, 8).map((category) => <Link href={`/categories/${category.slug}`} className="category-row" key={category.id} data-testid={`link-category-${category.id}`}><span className="category-index">{String(category.id).padStart(2, '0')}</span><span className="category-name">{category.name}</span><span className="category-count">{category.recipeCount} recipes</span><ArrowRight size={18} /></Link>)}</div><Link href="/categories" className="arrow-link" data-testid="link-all-categories">All categories <ArrowRight size={16} /></Link></div></section>
+     <section className="shell home-section audience-section"><div><span className="kicker">Made for</span><h2>Different desks.<br /><em>Same clarity.</em></h2><Link href="/audiences" className="arrow-link" data-testid="link-all-audiences">All audiences <ArrowRight size={16} /></Link></div><div className="audience-pills">{isLoading ? Array.from({ length: 8 }, (_, index) => <span className="audience-pill audience-pill-skeleton" key={index} aria-hidden="true" />) : home.audiences.slice(0, 8).map((audience) => <Link href={`/audiences/${audience.slug}`} key={audience.id} className="audience-pill" data-testid={`link-audience-${audience.id}`}>{audience.name}<span>{audience.recipeCount}</span></Link>)}</div></section>
      <section className="creator-cta"><div className="shell creator-cta-inner"><div><span className="kicker">Make the shelf better</span><h2>Have a workflow that actually works?</h2><p>Share the problem, the prompt, and what happened. Good submissions become tested recipes for everyone.</p></div><div className="creator-cta-actions"><Link href="/submit" className="button button-light" data-testid="link-home-submit">Share your workflow <ArrowRight size={16} /></Link><div className="creator-steps"><span><b>01</b> Tell us the moment</span><span><b>02</b> Add the workflow</span><span><b>03</b> We test the result</span></div></div></div></section>
   </SiteShell>;
 }
@@ -523,8 +528,21 @@ function RecipePage() {
       },
     );
   };
+  const promptType = guide.promptType ?? 'text';
+  const visualShowcase = promptType === 'text' ? null : (
+    <RecipePromptShowcase
+      promptType={promptType}
+      title={recipe.title}
+      description={recipe.shortDescription}
+      images={guide.imagesJson ?? guide.customContent?.images ?? []}
+      details={guide.promptStudio}
+      onCopy={copyPrompt}
+      copyDisabled={missingRequiredPromptVariables}
+      copied={copied}
+    />
+  );
   if (recipe.layoutMode === 'custom' && isValidRecipeLayout(recipe.layoutConfig)) {
-    return <SiteShell><div className="shell custom-recipe-page"><RecipeLayoutRenderer
+    return <SiteShell>{visualShowcase}<div className="shell custom-recipe-page"><RecipeLayoutRenderer
       recipe={recipe}
       config={recipe.layoutConfig}
       related={related.data ?? []}
@@ -658,6 +676,7 @@ function RecipePage() {
           </div>
         </section>
       </div>
+      {visualShowcase}
       <section className="shell recipe-quick-start">
         <div><span className="kicker">Quick start</span><h2>Ready to try?</h2></div>
         <ol><li>Copy the prompt</li><li>Add your context</li><li>Run it in your AI tool</li><li>Review the result</li><li>Refine if needed</li></ol>
@@ -2708,6 +2727,7 @@ function normalizeRecipeGuide(guide?: RecipeGuideData | null, requiredInputs: st
 function cleanRecipeGuide(guide: RecipeGuideData, requiredInputs: string[]): RecipeGuideData {
   const normalized = normalizeRecipeGuide(guide, requiredInputs);
   const cleanStrings = (items?: string[]) => (items ?? []).map((item) => item.trim()).filter(Boolean);
+  const cleanOptionalText = (value?: string) => value?.trim() || undefined;
   return {
     ...normalized,
     snapshot: { ...normalized.snapshot, bestWith: cleanStrings(normalized.snapshot?.bestWith) },
@@ -2747,6 +2767,23 @@ function cleanRecipeGuide(guide: RecipeGuideData, requiredInputs: string[]): Rec
         alt: image.alt.trim(),
         caption: image.caption?.trim(),
       })).filter((image) => image.url),
+    } : undefined,
+    imagesJson: normalized.imagesJson?.map((image) => ({
+      ...image,
+      url: image.url.trim(),
+      alt: image.alt.trim(),
+      caption: cleanOptionalText(image.caption),
+    })).filter((image) => image.url && image.alt),
+    promptStudio: normalized.promptStudio ? {
+      style: cleanOptionalText(normalized.promptStudio.style),
+      model: cleanOptionalText(normalized.promptStudio.model),
+      aspectRatio: cleanOptionalText(normalized.promptStudio.aspectRatio),
+      gameGenre: cleanOptionalText(normalized.promptStudio.gameGenre),
+      gamePlatform: cleanOptionalText(normalized.promptStudio.gamePlatform),
+      gameEngine: cleanOptionalText(normalized.promptStudio.gameEngine),
+      websiteFramework: cleanOptionalText(normalized.promptStudio.websiteFramework),
+      websiteStyle: cleanOptionalText(normalized.promptStudio.websiteStyle),
+      previewUrl: cleanOptionalText(normalized.promptStudio.previewUrl),
     } : undefined,
     quality: { ...normalized.quality, testedWith: cleanStrings(normalized.quality?.testedWith) },
   };
@@ -3265,6 +3302,7 @@ function AdminRecipeEditor() {
             </div>
             {form.layoutMode === 'custom' && <RecipeLayoutBuilder value={layoutConfig} onChange={(next) => setForm((current) => ({ ...current, layoutConfig: next }))} recipe={layoutPreviewRecipe} recipeId={isNew ? undefined : Number(id)} />}
           </section>
+          <PromptStudio value={guide} onChange={updateGuide} />
           <div className="editor-main">
             {form.layoutMode === 'custom' ? <CustomLayoutRecipeEditor
               form={form}
@@ -4556,7 +4594,10 @@ function SearchPage() { const query = new URLSearchParams(window.location.search
 
 function AuthBrand() {
   return <Link href="/" className="auth-brand" aria-label="TaskBakeAI home">
-    <img src={`${basePath}/taskbakeai-wordmark-light.png`} alt="TaskBakeAI — Practical AI workflows for real life" />
+    <picture className="brand-picture">
+      <source srcSet={`${basePath}/taskbakeai-wordmark-light.webp`} type="image/webp" />
+      <img src={`${basePath}/taskbakeai-wordmark-light.png`} width="2172" height="724" alt="TaskBakeAI — Practical AI workflows for real life" decoding="async" />
+    </picture>
   </Link>;
 }
 
