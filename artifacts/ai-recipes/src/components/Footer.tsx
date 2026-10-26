@@ -45,18 +45,21 @@ export function Footer({
     const robot = robotRef.current;
     if (!footer || !track || !robot) return;
 
-    const updateTravel = () => {
-      const travel = Math.max(0, track.clientWidth - robot.getBoundingClientRect().width);
+    let trackWidth = 0;
+    let robotWidth = 0;
+    const updateTravel = (trackWidth: number, robotWidth: number) => {
+      const travel = Math.max(0, trackWidth - robotWidth);
       track.style.setProperty('--robot-travel', `${travel}px`);
     };
-    updateTravel();
-
-    const resizeObserver = 'ResizeObserver' in window
-      ? new ResizeObserver(updateTravel)
-      : null;
-    resizeObserver?.observe(track);
-    resizeObserver?.observe(robot);
-    if (!resizeObserver) window.addEventListener('resize', updateTravel);
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === track) trackWidth = entry.contentRect.width;
+        if (entry.target === robot) robotWidth = entry.contentRect.width;
+      }
+      if (trackWidth > 0 && robotWidth > 0) updateTravel(trackWidth, robotWidth);
+    });
+    resizeObserver.observe(track);
+    resizeObserver.observe(robot);
 
     let intersectionObserver: IntersectionObserver | null = null;
     if ('IntersectionObserver' in window) {
@@ -71,8 +74,7 @@ export function Footer({
     }
 
     return () => {
-      resizeObserver?.disconnect();
-      if (!resizeObserver) window.removeEventListener('resize', updateTravel);
+      resizeObserver.disconnect();
       intersectionObserver?.disconnect();
     };
   }, []);

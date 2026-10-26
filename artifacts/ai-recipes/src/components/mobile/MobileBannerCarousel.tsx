@@ -22,6 +22,7 @@ interface MobileBannerCarouselProps {
 
 export function MobileBannerCarousel({ recipeOfDay, loading = false }: MobileBannerCarouselProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const containerWidthRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const banners: BannerItem[] = [
@@ -75,21 +76,11 @@ export function MobileBannerCarousel({ recipeOfDay, loading = false }: MobileBan
     },
   ];
 
-  const handleScroll = () => {
-    if (!containerRef.current) return;
-    const container = containerRef.current;
-    const scrollPosition = container.scrollLeft;
-    const cardWidth = container.offsetWidth * 0.92;
-    const index = Math.round(scrollPosition / cardWidth);
-    if (index >= 0 && index < banners.length) {
-      setActiveIndex(index);
-    }
-  };
-
   const scrollToSlide = (index: number) => {
     if (!containerRef.current) return;
     const container = containerRef.current;
-    const cardWidth = container.offsetWidth * 0.92;
+    const cardWidth = containerWidthRef.current * 0.92;
+    if (cardWidth === 0) return;
     container.scrollTo({
       left: index * cardWidth,
       behavior: 'smooth',
@@ -98,22 +89,53 @@ export function MobileBannerCarousel({ recipeOfDay, loading = false }: MobileBan
   };
 
   useEffect(() => {
+    if (loading) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      containerWidthRef.current = entry.contentRect.width;
+    });
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [loading]);
+
+  useEffect(() => {
+    if (loading) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      const mostVisible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((first, second) => second.intersectionRatio - first.intersectionRatio)[0];
+      if (mostVisible?.target instanceof HTMLElement) {
+        setActiveIndex(Number(mostVisible.target.dataset.slideIndex));
+      }
+    }, { root: container, threshold: 0.5 });
+    container.querySelectorAll<HTMLElement>('[data-slide-index]').forEach((card) => observer.observe(card));
+
+    return () => observer.disconnect();
+  }, [banners.length, loading]);
+
+  useEffect(() => {
     if (loading || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const timer = setInterval(() => {
       setActiveIndex((prev) => {
         const next = (prev + 1) % banners.length;
-        if (containerRef.current) {
-          const cardWidth = containerRef.current.offsetWidth * 0.92;
-          containerRef.current.scrollTo({
-            left: next * cardWidth,
-            behavior: 'smooth',
-          });
-        }
+        const container = containerRef.current;
+        const cardWidth = containerWidthRef.current * 0.92;
+        if (container && cardWidth > 0) container.scrollTo({ left: next * cardWidth, behavior: 'smooth' });
         return next;
       });
     }, 5500);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+    };
   }, [banners.length, loading]);
 
   if (loading) {
@@ -130,7 +152,6 @@ export function MobileBannerCarousel({ recipeOfDay, loading = false }: MobileBan
       <div
         className="flipkart-banner-rail"
         ref={containerRef}
-        onScroll={handleScroll}
         role="region"
         aria-roledescription="carousel"
       >
@@ -141,6 +162,7 @@ export function MobileBannerCarousel({ recipeOfDay, loading = false }: MobileBan
             className="flipkart-banner-card"
             style={{ background: banner.accentBg, color: banner.textColor }}
             data-testid={`mobile-banner-${banner.id}`}
+            data-slide-index={index}
             aria-label={banner.title}
           >
             <div className="flipkart-banner-card__content">

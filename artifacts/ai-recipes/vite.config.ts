@@ -1,9 +1,43 @@
 import path from 'path';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
+
+const deferStylesheets = (): Plugin => ({
+  name: 'defer-stylesheets',
+  enforce: 'post',
+  apply: 'build',
+  generateBundle(_options, bundle) {
+    for (const output of Object.values(bundle)) {
+      if (output.type !== 'asset' || !output.fileName.endsWith('.html')) continue;
+
+      const html = typeof output.source === 'string'
+        ? output.source
+        : new TextDecoder().decode(output.source);
+      let deferredStylesheetCount = 0;
+      const transformedHtml = html.replace(/<link\b[^>]*>/g, (link) => {
+        if (!/\brel="stylesheet"/.test(link) || !/\bhref="[^"]+\.css"/.test(link)) {
+          return link;
+        }
+
+        deferredStylesheetCount += 1;
+        const preloadLink = link.replace(
+          /\brel="stylesheet"/,
+          'rel="preload" as="style" onload="this.onload=null;this.rel=\'stylesheet\'"',
+        );
+        return `${preloadLink}<noscript>${link}</noscript>`;
+      });
+
+      if (deferredStylesheetCount === 0 && /href="[^"]+\.css"/.test(html)) {
+        throw new Error(`Failed to defer the stylesheet in ${output.fileName}`);
+      }
+
+      output.source = transformedHtml;
+    }
+  },
+});
 
 const rawPort = process.env.PORT || '5173';
 
@@ -22,6 +56,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
+    deferStylesheets(),
     ...(process.env.NODE_ENV !== 'production' &&
     process.env.REPL_ID !== undefined
       ? [
