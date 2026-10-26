@@ -128,8 +128,10 @@ function usePageMeta(title: string, description: string, structured?: unknown) {
 function Logo() {
   return <Link href="/" className="brand-mark taskbakeai-desktop-brand" aria-label="TaskBakeAI home" data-testid="link-logo">
     <picture className="brand-picture">
-      <source srcSet={`${basePath}/taskbakeai-wordmark.webp`} type="image/webp" />
-      <img src={`${basePath}/taskbakeai-wordmark.png`} width="2172" height="724" alt="TaskBakeAI — Practical AI workflows for real life" decoding="async" />
+      <source media="(min-width: 769px)" srcSet={`${basePath}/taskbakeai-wordmark.webp`} type="image/webp" />
+      <source media="(min-width: 769px)" srcSet={`${basePath}/taskbakeai-wordmark.png`} />
+      <source media="(max-width: 768px)" srcSet={`${basePath}/taskbakeai-mark-96.webp`} type="image/webp" />
+      <img src={`${basePath}/taskbakeai-mark.png`} width="96" height="96" alt="TaskBakeAI — Practical AI workflows for real life" decoding="async" />
     </picture>
   </Link>;
 }

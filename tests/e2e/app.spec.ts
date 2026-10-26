@@ -34,6 +34,12 @@ test('mobile bottom navigation opens Why TaskBakeAI instead of a cart', async ({
 });
 
 test('TaskBakeAI shows the supplied mark on mobile and wordmark on desktop', async ({ page }) => {
+  const wordmarkRequests: string[] = [];
+  page.on('request', (request) => {
+    if (/taskbakeai-wordmark\.(?:webp|png)$/.test(new URL(request.url()).pathname)) {
+      wordmarkRequests.push(request.url());
+    }
+  });
   await mockApi(page);
   await page.setViewportSize({ width: 320, height: 844 });
   await page.goto('/');
@@ -45,14 +51,16 @@ test('TaskBakeAI shows the supplied mark on mobile and wordmark on desktop', asy
   await expect.poll(() => mobileMark.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   await expect.poll(() => mobileMark.evaluate((image) => (image as HTMLImageElement).currentSrc)).toMatch(/taskbakeai-mark-96\.webp$/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  expect(wordmarkRequests).toHaveLength(0);
 
   await page.setViewportSize({ width: 1280, height: 900 });
   const desktopBrand = page.getByRole('banner').getByTestId('link-logo');
   const desktopWordmark = desktopBrand.locator('img');
   await expect(desktopBrand).toBeVisible();
-  await expect(desktopWordmark).toHaveAttribute('src', '/taskbakeai-wordmark.png');
+  await expect(desktopWordmark).toHaveAttribute('src', '/taskbakeai-mark.png');
   await expect.poll(() => desktopWordmark.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   await expect.poll(() => desktopWordmark.evaluate((image) => (image as HTMLImageElement).currentSrc)).toMatch(/taskbakeai-wordmark\.webp$/);
+  expect(wordmarkRequests).toHaveLength(1);
 });
 
 test('homepage renders its primary heading before home API data arrives', async ({ page }) => {
@@ -65,13 +73,14 @@ test('homepage renders its primary heading before home API data arrives', async 
 });
 
 test('mobile homepage keeps the trending card height stable while data loads', async ({ page }) => {
-  await mockApi(page, { homeResponseDelayMs: 1000 });
+  await mockApi(page, { homeResponseDelayMs: 1500 });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
 
   const grid = page.locator('.home-trending-section .recipe-grid');
   const placeholder = grid.locator('.recipe-card-skeleton').first();
   await expect(placeholder).toBeVisible();
+  await expect.poll(() => placeholder.evaluate((element) => element.getBoundingClientRect().height)).toBe(320);
   const placeholderHeight = await placeholder.evaluate((element) => element.getBoundingClientRect().height);
   await expect(grid.locator('.recipe-card').first()).toBeVisible();
   const recipeHeight = await grid.locator('.recipe-card').first().evaluate((element) => element.getBoundingClientRect().height);
