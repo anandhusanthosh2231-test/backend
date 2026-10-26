@@ -284,13 +284,24 @@ test('new category names get distinct, relevant mobile icons', async ({ page }) 
 test('mobile navigation resets scroll to the top and recipe breadcrumbs stay aligned', async ({ page }) => {
   await mockApi(page);
   await page.setViewportSize({ width: 375, height: 812 });
+  await page.addInitScript(() => {
+    const nativeScrollTo = window.scrollTo.bind(window);
+    let scrollToCalls = 0;
+    Object.defineProperty(window, '__scrollToCalls', { get: () => scrollToCalls });
+    window.scrollTo = (...args: Parameters<typeof window.scrollTo>) => {
+      scrollToCalls += 1;
+      nativeScrollTo(...args);
+    };
+  });
   await page.goto('/');
 
+  expect(await page.evaluate(() => (window as Window & { __scrollToCalls: number }).__scrollToCalls)).toBe(0);
   await page.locator('.site-footer').scrollIntoViewIfNeeded();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   await page.getByTestId('link-footer-explore').click();
   await expect(page).toHaveURL(/\/recipes$/);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  expect(await page.evaluate(() => (window as Window & { __scrollToCalls: number }).__scrollToCalls)).toBe(1);
 
   await page.goto('/recipes/brief-to-project-plan');
   const breadcrumbs = page.locator('.recipe-hero .breadcrumbs');

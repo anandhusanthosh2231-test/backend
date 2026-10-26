@@ -140,8 +140,9 @@ function ScrollToTop() {
   const [location] = useLocation();
 
   useEffect(() => {
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    if (window.scrollY > 0) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
   }, [location]);
 
   return null;
