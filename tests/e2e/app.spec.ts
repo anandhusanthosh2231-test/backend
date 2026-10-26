@@ -83,11 +83,52 @@ test('mobile homepage keeps the trending card height stable while data loads', a
 test('mobile homepage reserves space for category and featured recipe loading', async ({ page }) => {
   await mockApi(page, { homeResponseDelayMs: 1500 });
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    const layoutShifts: Array<{ value: number; sources: string[] }> = [];
+    Object.defineProperty(window, '__layoutShifts', { value: layoutShifts });
+    new PerformanceObserver((entries) => {
+      for (const entry of entries.getEntries() as (PerformanceEntry & {
+        value: number;
+        hadRecentInput: boolean;
+        sources?: Array<{ node: Element | null }>;
+      })[]) {
+        if (!entry.hadRecentInput) {
+          layoutShifts.push({
+            value: entry.value,
+            sources: entry.sources?.map(({ node }) => node
+              ? `${node.tagName.toLowerCase()}.${String(node.className).replaceAll(' ', '.')}`
+              : 'unknown') ?? [],
+          });
+        }
+      }
+    }).observe({ type: 'layout-shift', buffered: true });
+  });
   await page.goto('/');
 
   await expect(page.locator('.flipkart-category-scroll-container--loading')).toBeVisible();
   await expect(page.locator('.flipkart-banner-section--loading')).toBeVisible();
   await expect(page.locator('.flipkart-category-scroll-container--loading .flipkart-category-skeleton')).toHaveCount(6);
+  const loadingHeights = await page.evaluate(() => ({
+    categories: document.querySelector('.flipkart-category-scroll-container')?.getBoundingClientRect().height ?? 0,
+    banner: document.querySelector('.flipkart-banner-section')?.getBoundingClientRect().height ?? 0,
+    bannerCard: document.querySelector('.flipkart-banner-loading-card')?.getBoundingClientRect().height ?? 0,
+    bannerDots: document.querySelector('.flipkart-banner-loading-dots')?.getBoundingClientRect().height ?? 0,
+  }));
+  await expect(page.locator('.flipkart-category-scroll-container--loading')).toHaveCount(0);
+  await expect(page.locator('.flipkart-banner-section--loading')).toHaveCount(0);
+  const loadedHeights = await page.evaluate(() => ({
+    categories: document.querySelector('.flipkart-category-scroll-container')?.getBoundingClientRect().height ?? 0,
+    banner: document.querySelector('.flipkart-banner-section')?.getBoundingClientRect().height ?? 0,
+    bannerCard: document.querySelector('.flipkart-banner-card')?.getBoundingClientRect().height ?? 0,
+    bannerDots: document.querySelector('.flipkart-banner-dots')?.getBoundingClientRect().height ?? 0,
+  }));
+
+  const layoutShifts = await page.evaluate(() => (window as Window & {
+    __layoutShifts: Array<{ value: number; sources: string[] }>;
+  }).__layoutShifts);
+  expect(Math.abs(loadedHeights.categories - loadingHeights.categories)).toBeLessThanOrEqual(1);
+  expect(Math.abs(loadedHeights.banner - loadingHeights.banner)).toBeLessThanOrEqual(1);
+  expect(layoutShifts.reduce((total, shift) => total + shift.value, 0), JSON.stringify(layoutShifts)).toBeLessThan(0.1);
 });
 
 test('mobile layout preserves zoom and carousel touch target sizes', async ({ page }) => {

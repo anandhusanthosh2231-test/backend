@@ -538,7 +538,7 @@
 .flipkart-category-skeleton {
   flex: 0 0 62px;
   width: 62px;
-  height: 76px;
+  height: 71px;
   border-radius: 12px;
   background: #e9dfd0;
 }
@@ -553,8 +553,8 @@
 }
 
 .flipkart-banner-loading-card {
-  height: 176px;
-  margin: 8px 16px 0;
+  height: 209px;
+  margin: 8px 16px;
   border-radius: 18px;
   background: #302a38;
 }
@@ -562,8 +562,9 @@
 .flipkart-banner-loading-dots {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 6px;
-  padding: 12px 0 4px;
+  height: 62px;
 }
 
 .flipkart-banner-loading-dots i {
