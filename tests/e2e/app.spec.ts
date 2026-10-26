@@ -64,6 +64,22 @@ test('homepage renders its primary heading before home API data arrives', async 
   await expect(page.getByTestId('status-loading-grid')).toBeVisible();
 });
 
+test('mobile homepage keeps the trending card height stable while data loads', async ({ page }) => {
+  await mockApi(page, { homeResponseDelayMs: 1000 });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  const grid = page.locator('.home-trending-section .recipe-grid');
+  const placeholder = grid.locator('.recipe-card-skeleton').first();
+  await expect(placeholder).toBeVisible();
+  const placeholderHeight = await placeholder.evaluate((element) => element.getBoundingClientRect().height);
+  await expect(grid.locator('.recipe-card').first()).toBeVisible();
+  const recipeHeight = await grid.locator('.recipe-card').first().evaluate((element) => element.getBoundingClientRect().height);
+
+  expect(placeholderHeight).toBe(320);
+  expect(recipeHeight).toBe(placeholderHeight);
+});
+
 test('mobile homepage reserves space for category and featured recipe loading', async ({ page }) => {
   await mockApi(page, { homeResponseDelayMs: 1500 });
   await page.setViewportSize({ width: 390, height: 844 });

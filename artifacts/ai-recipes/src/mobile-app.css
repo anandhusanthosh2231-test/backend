@@ -448,6 +448,13 @@
   scrollbar-width: none;
 }
 
+@media (max-width: 680px) {
+  .home-trending-section .recipe-grid > :is(.recipe-card, .recipe-card-skeleton) {
+    min-height: 320px;
+    box-sizing: border-box;
+  }
+}
+
 .flipkart-category-scroll-rail::-webkit-scrollbar {
   display: none;
 }
