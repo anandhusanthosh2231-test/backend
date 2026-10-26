@@ -74,6 +74,38 @@ test('mobile homepage reserves space for category and featured recipe loading', 
   await expect(page.locator('.flipkart-category-scroll-container--loading .flipkart-category-skeleton')).toHaveCount(6);
 });
 
+test('mobile layout preserves zoom and carousel touch target sizes', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  await expect(page.locator('meta[name="viewport"]')).toHaveAttribute(
+    'content',
+    'width=device-width, initial-scale=1.0, viewport-fit=cover',
+  );
+
+  const carouselDots = page.getByRole('group', { name: 'Choose a featured highlight' }).getByRole('button');
+  await expect(carouselDots).toHaveCount(4);
+  const touchTargets = await carouselDots.evaluateAll((buttons) => buttons.map((button) => {
+    const bounds = button.getBoundingClientRect();
+    return { width: bounds.width, height: bounds.height };
+  }));
+  expect(touchTargets.every(({ width, height }) => width >= 48 && height >= 48)).toBe(true);
+
+  await page.getByTestId('mobile-input-search').fill('planning');
+  const headerTargets = [
+    page.getByTestId('mobile-link-submit'),
+    page.getByTestId('mobile-link-signin'),
+    page.getByTestId('mobile-input-search'),
+    page.getByTestId('mobile-button-clear-search'),
+  ];
+  for (const target of headerTargets) {
+    const bounds = await target.boundingBox();
+    expect(bounds?.width).toBeGreaterThanOrEqual(48);
+    expect(bounds?.height).toBeGreaterThanOrEqual(48);
+  }
+});
+
 test('mobile auth uses the light wordmark and keeps the bottom menu available', async ({ page }) => {
   await mockApi(page);
   await page.setViewportSize({ width: 390, height: 844 });

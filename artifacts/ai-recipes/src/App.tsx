@@ -31,7 +31,6 @@ import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
 import { MobileTopHeader } from '@/components/mobile/MobileTopHeader';
 import { MobileCategoryChips } from '@/components/mobile/MobileCategoryChips';
 import { MobileBannerCarousel } from '@/components/mobile/MobileBannerCarousel';
-import { useMobileEnforcement } from '@/hooks/useMobileEnforcement';
 import { createDefaultRecipeLayout, isValidRecipeLayout, RecipeLayoutBuilder, RecipeLayoutRenderer, RecipePromptInputEditor } from '@/components/recipe-layout';
 import type { RecipeLayoutData } from '@/components/recipe-layout';
 import { RecipePromptInputs } from '@/components/recipe-prompt-inputs';
@@ -4654,7 +4653,6 @@ function ClerkRoutes() {
 }
 
 function App() {
-  useMobileEnforcement();
   return <QueryClientProviderWrapper><WouterRouter base={basePath}><ScrollToTop /><ErrorBoundary><ClerkRoutes /></ErrorBoundary></WouterRouter><Toaster /></QueryClientProviderWrapper>;
 }
 

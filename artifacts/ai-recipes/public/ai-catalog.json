@@ -1,31 +1,22 @@
 {
-  "name": "TaskBakeAI",
-  "description": "An Indian-first library of practical AI workflows with reusable prompts, examples, and verification guidance.",
-  "url": "/",
-  "resources": [
+  "ard_version": "0.1",
+  "publisher": {
+    "name": "TaskBakeAI",
+    "url": "https://quiet-haze-04ca.trilogenix.workers.dev/"
+  },
+  "capabilities": [
     {
-      "name": "Recipe library",
-      "description": "Browse and search the published AI workflows.",
-      "url": "/recipes",
-      "type": "collection"
-    },
-    {
-      "name": "Categories",
-      "description": "Browse workflows by category.",
-      "url": "/categories",
-      "type": "collection"
-    },
-    {
-      "name": "Audiences",
-      "description": "Browse workflows by audience.",
-      "url": "/audiences",
-      "type": "collection"
-    },
-    {
-      "name": "Large language model guidance",
-      "description": "Instructions for AI agents browsing the site.",
-      "url": "/llms.txt",
-      "type": "documentation"
+      "id": "practical-ai-workflow-library",
+      "kind": "tool",
+      "name": "TaskBakeAI recipe library",
+      "description": "Browse and search practical AI workflows, reusable prompts, examples, and verification guidance.",
+      "tags": [
+        "AI workflows",
+        "recipe library",
+        "prompts",
+        "India"
+      ],
+      "url": "https://quiet-haze-04ca.trilogenix.workers.dev/recipes"
     }
   ]
 }

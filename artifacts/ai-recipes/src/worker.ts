@@ -69,12 +69,26 @@ export default {
     const assetResponse = await env.ASSETS.fetch(request);
     if (assetResponse.status !== 404) {
       const headers = new Headers(assetResponse.headers);
+      let body: BodyInit | null = assetResponse.body;
       if (/\/assets\/[^/]+-[A-Za-z0-9_-]{8,}\.[^/]+$/.test(url.pathname)) {
         headers.set('Cache-Control', 'public, max-age=31536000, immutable');
       } else if (headers.get('Content-Type')?.includes('text/html')) {
         headers.set('Cache-Control', 'no-cache, must-revalidate');
+        if (request.method === 'GET' && url.pathname === '/') {
+          const html = await assetResponse.text();
+          const headClose = html.lastIndexOf('</head>');
+          const preload = '<link rel="preload" href="/api/home" as="fetch" crossorigin="anonymous" />';
+          if (headClose !== -1 && !html.includes('href="/api/home"')) {
+            body = `${html.slice(0, headClose)}${preload}${html.slice(headClose)}`;
+            headers.delete('Content-Length');
+            headers.delete('Content-Encoding');
+            headers.delete('ETag');
+          } else {
+            body = html;
+          }
+        }
       }
-      return new Response(assetResponse.body, {
+      return new Response(body, {
         status: assetResponse.status,
         statusText: assetResponse.statusText,
         headers,
