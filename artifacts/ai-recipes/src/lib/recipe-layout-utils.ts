@@ -21,10 +21,24 @@ export function newId() {
 
 export function createDefaultRecipeLayout(): RecipeLayoutConfig {
   const types: RecipeLayoutBlock['type'][] = [
-    'hero', 'overview', 'inputs', 'outcome', 'workflow', 'prompt', 'example',
+    'hero', 'prompt', 'workflow', 'overview', 'inputs', 'outcome', 'example',
     'refinements', 'verification', 'troubleshooting', 'diagram', 'images', 'related',
   ];
   return { version: 1, blocks: types.map((type) => ({ id: newId(), type, visible: true, align: 'left', width: 'standard', background: 'plain' })) };
+}
+
+export function prioritizePromptWorkflow(blocks: RecipeLayoutBlock[]): RecipeLayoutBlock[] {
+  const prompt = blocks.find((block) => block.type === 'prompt');
+  const workflow = blocks.find((block) => block.type === 'workflow');
+  if (!prompt && !workflow) return blocks;
+
+  const primaryIds = new Set([prompt?.id, workflow?.id]);
+  const remaining = blocks.filter((block) => !primaryIds.has(block.id));
+  const heroIndex = remaining.findIndex((block) => block.type === 'hero');
+  remaining.splice(heroIndex < 0 ? 0 : heroIndex + 1, 0, ...[prompt, workflow].filter(
+    (block): block is RecipeLayoutBlock => block !== undefined,
+  ));
+  return remaining;
 }
 
 export function isValidRecipeLayout(value: unknown): value is RecipeLayoutConfig {

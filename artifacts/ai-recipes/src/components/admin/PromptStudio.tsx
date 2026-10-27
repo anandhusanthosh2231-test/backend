@@ -1,5 +1,6 @@
 import type { RecipeGuide, RecipeGuidePromptType, RecipePromptStudio, RecipeVisualImage } from '@workspace/api-client-react';
 import { ImagePlus, Plus, Trash2 } from 'lucide-react';
+import { MediaPicker } from '@/components/admin/MediaPicker';
 import './prompt-studio.css';
 
 const promptTypes: Array<{ value: RecipeGuidePromptType; label: string; help: string }> = [
@@ -22,9 +23,11 @@ function isHttpUrl(value: string) {
 export function PromptStudio({
   value,
   onChange,
+  recipeId,
 }: {
   value: PromptStudioGuide;
   onChange: (patch: Partial<PromptStudioGuide>) => void;
+  recipeId?: number;
 }) {
   const promptType = value.promptType ?? 'text';
   const images = value.imagesJson ?? [];
@@ -81,7 +84,7 @@ export function PromptStudio({
           )}
 
           <div className="prompt-studio__images-heading">
-            <div><h3><ImagePlus size={17} /> Visual references</h3><p>Use public HTTPS image links. Images stay in the recipe JSON; no upload or migration is needed.</p></div>
+            <div><h3><ImagePlus size={17} /> Visual references</h3><p>Upload images to Cloudflare storage or use an existing public image URL. The recipe saves the image URL.</p></div>
             <button type="button" className="button button-outline" disabled={images.length >= 20} onClick={() => onChange({ imagesJson: [...images, { url: '', alt: '', caption: '' }] })} data-testid="button-prompt-add-image">
               <Plus size={15} /> Add image
             </button>
@@ -92,15 +95,21 @@ export function PromptStudio({
             {images.map((image, index) => (
               <fieldset className="prompt-studio__image" key={`${index}-${image.url}`}>
                 <legend>Image {index + 1}</legend>
-                <label>External image URL
+                <label>Image URL
                   <input
                     type="url"
                     value={image.url}
                     onChange={(event) => updateImage(index, { url: event.target.value })}
-                    placeholder="https://raw.githubusercontent.com/user/repository/main/image.webp"
+                    placeholder="https://your-image-cdn.example/image.webp"
                     data-testid={`input-prompt-image-url-${index}`}
                   />
                 </label>
+                <MediaPicker
+                  recipeId={recipeId}
+                  purpose="sections"
+                  value={image.url}
+                  onSelect={(url) => updateImage(index, { url })}
+                />
                 <div className="prompt-studio__image-fields">
                   <label>Alt text
                     <input value={image.alt} onChange={(event) => updateImage(index, { alt: event.target.value })} placeholder="Describe what the image shows" />

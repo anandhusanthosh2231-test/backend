@@ -1,10 +1,11 @@
 import { useEffect, useId, useState } from 'react';
 import type { RecipeCard, RecipeGuide, RecipeLayoutBlock, RecipeLayoutConfig } from '@workspace/api-client-react';
-import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, ImagePlus, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import './recipe-layout.css';
 import { RecipePromptInputs } from '@/components/recipe-prompt-inputs';
-import { getRecipePromptInputErrors, resolveRecipePrompt } from '@/lib/recipe-prompt';
-import { blockKinds, blockLabels, createDefaultRecipeLayout, newId } from '@/lib/recipe-layout-utils';
+import { MediaPicker } from '@/components/admin/MediaPicker';
+import { getRecipePromptFields, getRecipePromptInputErrors, resolveRecipePrompt } from '@/lib/recipe-prompt';
+import { blockKinds, blockLabels, createDefaultRecipeLayout, newId, prioritizePromptWorkflow } from '@/lib/recipe-layout-utils';
 
 export { createDefaultRecipeLayout, isValidRecipeLayout } from '@/lib/recipe-layout-utils';
 
@@ -31,9 +32,15 @@ export interface RecipeLayoutData {
 }
 
 function LayoutSection({ block, children }: { block: RecipeLayoutBlock; children: React.ReactNode }) {
-  const heading = block.heading || blockLabels[block.type];
+  const defaultHeading = block.type === 'prompt'
+    ? 'Prompt Studio & Interactive Inputs'
+    : block.type === 'workflow'
+      ? 'Execution Steps & Workflow Guide'
+      : blockLabels[block.type];
+  const heading = block.heading || defaultHeading;
+  const sectionNumber = block.type === 'prompt' ? '01' : block.type === 'workflow' ? '02' : null;
   return <section className={`layout-block layout-width-${block.width ?? 'standard'} layout-align-${block.align ?? 'left'} layout-bg-${block.background ?? 'plain'}`}>
-    {block.type !== 'hero' && (heading || block.subtitle) && <header className="layout-block-heading">{heading && <h2>{heading}</h2>}{block.subtitle && <p>{block.subtitle}</p>}</header>}
+    {block.type !== 'hero' && (heading || block.subtitle) && <header className="layout-block-heading">{sectionNumber && <span className="kicker">Section {sectionNumber}</span>}{heading && <h2>{heading}</h2>}{block.subtitle && <p>{block.subtitle}</p>}</header>}
     {children}
   </section>;
 }
@@ -167,14 +174,14 @@ export function RecipeLayoutRenderer({
   onPromptValueChange?: (name: string, value: string) => void;
   editorPreview?: boolean;
 }) {
+  const guide = recipe.guide;
+  const promptVariables = getRecipePromptFields(recipe.prompt, guide?.promptVariables ?? []);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copyError, setCopyError] = useState(false);
   const [localPromptValues, setLocalPromptValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries((recipe.guide?.promptVariables ?? []).map((field) => [field.name, field.defaultValue ?? ''])),
+    Object.fromEntries(promptVariables.map((field) => [field.name, field.defaultValue ?? ''])),
   );
-  const guide = recipe.guide;
   const customContent = guide?.customContent;
-  const promptVariables = guide?.promptVariables ?? [];
   const promptValues = providedPromptValues ?? localPromptValues;
   const promptInputErrors = providedPromptInputErrors ?? getRecipePromptInputErrors(promptVariables, promptValues);
   const resolvedPrompt = providedResolvedPrompt ?? resolveRecipePrompt(recipe.prompt, promptVariables, promptValues);
@@ -197,7 +204,10 @@ export function RecipeLayoutRenderer({
     return recipe[reference as keyof RecipeLayoutData] ?? '';
   };
 
-  return <div className="custom-recipe-layout">{config.blocks.filter((block) => block.visible).map((block) => {
+  const visibleBlocks = config.blocks.filter((block) => block.visible);
+  const renderBlocks = editorPreview ? visibleBlocks : prioritizePromptWorkflow(visibleBlocks);
+
+  return <div className="custom-recipe-layout">{renderBlocks.map((block) => {
     let content: React.ReactNode = null;
     switch (block.type) {
       case 'hero':
@@ -231,8 +241,11 @@ export function RecipeLayoutRenderer({
         content = <div className="layout-prompt">
           {!!promptVariables.length && <RecipePromptInputs fields={promptVariables} values={promptValues} errors={promptInputErrors} onChange={updatePromptValue} idPrefix={`layout-${block.id}`} nativeRequired={!editorPreview} />}
           {Object.keys(promptInputErrors).length > 0 && <p className="form-error" role="alert">Complete the required fields and correct invalid values before copying.</p>}
+          <div className="layout-prompt-toolbar">
+            <span>Prompt preview</span>
+            <button type="button" className="button button-dark" disabled={Object.keys(promptInputErrors).length > 0} onClick={() => void copyPrompt(block.id)}><Copy size={15} />{copiedId === block.id ? 'Copied' : 'Copy prompt'}</button>
+          </div>
           <pre>{resolvedPrompt}</pre>
-          <button type="button" className="button button-dark" disabled={Object.keys(promptInputErrors).length > 0} onClick={() => void copyPrompt(block.id)}><Copy size={15} />{copiedId === block.id ? 'Copied' : 'Copy prompt'}</button>
           {copyError && <p className="form-error" role="alert">Clipboard access failed. Select and copy the prompt text above.</p>}
         </div>;
         break;
@@ -298,85 +311,6 @@ export function RecipeLayoutRenderer({
     if (content === null || content === undefined) return null;
     return <LayoutSection key={block.id} block={block}>{content}</LayoutSection>;
   })}</div>;
-}
-
-function MediaPicker({ recipeId, purpose, value, onSelect }: {
-  recipeId?: number;
-  purpose: 'cover' | 'sections';
-  value?: string;
-  onSelect: (url: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [configured, setConfigured] = useState<boolean | null>(null);
-  const [items, setItems] = useState<Array<{ key: string; url: string; contentType: string; size: number }>>([]);
-  const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState('');
-  const [retryFile, setRetryFile] = useState<File | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    setBusy(true);
-    const query = recipeId ? `?recipeId=${recipeId}` : '';
-    fetch(`/api/admin/media${query}`, { credentials: 'include' })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('Could not load recipe images.');
-        return response.json();
-      })
-      .then((data) => { setConfigured(Boolean(data.configured)); setItems(data.items ?? []); })
-      .catch((reason) => setError(reason instanceof Error ? reason.message : 'Could not load recipe images.'))
-      .finally(() => setBusy(false));
-  }, [open, recipeId]);
-
-  const upload = async (file: File) => {
-    setRetryFile(file);
-    setError('');
-    setBusy(true);
-    setProgress(0);
-    try {
-      const query = new URLSearchParams({ purpose, ...(recipeId ? { recipeId: String(recipeId) } : {}) });
-      const data = await new Promise<{ key: string; url: string; contentType: string; size: number }>((resolve, reject) => {
-        const request = new XMLHttpRequest();
-        request.open('POST', `/api/admin/media/upload?${query}`);
-        request.withCredentials = true;
-        request.setRequestHeader('Content-Type', file.type);
-        request.upload.onprogress = (event) => {
-          if (event.lengthComputable) setProgress(Math.round((event.loaded / event.total) * 100));
-        };
-        request.onerror = () => reject(new Error('Image upload failed. Check your connection and retry.'));
-        request.onload = () => {
-          let response: Record<string, unknown> = {};
-          try { response = JSON.parse(request.responseText) as Record<string, unknown>; } catch { /* Use the status fallback below. */ }
-          if (request.status < 200 || request.status >= 300) reject(new Error(typeof response.error === 'string' ? response.error : 'Image upload failed.'));
-          else resolve(response as { key: string; url: string; contentType: string; size: number });
-        };
-        request.send(file);
-      });
-      setItems((current) => [data, ...current]);
-      onSelect(data.url);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Image upload failed.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return <div className="layout-media-picker">
-    <button type="button" className="button button-outline" onClick={() => { setOpen((current) => !current); setError(''); }}><ImagePlus size={15} />{open ? 'Close image library' : value ? 'Replace image' : 'Choose image'}</button>
-    {value && <button type="button" className="layout-remove-image" onClick={() => onSelect('')}>Remove image reference</button>}
-    {open && <div className="layout-media-panel">
-      <label className="layout-upload-drop" onDragOver={(event) => { event.preventDefault(); }} onDrop={(event) => { event.preventDefault(); const file = event.dataTransfer.files[0]; if (file && !busy) void upload(file); }}>
-        {busy ? 'Working…' : 'Drop an image here or choose a file'}
-        <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.currentTarget.value = ''; }} />
-      </label>
-      {error && <div className="layout-media-error" role="alert">{error}{retryFile && <button type="button" onClick={() => void upload(retryFile)}>Retry upload</button>}</div>}
-      {configured === false && <p className="layout-media-note">R2 image storage is not configured. You can still use an image URL or publish without images.</p>}
-      {busy && <progress aria-label="Image upload progress" max={100} value={progress || undefined} />}
-      {busy && progress > 0 && <span>{progress}% uploaded</span>}
-      {!busy && <div className="layout-media-grid">{items.map((item) => <button type="button" key={item.key} onClick={() => onSelect(item.url)} aria-label={`Use image ${item.key.split('/').at(-1)}`}><img src={item.url} alt="" loading="lazy" /></button>)}</div>}
-      {configured && !busy && !items.length && <p className="layout-media-note">No images uploaded yet.</p>}
-    </div>}
-  </div>;
 }
 
 export function RecipeLayoutBuilder({ value, onChange, recipe, recipeId }: {

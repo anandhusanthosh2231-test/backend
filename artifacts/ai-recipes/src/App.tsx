@@ -13,10 +13,10 @@ import {
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation, useParams } from 'wouter';
 import {
-  getGetAudienceQueryKey, getGetCategoryQueryKey, getGetRecipeQueryKey, getGetRelatedRecipesQueryKey,
+  getGetCategoryQueryKey, getGetRecipeQueryKey, getGetRelatedRecipesQueryKey,
   getGetAdminSummaryQueryKey, getGetHomeQueryKey, getListAdminRecipesQueryKey, getListAdminSubmissionsQueryKey, getListAudiencesQueryKey, getListCategoriesQueryKey, getListRecipesQueryKey, getListSavedRecipesQueryKey,
   useCreateAdminAudience, useCreateAdminCategory, useCreateAdminRecipe, useCreateSubmission, useDeleteAdminCategory, useDeleteAdminRecipe, useDuplicateAdminRecipe,
-  useBulkUpdateAdminRecipes, useGenerateDraftRecipe, useGetAdminAnalytics, useGetAdminSummary, useGetAudience, useGetCategory,
+  useBulkUpdateAdminRecipes, useGenerateDraftRecipe, useGetAdminAnalytics, useGetAdminSummary, useGetCategory,
   useGetHome, useGetMe, useGetRecipe, useGetRelatedRecipes, useListAdminRecipes,
   useImportAdminRecipesCsv, useListAdminSubmissions, useListAudiences, useListCategories, useListHistory, useListRecipes,
   useListSavedRecipes, useSaveRecipe, useSubmitFeedback, useTrackEvent, useUnsaveRecipe,
@@ -36,7 +36,7 @@ import type { RecipeLayoutData } from '@/components/recipe-layout';
 import { RecipePromptInputs } from '@/components/recipe-prompt-inputs';
 import { PromptStudio } from '@/components/admin/PromptStudio';
 import { RecipePromptShowcase } from '@/components/RecipePromptShowcase';
-import { getRecipePromptInputErrors, resolveRecipePrompt } from '@/lib/recipe-prompt';
+import { getRecipePromptFields, getRecipePromptInputErrors, resolveRecipePrompt } from '@/lib/recipe-prompt';
 import { ADMIN_PATH, getAdminPath } from '@/lib/admin-path';
 import { Footer } from '@/components/Footer';
 
@@ -152,7 +152,7 @@ function Header() {
   const [open, setOpen] = useState(false);
   const [location] = useLocation();
   const { isSignedIn } = useAuth();
-  const links = [['/recipes', 'Discover'], ['/categories', 'Categories'], ['/audiences', 'Collections'], ['/why-ai-recipes', 'Why recipes'], ['/about', 'About']];
+  const links = [['/recipes', 'Discover'], ['/categories', 'Categories'], ['/why-ai-recipes', 'Why recipes'], ['/about', 'About']];
   return <header className="site-header">
     <div className="shell header-inner">
       <Logo />
@@ -223,6 +223,27 @@ function RecipeCardView({ recipe, saved = false, onSave }: { recipe: RecipeCard;
   </article>;
 }
 
+function HomeRecipeCard({ recipe }: { recipe: RecipeCard }) {
+  return (
+    <article className="home-recipe-card" data-testid={`home-recipe-${recipe.id}`}>
+      <div className="home-recipe-card__topline">
+        <span>{recipe.category}</span>
+        <span><Clock3 size={13} /> {recipe.estimatedTime}</span>
+      </div>
+      <Link href={`/recipes/${recipe.slug}`} className="home-recipe-card__title">
+        <h3>{recipe.title}</h3>
+      </Link>
+      <p>{recipe.shortDescription}</p>
+      <div className="home-recipe-card__tools" aria-label="Supported AI tools">
+        {recipe.aiTools.slice(0, 3).map((tool) => <span key={tool}>{tool}</span>)}
+      </div>
+      <Link href={`/recipes/${recipe.slug}`} className="home-recipe-card__open">
+        See workflow <ArrowRight size={15} />
+      </Link>
+    </article>
+  );
+}
+
 function RecipeGrid({ recipes, savedIds, onSave }: { recipes: RecipeCard[]; savedIds?: Set<number>; onSave?: (r: RecipeCard) => void }) {
   if (!recipes.length) return <EmptyState title="No recipes found yet" body="Try a broader search, or tell us what workflow you need next." action={<Link href="/submit" className="button button-dark" data-testid="link-submit-empty">Suggest a workflow <ArrowRight size={16} /></Link>} />;
   return <div className="recipe-grid">{recipes.map((recipe) => <RecipeCardView key={recipe.id} recipe={recipe} saved={savedIds?.has(recipe.id)} onSave={onSave} />)}</div>;
@@ -257,14 +278,92 @@ function HomePage() {
   usePageMeta('TaskBakeAI — Practical AI workflows for real work', 'A trusted, Indian-first field guide to practical AI workflows you can copy, run, and make your own.');
   if (isError) return <SiteShell><ErrorState retry={() => refetch()} /></SiteShell>;
   const home = data ?? { recipeOfDay: null, trending: [], popular: [], categories: [], audiences: [] };
+  const previewRecipe = home.recipeOfDay ?? home.popular[0] ?? home.trending[0];
+  const featuredRecipes = (home.popular.length ? home.popular : home.trending).slice(0, 3);
+  const categoryHref = (slug: string) => {
+    const category = home.categories.find((item) => item.slug === slug);
+    return category ? `/categories/${category.slug}` : '/recipes';
+  };
   return <SiteShell>
     <MobileCategoryChips categories={home.categories.slice(0, 8)} loading={isLoading} />
     <MobileBannerCarousel recipeOfDay={home.recipeOfDay} loading={isLoading} />
-    <div className="home-hero"><div className="shell hero-grid"><div className="hero-copy"><span className="kicker"><span className="kicker-mark" />A field guide for the AI age</span><h1>Practical AI workflows you can actually use.</h1><p>Tested, outcome-focused recipes for writing, studying, running a business, making things, and getting through the everyday.</p><div className="hero-cta-row"><Link href="/recipes" className="button button-dark" data-testid="link-hero-explore">Explore Recipes <ArrowRight size={16} /></Link><Link href="/submit" className="button button-outline" data-testid="link-hero-create">Create a Recipe</Link></div><form className="hero-search" onSubmit={(e) => { e.preventDefault(); if (search.trim()) setLocation(`/search?q=${encodeURIComponent(search.trim())}`); }}><Search size={19} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search AI recipes, workflows, and use cases..." aria-label="Search workflows" data-testid="input-home-search" /><button type="submit" data-testid="button-home-search">Search <ArrowRight size={16} /></button></form><div className="hero-examples">{exampleSearches.map((example) => <button key={example} type="button" className="hero-example-chip" onClick={() => runExampleSearch(example)} data-testid={`chip-example-${example.toLowerCase().replace(/\s+/g, '-')}`}>{example}</button>)}</div><div className="hero-proof"><span className="proof-avatars"><i>AS</i><i>RK</i><i>MP</i></span><span>Made for real work, not prompt theatre.</span></div></div><div className="hero-art"><div className="hero-index-card"><span className="hero-index-card__label">A curated index</span><strong>01—30</strong><span>tested workflows<br />for the workday</span><i>AI<br />RECIPES</i></div><div className="hero-side-note"><span>FIELD NOTE / 001</span><strong>Start with the problem.</strong><p>Not the tool.</p></div><div className="hero-art-footer"><span>Vol. 01</span><span>India / Everywhere</span></div></div></div></div>
+    <div className="home-hero">
+      <div className="shell hero-grid">
+        <div className="hero-copy">
+          <span className="kicker"><span className="kicker-mark" />A field guide for the AI age</span>
+          <h1>Practical AI workflows you can actually use.</h1>
+          <p>Tested, outcome-focused recipes for writing, studying, running a business, making things, and getting through the everyday.</p>
+          <div className="hero-cta-row">
+            <Link href="/recipes" className="button button-dark" data-testid="link-hero-explore">Explore Recipes <ArrowRight size={16} /></Link>
+            <Link href="/submit" className="button button-outline" data-testid="link-hero-create">Create a Recipe</Link>
+          </div>
+          <form className="hero-search" onSubmit={(e) => { e.preventDefault(); if (search.trim()) setLocation(`/search?q=${encodeURIComponent(search.trim())}`); }}>
+            <Search size={19} />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search AI recipes, workflows, and use cases..." aria-label="Search workflows" data-testid="input-home-search" />
+            <button type="submit" data-testid="button-home-search">Search <ArrowRight size={16} /></button>
+          </form>
+          <div className="hero-examples">{exampleSearches.map((example) => <button key={example} type="button" className="hero-example-chip" onClick={() => runExampleSearch(example)} data-testid={`chip-example-${example.toLowerCase().replace(/\s+/g, '-')}`}>{example}</button>)}</div>
+          <div className="hero-proof"><span className="proof-avatars"><i>AS</i><i>RK</i><i>MP</i></span><span>Made for real work, not prompt theatre.</span></div>
+        </div>
+        <div className="hero-art">
+          {previewRecipe ? (
+            <article className="hero-recipe-preview" data-testid="hero-recipe-preview">
+              <div className="hero-recipe-preview__topline">
+                <span><Sparkles size={14} /> WORKFLOW PREVIEW</span>
+                <span className="hero-recipe-preview__status"><Check size={13} /> Published recipe</span>
+              </div>
+              <div className="hero-recipe-preview__meta">
+                <span>{previewRecipe.category}</span>
+                <span><Clock3 size={13} /> {previewRecipe.estimatedTime}</span>
+              </div>
+              <h2>{previewRecipe.title}</h2>
+              <p className="hero-recipe-preview__description">{previewRecipe.shortDescription}</p>
+              <div className="hero-recipe-preview__flow">
+                <div><span>YOU BRING</span><p>Your task and the context that matters</p></div>
+                <ArrowRight size={18} aria-hidden="true" />
+                <div><span>YOU GET</span><p>A practical prompt, steps, and checks</p></div>
+              </div>
+              <div className="hero-recipe-preview__footer">
+                <span>Works with</span>
+                {previewRecipe.aiTools.slice(0, 3).map((tool) => <span className="hero-recipe-preview__tool" key={tool}>{tool}</span>)}
+              </div>
+              <Link href={`/recipes/${previewRecipe.slug}`} className="hero-recipe-preview__link" data-testid="link-hero-recipe-preview">
+                Open this recipe <ArrowRight size={15} />
+              </Link>
+            </article>
+          ) : (
+            <div className="hero-recipe-preview hero-recipe-preview--loading" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+    <section className="shell home-discovery-section" aria-labelledby="home-discovery-title">
+      <div className="home-discovery-section__heading">
+        <div>
+          <span className="kicker"><span className="kicker-mark" />Made for your workday</span>
+          <h2 id="home-discovery-title">Popular this week.</h2>
+          <p>Real workflows for the work in front of you—choose a starting point and make it yours.</p>
+        </div>
+        <Link href="/recipes" className="arrow-link" data-testid="link-home-discover-all">Browse all recipes <ArrowRight size={16} /></Link>
+      </div>
+      <nav className="home-discovery-links" aria-label="Browse recipes by focus">
+        <Link href="/recipes" data-testid="link-home-focus-workday">Made for your workday</Link>
+        <Link href={categoryHref('career')} data-testid="link-home-focus-career">Career &amp; job hunting</Link>
+        <Link href={categoryHref('content')} data-testid="link-home-focus-content">Content creation</Link>
+        <Link href={categoryHref('business')} data-testid="link-home-focus-business">Business</Link>
+        <Link href={categoryHref('productivity')} data-testid="link-home-focus-productivity">Productivity</Link>
+      </nav>
+      {isLoading ? <RecipeGridSkeleton count={3} /> : featuredRecipes.length
+        ? <div className="home-recipe-grid">{featuredRecipes.map((recipe) => <HomeRecipeCard key={recipe.id} recipe={recipe} />)}</div>
+        : <EmptyState title="Your next workflow is on its way" body="Browse the library to find a practical recipe for the task in front of you." action={<Link href="/recipes" className="button button-dark">Explore recipes <ArrowRight size={16} /></Link>} />}
+    </section>
     <section className="shell home-section feature-section">{home.recipeOfDay ? <div className="feature-card"><div className="feature-side"><span className="kicker">Recipe of the day</span><span className="feature-number">01</span><p>One thoughtful workflow, picked for the way people actually work today.</p></div><div className="feature-main"><div className="card-topline"><span className="eyebrow">{home.recipeOfDay.category}</span><span className="verified-label"><Check size={13} /> Tested workflow</span></div><Link href={`/recipes/${home.recipeOfDay.slug}`} data-testid="link-recipe-of-day"><h2>{home.recipeOfDay.title}</h2></Link><p>{home.recipeOfDay.shortDescription}</p><div className="feature-bottom"><span><Clock3 size={14} /> {home.recipeOfDay.estimatedTime}</span><Link href={`/recipes/${home.recipeOfDay.slug}`} className="arrow-link" data-testid="link-recipe-of-day-read">Read the recipe <ArrowRight size={16} /></Link></div></div></div> : isLoading ? <div className="feature-card feature-card-skeleton" aria-hidden="true" /> : null}</section>
     <section className="shell home-section home-trending-section"><div className="section-heading"><div><span className="kicker">The shelf, refreshed</span><h2>For the thing you need to do next.</h2></div><Link href="/recipes" className="arrow-link" data-testid="link-all-recipes">Browse all recipes <ArrowRight size={16} /></Link></div>{isLoading ? <RecipeGridSkeleton count={6} /> : <RecipeGrid recipes={home.trending || []} />}</section>
     <section className="categories-band"><div className="shell home-section"><div className="section-heading"><div><span className="kicker">Browse by context</span><h2>Start where the work lives.</h2></div></div><div className="category-list">{isLoading ? Array.from({ length: 8 }, (_, index) => <div className="category-row category-row-skeleton" key={index} aria-hidden="true" />) : home.categories.slice(0, 8).map((category) => <Link href={`/categories/${category.slug}`} className="category-row" key={category.id} data-testid={`link-category-${category.id}`}><span className="category-index">{String(category.id).padStart(2, '0')}</span><span className="category-name">{category.name}</span><span className="category-count">{category.recipeCount} recipes</span><ArrowRight size={18} /></Link>)}</div><Link href="/categories" className="arrow-link" data-testid="link-all-categories">All categories <ArrowRight size={16} /></Link></div></section>
-     <section className="shell home-section audience-section"><div><span className="kicker">Made for</span><h2>Different desks.<br /><em>Same clarity.</em></h2><Link href="/audiences" className="arrow-link" data-testid="link-all-audiences">All audiences <ArrowRight size={16} /></Link></div><div className="audience-pills">{isLoading ? Array.from({ length: 8 }, (_, index) => <span className="audience-pill audience-pill-skeleton" key={index} aria-hidden="true" />) : home.audiences.slice(0, 8).map((audience) => <Link href={`/audiences/${audience.slug}`} key={audience.id} className="audience-pill" data-testid={`link-audience-${audience.id}`}>{audience.name}<span>{audience.recipeCount}</span></Link>)}</div></section>
      <section className="creator-cta"><div className="shell creator-cta-inner"><div><span className="kicker">Make the shelf better</span><h2>Have a workflow that actually works?</h2><p>Share the problem, the prompt, and what happened. Good submissions become tested recipes for everyone.</p></div><div className="creator-cta-actions"><Link href="/submit" className="button button-light" data-testid="link-home-submit">Share your workflow <ArrowRight size={16} /></Link><div className="creator-steps"><span><b>01</b> Tell us the moment</span><span><b>02</b> Add the workflow</span><span><b>03</b> We test the result</span></div></div></div></section>
   </SiteShell>;
 }
@@ -433,16 +532,7 @@ function RecipePage() {
     };
   }
   const declaredVariables = guide.promptVariables ?? [];
-  const variableFields: NonNullable<RecipeGuideData["promptVariables"]> = declaredVariables.length
-    ? declaredVariables.map((variable) => ({
-        ...variable,
-        name: variable.name.trim().replace(/^\{\{\s*/, "").replace(/\s*\}\}$/, ""),
-      }))
-    : [...recipe.prompt.matchAll(/\{\{\s*([\w.-]+)\s*\}\}/g)].map((match) => ({
-        name: match[1] ?? "",
-        label: (match[1] ?? "").replace(/[_-]+/g, " ").toLowerCase(),
-        required: false,
-      }));
+  const variableFields = getRecipePromptFields(recipe.prompt, declaredVariables);
   const promptInputErrors = getRecipePromptInputErrors(variableFields, variableValues);
   const missingRequiredPromptVariables = Object.keys(promptInputErrors).length > 0;
   const chosenSituation = guide.situations?.find((item) => item.name === selectedSituation);
@@ -693,13 +783,52 @@ function RecipePage() {
         </section>
       </div>
       {visualShowcase}
-      <section className="shell recipe-quick-start">
-        <div><span className="kicker">Quick start</span><h2>Ready to try?</h2></div>
-        <ol><li>Copy the prompt</li><li>Add your context</li><li>Run it in your AI tool</li><li>Review the result</li><li>Refine if needed</li></ol>
-        <button type="button" className="button button-dark" onClick={copyPrompt} disabled={missingRequiredPromptVariables} data-testid="button-quick-copy"><Copy size={15} />{copied ? "Copied" : "Copy prompt"}</button>
-      </section>
       <article className="shell recipe-body">
         <div className="recipe-main">
+          <section className="prompt-section recipe-prompt-experience" id="recipe-prompt">
+            <div className="content-heading">
+              <span className="step-count">01</span>
+              <div>
+                <span className="kicker">Prompt Studio &amp; Interactive Inputs</span>
+                <h2>Personalize your prompt, then copy.</h2>
+              </div>
+            </div>
+            {!!variableFields.length && <RecipePromptInputs
+              fields={variableFields}
+              values={variableValues}
+              errors={promptInputErrors}
+              onChange={(name, value) => setVariableValues((current) => ({ ...current, [name]: value }))}
+            />}
+            {missingRequiredPromptVariables && <p className="form-error" role="alert">Fill in the required details above before copying this prompt.</p>}
+            <div className="prompt-box">
+              <div className="prompt-label">
+                <span>Prompt preview · {finalPrompt.length.toLocaleString()} characters</span>
+                <button onClick={copyPrompt} disabled={missingRequiredPromptVariables} data-testid="button-copy-prompt">
+                  {copied ? <><Check size={15} /> Copied</> : <><Copy size={15} /> Copy prompt</>}
+                </button>
+              </div>
+              <pre>{finalPrompt.split(/(\{\{\s*[\w.-]+\s*\}\})/g).map((part, index) => part.startsWith("{{") ? <mark className="prompt-variable-token" key={`${part}-${index}`}>{part}</mark> : part)}</pre>
+            </div>
+            <div className="prompt-version-row"><span>Version {guide.quality?.version || recipe.version}</span>{recipe.updatedAt && <span>Updated {new Date(recipe.updatedAt).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</span>}{tested && guide.quality?.lastTested && <span>Last tested {new Date(guide.quality.lastTested).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</span>}</div>
+            {copyError && <p className="form-error" role="alert">Clipboard access failed. Select and copy the prompt text above.</p>}
+          </section>
+          {!!recipe.steps?.length && <section>
+            <div className="content-heading">
+              <span className="step-count">02</span>
+              <div>
+                <span className="kicker">Execution Steps &amp; Workflow Guide</span>
+                <h2>How to run this recipe.</h2>
+              </div>
+            </div>
+            <div className="steps-list">
+              {recipe.steps?.map((step, index) => (
+                <div className="step-row" key={`${step}-${index}`}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <p>{step}</p>
+                </div>
+              ))}
+            </div>
+          </section>}
           <section className="problem-section">
             <span className="kicker">The problem</span>
             <p className="problem-copy">{recipe.problem}</p>
@@ -730,55 +859,11 @@ function RecipePage() {
             </div>
           </details>
           {!!guide.situations?.length && <section className="recipe-situation-picker">
-            <div className="content-heading"><span className="step-count">01</span><div><span className="kicker">Choose your situation</span><h2>What are you working on?</h2></div></div>
+            <div className="content-heading"><div><span className="kicker">Choose your situation</span><h2>What are you working on?</h2></div></div>
             <div className="situation-options">{guide.situations.map((item) => <button type="button" key={item.name} className={selectedSituation === item.name ? "active" : ""} onClick={() => updateSelectedSituation(item.name)} aria-pressed={selectedSituation === item.name}>{item.name}</button>)}</div>
             {chosenSituation?.description && <p className="situation-description">{chosenSituation.description}</p>}
           </section>}
-          {!!recipe.steps?.length && <section>
-            <div className="content-heading">
-              <span className="step-count">02</span>
-              <div>
-                <span className="kicker">The workflow</span>
-                <h2>Run it in three moves.</h2>
-              </div>
-            </div>
-            <div className="steps-list">
-              {recipe.steps?.map((step, index) => (
-                <div className="step-row" key={`${step}-${index}`}>
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <p>{step}</p>
-                </div>
-              ))}
-            </div>
-          </section>}
-          <section className="prompt-section recipe-prompt-experience" id="recipe-prompt">
-            <div className="content-heading">
-              <span className="step-count">03</span>
-              <div>
-                <span className="kicker">Your AI recipe</span>
-                <h2>Fill these in, then copy.</h2>
-              </div>
-            </div>
-            {!!variableFields.length && <RecipePromptInputs
-              fields={variableFields}
-              values={variableValues}
-              errors={promptInputErrors}
-              onChange={(name, value) => setVariableValues((current) => ({ ...current, [name]: value }))}
-            />}
-            {missingRequiredPromptVariables && <p className="form-error" role="alert">Fill in the required details above before copying this prompt.</p>}
-            <div className="prompt-box">
-              <div className="prompt-label">
-                <span>Prompt · {finalPrompt.length.toLocaleString()} characters</span>
-                <button onClick={copyPrompt} disabled={missingRequiredPromptVariables} data-testid="button-copy-prompt">
-                  {copied ? <><Check size={15} /> Copied</> : <><Copy size={15} /> Copy prompt</>}
-                </button>
-              </div>
-              <pre>{finalPrompt.split(/(\{\{\s*[\w.-]+\s*\}\})/g).map((part, index) => part.startsWith("{{") ? <mark className="prompt-variable-token" key={`${part}-${index}`}>{part}</mark> : part)}</pre>
-            </div>
-            <div className="prompt-version-row"><span>Version {guide.quality?.version || recipe.version}</span>{recipe.updatedAt && <span>Updated {new Date(recipe.updatedAt).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</span>}{tested && guide.quality?.lastTested && <span>Last tested {new Date(guide.quality.lastTested).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</span>}</div>
-            {copyError && <p className="form-error" role="alert">Clipboard access failed. Select and copy the prompt text above.</p>}
-          </section>
-          {!!(guide.expectedOutput?.description || guide.expectedOutput?.characteristics?.length) && <section className="expected-output-section"><div className="content-heading"><span className="step-count">04</span><div><span className="kicker">Expected output</span><h2>What you’ll get</h2></div></div>{guide.expectedOutput.description && <p className="expected-output-copy">{guide.expectedOutput.description}</p>}{!!guide.expectedOutput.characteristics?.length && <div className="output-characteristics">{guide.expectedOutput.characteristics.map((item) => <span key={item}><Check size={14} />{item}</span>)}</div>}</section>}
+          {!!(guide.expectedOutput?.description || guide.expectedOutput?.characteristics?.length) && <section className="expected-output-section"><div className="content-heading"><span className="step-count">03</span><div><span className="kicker">Expected output</span><h2>What you’ll get</h2></div></div>{guide.expectedOutput.description && <p className="expected-output-copy">{guide.expectedOutput.description}</p>}{!!guide.expectedOutput.characteristics?.length && <div className="output-characteristics">{guide.expectedOutput.characteristics.map((item) => <span key={item}><Check size={14} />{item}</span>)}</div>}</section>}
           {guide.outputConfig && <section className="expected-output-config"><span className="kicker">Output structure · {guide.outputConfig.format}</span>{guide.outputConfig.description && <p>{guide.outputConfig.description}</p>}{!!guide.outputConfig.fields?.length && <ul>{guide.outputConfig.fields.map((field) => <li key={field}>{field}</li>)}</ul>}</section>}
           {!!examples.length && <details className="recipe-guide-section recipe-examples" onToggle={(event) => { if (event.currentTarget.open) trackGuideEvent("recipe_example_view"); }}>
             <summary><span className="kicker">Use</span><strong>Realistic examples</strong></summary>
@@ -815,7 +900,7 @@ function RecipePage() {
         <aside className="recipe-aside">
           <div className="aside-card recipe-glance-card">
             <span className="kicker">At a glance</span>
-            <div><span>Audience</span><Link href={`/audiences/${recipe.audienceSlug}`} data-testid="link-recipe-audience">{recipe.audience}</Link></div>
+            <div><span>Audience</span><strong>{recipe.audience}</strong></div>
             <div><span>Category</span><Link href={`/categories/${recipe.categorySlug}`} data-testid="link-recipe-category">{recipe.category}</Link></div>
             <div><span>Language</span><strong>{recipe.language}</strong></div>
             <div><span>Time</span><strong>{guide.timeToResult || recipe.estimatedTime}</strong></div>
@@ -838,21 +923,21 @@ function RecipePage() {
         </div>
         <RecipeGrid recipes={related.data || []} />
       </section>
+      <section className="shell recipe-quick-start">
+        <div><span className="kicker">Quick start</span><h2>Ready to try?</h2></div>
+        <ol><li>Copy the prompt</li><li>Add your context</li><li>Run it in your AI tool</li><li>Review the result</li><li>Refine if needed</li></ol>
+        <button type="button" className="button button-dark" onClick={copyPrompt} disabled={missingRequiredPromptVariables} data-testid="button-quick-copy"><Copy size={15} />{copied ? "Copied" : "Copy prompt"}</button>
+      </section>
       <div className="recipe-mobile-copy"><button type="button" className="button button-dark" onClick={copyPrompt} disabled={missingRequiredPromptVariables}><Copy size={16} />{copied ? "Copied" : "Copy prompt"}</button></div>
     </SiteShell>
   );
 }
 
-function CollectionPage({ type }: { type: "category" | "audience" }) {
+function CollectionPage() {
   const { slug = "" } = useParams<{ slug: string }>();
-  const query =
-    type === "category"
-      ? useGetCategory(slug, {
-          query: { queryKey: getGetCategoryQueryKey(slug) },
-        })
-      : useGetAudience(slug, {
-          query: { queryKey: getGetAudienceQueryKey(slug) },
-        });
+  const query = useGetCategory(slug, {
+    query: { queryKey: getGetCategoryQueryKey(slug) },
+  });
   usePageMeta(
     query.data
       ? `${query.data.name} workflows — TaskBakeAI`
@@ -876,7 +961,7 @@ function CollectionPage({ type }: { type: "category" | "audience" }) {
     <SiteShell>
       <div className="collection-hero shell">
         <span className="kicker">
-          {type === "category" ? "Category" : "Audience"}
+          Category
         </span>
         <h1>{query.data.name}</h1>
         <p>{query.data.description}</p>
@@ -891,13 +976,13 @@ function CollectionPage({ type }: { type: "category" | "audience" }) {
   );
 }
 
-function CollectionsIndex({ type }: { type: 'category' | 'audience' }) {
-  const query = type === 'category' ? useListCategories() : useListAudiences();
-  usePageMeta(type === 'category' ? 'Categories — TaskBakeAI' : 'Audiences — TaskBakeAI', 'Find the right shelf of practical AI workflows for the work you do.');
+function CollectionsIndex() {
+  const query = useListCategories();
+  usePageMeta('Categories — TaskBakeAI', 'Find the right shelf of practical AI workflows for the work you do.');
   if (query.isLoading) return <SiteShell><LoadingState /></SiteShell>;
   if (query.isError || !query.data) return <SiteShell><ErrorState retry={() => query.refetch()} /></SiteShell>;
   const items = query.data;
-  return <SiteShell><div className="page-intro shell"><span className="kicker">{type === 'category' ? 'Browse by context' : 'Browse by person'}</span><h1>{type === 'category' ? 'Start with the work.' : 'Made for your kind of day.'}</h1><p>{type === 'category' ? 'From blank page to busy back office, find a workflow that meets you where you are.' : 'Useful workflows are shaped by the person using them. Pick the desk, season, or role that feels familiar.'}</p></div><section className="shell collection-index">{items.map((item, index) => <Link href={`/${type === 'category' ? 'categories' : 'audiences'}/${item.slug}`} className="index-row" key={item.id} data-testid={`link-${type}-${item.id}`}><span className="category-index">{String(index + 1).padStart(2, '0')}</span><div><h2>{item.name}</h2><p>{item.description}</p></div><span className="category-count">{item.recipeCount} recipes</span><ArrowRight size={20} /></Link>)}</section></SiteShell>;
+  return <SiteShell><div className="page-intro shell"><span className="kicker">Browse by context</span><h1>Start with the work.</h1><p>From blank page to busy back office, find a workflow that meets you where you are.</p></div><section className="shell collection-index">{items.map((item, index) => <Link href={`/categories/${item.slug}`} className="index-row" key={item.id} data-testid={`link-category-${item.id}`}><span className="category-index">{String(index + 1).padStart(2, '0')}</span><div><h2>{item.name}</h2><p>{item.description}</p></div><span className="category-count">{item.recipeCount} recipes</span><ArrowRight size={20} /></Link>)}</section></SiteShell>;
 }
 
 function SubmitPage() {
@@ -3318,7 +3403,7 @@ function AdminRecipeEditor() {
             </div>
             {form.layoutMode === 'custom' && <Suspense fallback={<LoadingState />}><RecipeLayoutBuilder value={layoutConfig} onChange={(next) => setForm((current) => ({ ...current, layoutConfig: next }))} recipe={layoutPreviewRecipe} recipeId={isNew ? undefined : Number(id)} /></Suspense>}
           </section>
-          <PromptStudio value={guide} onChange={updateGuide} />
+          <PromptStudio value={guide} onChange={updateGuide} recipeId={isNew ? undefined : Number(id)} />
           <div className="editor-main">
             {form.layoutMode === 'custom' ? <CustomLayoutRecipeEditor
               form={form}
@@ -4654,8 +4739,7 @@ function Router() {
     <Route path="/sign-in/*?" component={SignInPage} /><Route path="/sign-up/*?" component={SignUpPage} />
     <Route path="/login" component={() => <Redirect to="/sign-in" />} /><Route path="/signup" component={() => <Redirect to="/sign-up" />} />
     <Route path="/" component={HomePage} /><Route path="/recipes" component={LibraryPage} /><Route path="/recipes/:slug" component={RecipePage} />
-    <Route path="/categories" component={() => <CollectionsIndex type="category" />} /><Route path="/categories/:slug" component={() => <CollectionPage type="category" />} />
-    <Route path="/audiences" component={() => <CollectionsIndex type="audience" />} /><Route path="/audiences/:slug" component={() => <CollectionPage type="audience" />} />
+    <Route path="/categories" component={CollectionsIndex} /><Route path="/categories/:slug" component={CollectionPage} />
     <Route path="/search" component={SearchPage} /><Route path="/submit" component={SubmitPage} /><Route path="/why-ai-recipes" component={WhyRecipesPage} /><Route path="/about" component={AboutPage} />
     <Route path="/privacy" component={() => <SimplePage type="privacy" />} /><Route path="/terms" component={() => <SimplePage type="terms" />} /><Route path="/disclaimer" component={() => <SimplePage type="disclaimer" />} />
     <Route path="/profile" component={() => <Protected><ProfilePage /></Protected>} /><Route path="/saved" component={() => <Protected><SavedPage /></Protected>} /><Route path="/history" component={() => <Protected><HistoryPage /></Protected>} />

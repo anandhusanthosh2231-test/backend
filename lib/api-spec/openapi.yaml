@@ -678,6 +678,9 @@ components:
         difficulty: { type: string }
         estimatedTime: { type: string }
         language: { type: string }
+        aiTools:
+          type: array
+          items: { type: string }
         tags:
           type: array
           items: { type: string }
@@ -686,7 +689,7 @@ components:
         viewCount: { type: number }
         copyCount: { type: number }
         saveCount: { type: number }
-      required: [id, title, slug, shortDescription, category, categorySlug, audience, audienceSlug, difficulty, estimatedTime, language, tags, featured, trending, viewCount, copyCount, saveCount]
+      required: [id, title, slug, shortDescription, category, categorySlug, audience, audienceSlug, difficulty, estimatedTime, language, aiTools, tags, featured, trending, viewCount, copyCount, saveCount]
     Recipe:
       allOf:
         - $ref: "#/components/schemas/RecipeCard"

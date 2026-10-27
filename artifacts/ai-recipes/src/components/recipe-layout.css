@@ -376,88 +376,6 @@
   }
 }
 
-.layout-media-picker {
-  display: grid;
-  justify-items: start;
-  gap: 0.5rem;
-}
-
-.layout-media-picker .button {
-  min-height: 2.4rem;
-}
-
-.layout-remove-image {
-  width: auto;
-  padding: 0.2rem 0.45rem;
-  color: #8b352e;
-  font-size: 0.8rem;
-}
-
-.layout-media-panel {
-  display: grid;
-  width: 100%;
-  gap: 0.6rem;
-  border: 1px solid #d9d7ce;
-  border-radius: 5px;
-  padding: 0.7rem;
-}
-
-.layout-upload-drop {
-  display: grid;
-  place-items: center;
-  min-height: 4.2rem;
-  border: 1px dashed #92978f;
-  border-radius: 5px;
-  padding: 0.6rem;
-  color: #3b514b;
-  text-align: center;
-  cursor: pointer;
-}
-
-.layout-upload-drop input {
-  width: 100%;
-  font-size: 0.75rem;
-}
-
-.layout-media-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-  gap: 0.4rem;
-  max-height: 190px;
-  overflow: auto;
-}
-
-.layout-media-grid button {
-  aspect-ratio: 1;
-  overflow: hidden;
-  border: 1px solid #d9d7ce;
-  border-radius: 4px;
-  background: #eeeee8;
-  padding: 0;
-  cursor: pointer;
-}
-
-.layout-media-grid img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.layout-media-error {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  color: #9b3028;
-}
-
-.layout-media-error button {
-  border: 0;
-  background: none;
-  color: inherit;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
 .custom-recipe-layout {
   display: grid;
   gap: clamp(1rem, 3vw, 2.5rem);
@@ -500,6 +418,11 @@
 
 .layout-block-heading {
   margin-bottom: 1rem;
+}
+
+.layout-block-heading .kicker {
+  display: block;
+  margin-bottom: 0.35rem;
 }
 
 .layout-block-heading h2 {
@@ -636,6 +559,17 @@
   color: #f7f8f2;
   padding: 1rem;
   line-height: 1.6;
+}
+
+.layout-prompt-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  color: #625f59;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .layout-prompt .prompt-variable-form {

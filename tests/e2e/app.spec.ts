@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { mockApi } from './fixtures';
+import { mockApi, recipeCard } from './fixtures';
 
 test('mobile bottom navigation opens Why TaskBakeAI instead of a cart', async ({ page }) => {
   await mockApi(page);
@@ -70,6 +70,44 @@ test('homepage renders its primary heading before home API data arrives', async 
   await expect(page.getByRole('heading', { name: 'Practical AI workflows you can actually use.' })).toBeVisible();
   await expect(page.getByTestId('status-loading')).toHaveCount(0);
   await expect(page.getByTestId('status-loading-grid')).toBeVisible();
+});
+
+test('homepage previews a real recipe and puts popular workflows directly below the hero', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/');
+
+  const preview = page.getByTestId('hero-recipe-preview');
+  await expect(preview).toBeVisible();
+  await expect(preview.getByRole('heading', { name: recipeCard.title })).toBeVisible();
+  await expect(preview).toContainText('Published recipe');
+  await expect(preview).toContainText('ChatGPT');
+  await expect(preview.getByRole('link', { name: 'Open this recipe' })).toHaveAttribute(
+    'href',
+    `/recipes/${recipeCard.slug}`,
+  );
+  await expect(page.locator('.hero-index-card')).toHaveCount(0);
+
+  const discovery = page.getByRole('region', { name: 'Popular this week.' });
+  await expect(discovery.getByTestId('home-recipe-1')).toBeVisible();
+  await expect(discovery.getByTestId('home-recipe-2')).toBeVisible();
+  await expect(discovery.getByTestId('home-recipe-3')).toBeVisible();
+  await expect(discovery.getByTestId('home-recipe-1').getByText('ChatGPT', { exact: true })).toBeVisible();
+  await expect(discovery.getByTestId('home-recipe-2').getByText('Claude', { exact: true })).toBeVisible();
+  await expect(discovery.getByTestId('home-recipe-3').getByText('Gemini', { exact: true })).toBeVisible();
+  for (const linkName of [
+    'Made for your workday',
+    'Career & job hunting',
+    'Content creation',
+    'Business',
+    'Productivity',
+  ]) {
+    await expect(discovery.getByRole('link', { name: linkName })).toBeVisible();
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(discovery.getByTestId('home-recipe-1')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
 test('root ARD manifest is valid JSON with the required discovery fields', async ({ request }) => {
@@ -470,6 +508,11 @@ test('recipe prompt copy and helpful feedback work', async ({ page }) => {
   const api = await mockApi(page);
   await page.goto('/recipes/brief-to-project-plan');
 
+  const mainSections = page.locator('.recipe-main > section');
+  await expect(mainSections.nth(0)).toHaveAttribute('id', 'recipe-prompt');
+  await expect(mainSections.nth(0)).toContainText('Prompt Studio & Interactive Inputs');
+  await expect(mainSections.nth(1).locator('.steps-list')).toBeVisible();
+  await expect(mainSections.nth(1)).toContainText('Execution Steps & Workflow Guide');
   await expect(page.locator('[data-testid^="prompt-showcase-"]')).toHaveCount(0);
   await page.getByTestId('button-quick-copy').click();
   await expect(page.getByTestId('button-quick-copy')).toContainText('Copied');
@@ -518,13 +561,76 @@ test('dynamic recipe inputs validate, resolve safely, and preserve unknown promp
   await expect(copyButton).toContainText('Copied');
 });
 
+test('recipe input presentation keeps backend order and supports resetting values', async ({ page }) => {
+  await mockApi(page, { bookClubRecipe: true });
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/recipes/brief-to-project-plan');
+
+  const inputLabels = await page.locator('.prompt-variable-form > label .prompt-input-label').evaluateAll((labels) =>
+    labels.map((label) => label.childNodes[0]?.textContent?.trim()),
+  );
+  expect(inputLabels).toEqual([
+    'Book title and author',
+    'Who is joining the discussion?',
+    'How much of the book can we discuss?',
+    'How long is your meeting?',
+    'What would you like to explore?',
+    'How far has everyone read?',
+    'Tone',
+  ]);
+  await expect(page.getByLabel('Book title and author')).toHaveValue('');
+  await expect(page.getByLabel('Who is joining the discussion?')).toHaveAttribute('placeholder', 'Describe who will be taking part');
+  await expect(page.getByText('Book title and author is required.')).toBeVisible();
+  await expect(page.getByTestId('button-copy-prompt')).toBeDisabled();
+
+  await page.getByLabel('Book title and author').fill('A novel and its author');
+  const preview = page.locator('.prompt-box pre');
+  await expect(preview).toContainText('Create a book club discussion kit for A novel and its author.');
+  for (const omittedField of ['Group:', 'Spoiler boundary:', 'Meeting length:', 'Discussion focus:', 'Reading progress:', 'Tone:']) {
+    await expect(preview).not.toContainText(omittedField);
+  }
+  const copyButton = page.getByTestId('button-copy-prompt');
+  await expect(copyButton).toBeEnabled();
+  await copyButton.click();
+  const visiblePrompt = (await preview.textContent())?.replace(/\r\n/g, '\n');
+  await expect.poll(async () => (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toBe(visiblePrompt);
+
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  const resetConfirmation = page.waitForEvent('dialog').then((dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Reset inputs' }).click();
+  await resetConfirmation;
+  await expect(page.getByLabel('Book title and author')).toHaveValue('');
+  await expect(copyButton).toBeDisabled();
+});
+
+test('legacy custom-layout recipes infer editable prompt fields without inventing required status', async ({ page }) => {
+  await mockApi(page, { legacyCustomLayoutRecipe: true });
+  await page.goto('/recipes/brief-to-project-plan');
+
+  const input = page.getByLabel('Target role');
+  await expect(input).toBeVisible();
+  await expect(input).not.toHaveAttribute('required', '');
+  await expect(page.locator('.optional-mark')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Copy prompt' })).toBeEnabled();
+  await input.fill('Senior product designer');
+  await expect(page.locator('.layout-prompt pre')).toContainText('Build a job-search plan for Senior product designer.');
+});
+
 test('custom-layout recipe renders an actionable workflow, personalized prompt, and optional sections', async ({ page }) => {
   await mockApi(page, { customLayoutRecipe: true });
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/recipes/brief-to-project-plan');
   await expect(page.getByRole('heading', { name: 'Turn a brief into a project plan' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Numbered workflow' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Execution Steps & Workflow Guide' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Expected outcome' })).toBeVisible();
+  const sectionHeadings = await page.locator('.layout-block-heading h2').allTextContents();
+  expect(sectionHeadings.slice(0, 2)).toEqual([
+    'Prompt Studio & Interactive Inputs',
+    'Execution Steps & Workflow Guide',
+  ]);
+  await expect(page.locator('.layout-prompt-toolbar')).toContainText('Prompt preview');
   await expect(page.getByText('Example input', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Screenshots / images', { exact: true })).toHaveCount(0);
   await expect(page.locator('.layout-diagram')).toBeVisible();
@@ -613,7 +719,7 @@ test('submitting a workflow validates required fields and shows success', async 
   });
 });
 
-test('category and audience collections open from their index pages', async ({
+test('category collections open from their index page and audience pages are removed', async ({
   page,
 }) => {
   await mockApi(page);
@@ -623,10 +729,8 @@ test('category and audience collections open from their index pages', async ({
   await expect(page.getByRole('heading', { name: 'Writing' })).toBeVisible();
 
   await page.goto('/audiences');
-  await page.getByTestId('link-audience-1').click();
-  await expect(page).toHaveURL(/\/audiences\/small-business-owners$/);
   await expect(
-    page.getByRole('heading', { name: 'Small business owners' }),
+    page.getByRole('heading', { name: 'This recipe is not on the shelf.' }),
   ).toBeVisible();
 });
 
@@ -765,7 +869,7 @@ test('recipe editor links to the visible CSV import action', async ({ page }) =>
   await expect(page.getByTestId('button-admin-recipes-import-csv')).toBeVisible();
 });
 
-test('admin Prompt Studio selects subtypes and previews external image references', async ({ page }) => {
+test('admin Prompt Studio uploads visual references and saves their CDN URLs', async ({ page }) => {
   const api = await mockApi(page, { adminAuthenticated: true });
   const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
   await page.goto(`${adminPath}/recipes/new`);
@@ -774,9 +878,26 @@ test('admin Prompt Studio selects subtypes and previews external image reference
   await promptType.selectOption('image');
   await expect(page.getByText('Image model')).toBeVisible();
   await page.getByTestId('button-prompt-add-image').click();
-  await page.getByTestId('input-prompt-image-url-0').fill('https://images.example.test/reference.webp');
+  await page.getByRole('button', { name: 'Choose image' }).click();
+  await page.locator('.prompt-studio__image').nth(0).locator('input[type="file"]').setInputFiles({
+    name: 'reference.jpg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.from([0xff, 0xd8, 0xff, 0x00]),
+  });
+  await expect(page.getByTestId('input-prompt-image-url-0')).toHaveValue(
+    'https://cdn.taskbakeai.test/recipes/drafts/sections/visual-reference.jpg',
+  );
   await expect(page.getByTestId('prompt-image-preview-0')).toBeVisible();
   await page.getByLabel('Alt text').fill('A visual reference');
+  expect(api.mediaUploadRequests).toEqual([{
+    contentType: 'image/jpeg',
+    bytes: 4,
+    purpose: 'sections',
+  }]);
+
+  await page.getByTestId('button-prompt-add-image').click();
+  await page.getByTestId('input-prompt-image-url-1').fill('https://images.example.test/reference.webp');
+  await page.getByLabel('Alt text').nth(1).fill('An externally hosted reference');
 
   await promptType.selectOption('game');
   await expect(page.getByText('Game engine')).toBeVisible();
@@ -801,7 +922,10 @@ test('admin Prompt Studio selects subtypes and previews external image reference
   await expect.poll(() => api.recipeSaveRequests.length).toBe(1);
   expect(api.recipeSaveRequests[0].guide).toMatchObject({
     promptType: 'image',
-    imagesJson: [{ url: 'https://images.example.test/reference.webp', alt: 'A visual reference' }],
+    imagesJson: [
+      { url: 'https://cdn.taskbakeai.test/recipes/drafts/sections/visual-reference.jpg', alt: 'A visual reference' },
+      { url: 'https://images.example.test/reference.webp', alt: 'An externally hosted reference' },
+    ],
     promptStudio: {
       gameGenre: 'Puzzle adventure',
       gamePlatform: 'PC',

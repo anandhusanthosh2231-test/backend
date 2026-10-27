@@ -12,6 +12,7 @@ interface RecipeCard {
   difficulty: string;
   estimatedTime: string;
   language: string;
+  aiTools: string[];
   tags: string[];
   featured: boolean;
   trending: boolean;
@@ -61,6 +62,7 @@ export const recipeCard: RecipeCard = {
   difficulty: 'Beginner',
   estimatedTime: '10 minutes',
   language: 'English',
+  aiTools: ['ChatGPT'],
   tags: ['planning', 'writing'],
   featured: true,
   trending: true,
@@ -68,6 +70,30 @@ export const recipeCard: RecipeCard = {
   copyCount: 28,
   saveCount: 12,
 };
+
+const popularRecipes: RecipeCard[] = [
+  recipeCard,
+  {
+    ...recipeCard,
+    id: 2,
+    title: 'Turn meeting notes into clear action items',
+    slug: 'meeting-notes-to-action-items',
+    shortDescription: 'Extract decisions, owners, and next steps from meeting notes.',
+    category: 'Productivity',
+    categorySlug: 'productivity',
+    aiTools: ['ChatGPT', 'Claude'],
+  },
+  {
+    ...recipeCard,
+    id: 3,
+    title: 'Draft a week of social content from one idea',
+    slug: 'one-idea-to-week-of-social-content',
+    shortDescription: 'Adapt a core idea into platform-ready posts for the week.',
+    category: 'Content',
+    categorySlug: 'content',
+    aiTools: ['ChatGPT', 'Gemini'],
+  },
+];
 
 const recipe = {
   ...recipeCard,
@@ -103,13 +129,16 @@ export interface ApiMockState {
   adminRecipeListResponses: Array<{ page: number; total: number }>;
   adminRequests: string[];
   taxonomyRequests: Array<{ method: string; pathname: string; body: unknown }>;
+  mediaUploadRequests: Array<{ contentType: string; bytes: number; purpose?: string; recipeId?: string }>;
 }
 
 interface MockApiOptions {
   adminAuthenticated?: boolean;
   feedbackStatus?: number;
   dynamicRecipe?: boolean;
+  bookClubRecipe?: boolean;
   customLayoutRecipe?: boolean;
+  legacyCustomLayoutRecipe?: boolean;
   visualPromptType?: 'image' | 'game' | 'website';
   homeResponseDelayMs?: number;
   adminBulkEdit?: boolean;
@@ -134,6 +163,7 @@ export async function mockApi(
     adminRecipeListResponses: [],
     adminRequests: [],
     taxonomyRequests: [],
+    mediaUploadRequests: [],
   };
 
   await page.route('https://**/*', (route) => route.abort('blockedbyclient'));
@@ -167,6 +197,36 @@ export async function mockApi(
         body: JSON.stringify(options.feedbackStatus && options.feedbackStatus >= 400
           ? { error: 'Feedback service unavailable' }
           : { message: 'Feedback received' }),
+      });
+      return;
+    }
+
+    if (request.method() === 'GET' && pathname === '/api/admin/media') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ configured: true, items: [] }),
+      });
+      return;
+    }
+
+    if (request.method() === 'POST' && pathname === '/api/admin/media/upload') {
+      const body = request.postDataBuffer();
+      state.mediaUploadRequests.push({
+        contentType: request.headers()['content-type'] ?? '',
+        bytes: body?.byteLength ?? 0,
+        purpose: url.searchParams.get('purpose') ?? undefined,
+        recipeId: url.searchParams.get('recipeId') ?? undefined,
+      });
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          key: 'recipes/drafts/sections/visual-reference.jpg',
+          url: 'https://cdn.taskbakeai.test/recipes/drafts/sections/visual-reference.jpg',
+          contentType: 'image/jpeg',
+          size: body?.byteLength ?? 0,
+        }),
       });
       return;
     }
@@ -394,7 +454,7 @@ export async function mockApi(
         body: JSON.stringify({
           recipeOfDay: recipeCard,
           trending: [recipeCard],
-          popular: [recipeCard],
+          popular: popularRecipes,
           categories,
           audiences: [audience],
         }),
@@ -473,7 +533,7 @@ export async function mockApi(
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(options.customLayoutRecipe ? {
+        body: JSON.stringify(options.customLayoutRecipe || options.legacyCustomLayoutRecipe ? {
           ...recipe,
           prompt: 'Build a job-search plan for {{target_role}}.',
           exampleInput: '',
@@ -496,7 +556,9 @@ export async function mockApi(
             ],
           },
           guide: {
-            promptVariables: [{ name: 'target_role', label: 'Target role', type: 'text', required: true }],
+            promptVariables: options.legacyCustomLayoutRecipe
+              ? []
+              : [{ name: 'target_role', label: 'Target role', type: 'text', required: true }],
             expectedOutput: { description: 'A prioritized weekly job-search plan.' },
             customContent: {
               troubleshooting: ['Add a location to narrow the role list.'],
@@ -515,6 +577,28 @@ export async function mockApi(
               : options.visualPromptType === 'game'
                 ? { gameGenre: 'Puzzle adventure', gamePlatform: 'PC', gameEngine: 'Godot' }
                 : { websiteFramework: 'React', websiteStyle: 'Editorial', previewUrl: 'https://preview.example.test' },
+          },
+        } : options.bookClubRecipe ? {
+          ...recipe,
+          prompt: [
+            "Create a book club discussion kit for {{book}}.",
+            "Group: {{group}}",
+            "Spoiler boundary: {{spoiler_level}}",
+            "Meeting length: {{discussion_length}}",
+            "Discussion focus: {{focus}}",
+            "Reading progress: {{reading_stage}}",
+            "Tone: {{tone}}",
+          ].join("\n"),
+          guide: {
+            promptVariables: [
+              { name: 'book', label: 'book', required: true },
+              { name: 'group', label: 'group', required: false },
+              { name: 'spoiler_level', label: 'spoiler_level', required: false },
+              { name: 'discussion_length', label: 'discussion_length', required: false },
+              { name: 'focus', label: 'focus', required: false },
+              { name: 'reading_stage', label: 'reading_stage', required: false },
+              { name: 'tone', label: 'tone', required: false },
+            ],
           },
         } : options.dynamicRecipe ? {
           ...recipe,

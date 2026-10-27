@@ -64,6 +64,7 @@ export interface RecipeCard {
   difficulty: string;
   estimatedTime: string;
   language: string;
+  aiTools: string[];
   tags: string[];
   featured: boolean;
   trending: boolean;
