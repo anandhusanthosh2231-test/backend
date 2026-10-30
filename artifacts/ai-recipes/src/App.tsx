@@ -1,5 +1,6 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from 'react';
 import './loader.css';
+import './why-page.css';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import { ClerkProvider, useAuth, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
@@ -201,16 +202,55 @@ function SiteShell({ children }: { children: ReactNode }) {
 }
 
 function LoadingState({ label = 'Finding useful workflows' }: { label?: string }) {
+  const gradientId = useId();
+
   return (
-    <div className="loading-state" data-testid="status-loading">
-      <section className="loader">
-        <div className="slider" style={{ '--i': 0 } as React.CSSProperties}></div>
-        <div className="slider" style={{ '--i': 1 } as React.CSSProperties}></div>
-        <div className="slider" style={{ '--i': 2 } as React.CSSProperties}></div>
-        <div className="slider" style={{ '--i': 3 } as React.CSSProperties}></div>
-        <div className="slider" style={{ '--i': 4 } as React.CSSProperties}></div>
-      </section>
-      <p style={{ marginTop: '2rem' }}>{label}<span className="loading-ellipsis">...</span></p>
+    <div className="loading-state" data-testid="status-loading" role="status" aria-label={label}>
+      <svg className="tb-loader-art" viewBox="0 0 260 250" fill="none" aria-hidden="true">
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="var(--brand-dark)" />
+            <stop offset="1" stopColor="var(--brand)" />
+          </linearGradient>
+        </defs>
+        <g className="tb-loader-card-shadow">
+          <g className="tb-loader-card">
+            <rect x="50" y="10" width="160" height="116" rx="14" fill="var(--surface)" stroke="var(--border)" strokeWidth="1.5" />
+            <path className="tb-loader-ai" transform="translate(70 34) scale(1.3)" d="M0-8C1-3 3-1 8 0 3 1 1 3 0 8-1 3-3 1-8 0-3-1-1-3 0-8z" fill={`url(#${gradientId})`} />
+            <rect className="tb-loader-title" x="86" y="29" width="72" height="9" rx="4.5" fill="var(--ink)" />
+            <rect x="66" y="48" width="128" height="1.5" fill="var(--border)" />
+            <circle className="tb-loader-dot tb-loader-dot--one" cx="72" cy="64" r="5" fill="var(--brand-dark)" />
+            <rect className="tb-loader-bar tb-loader-bar--one" x="84" y="61" width="100" height="6" rx="3" fill="var(--muted)" />
+            <circle className="tb-loader-dot tb-loader-dot--two" cx="72" cy="82" r="5" fill="var(--brand)" />
+            <rect className="tb-loader-bar tb-loader-bar--two" x="84" y="79" width="78" height="6" rx="3" fill="var(--muted)" />
+            <circle className="tb-loader-dot tb-loader-dot--three" cx="72" cy="100" r="5" fill="var(--cool)" />
+            <rect className="tb-loader-bar tb-loader-bar--three" x="84" y="97" width="92" height="6" rx="3" fill="var(--muted)" />
+            <g className="tb-loader-badge">
+              <circle cx="198" cy="116" r="13" fill="var(--cool)" />
+              <path d="M191 116l5 5 9-10" stroke="var(--surface)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            </g>
+          </g>
+        </g>
+        <g className="tb-loader-sparkle tb-loader-sparkle--one"><path transform="translate(104 164) scale(.9)" d="M0-8C1-3 3-1 8 0 3 1 1 3 0 8-1 3-3 1-8 0-3-1-1-3 0-8z" fill="var(--brand)" /></g>
+        <g className="tb-loader-sparkle tb-loader-sparkle--two"><path transform="translate(126 166) scale(1.2)" d="M0-8C1-3 3-1 8 0 3 1 1 3 0 8-1 3-3 1-8 0-3-1-1-3 0-8z" fill="var(--cool)" /></g>
+        <g className="tb-loader-sparkle tb-loader-sparkle--three"><path transform="translate(148 164) scale(.8)" d="M0-8C1-3 3-1 8 0 3 1 1 3 0 8-1 3-3 1-8 0-3-1-1-3 0-8z" fill="var(--brand-dark)" /></g>
+        <g className="tb-loader-sparkle tb-loader-sparkle--four"><path transform="translate(136 168) scale(.7)" d="M0-8C1-3 3-1 8 0 3 1 1 3 0 8-1 3-3 1-8 0-3-1-1-3 0-8z" fill="var(--brand)" /></g>
+        <rect x="76" y="243" width="108" height="5" rx="2.5" fill="var(--ink)" opacity=".14" />
+        <g transform="translate(106 230)"><path className="tb-loader-flame tb-loader-flame--one" d="M0 14C-6 10-4 4 0-2 4 4 6 10 0 14z" fill="var(--brand)" /></g>
+        <g transform="translate(130 231)"><path className="tb-loader-flame tb-loader-flame--two" d="M0 13C-7 9-5 3 0-3 5 3 7 9 0 13z" fill="var(--brand-dark)" /></g>
+        <g transform="translate(154 230)"><path className="tb-loader-flame tb-loader-flame--three" d="M0 14C-6 10-4 4 0-2 4 4 6 10 0 14z" fill="var(--brand)" /></g>
+        <rect x="72" y="188" width="12" height="6" rx="3" fill="var(--ink)" />
+        <rect x="176" y="188" width="12" height="6" rx="3" fill="var(--ink)" />
+        <path d="M82 180h96v34q0 16-16 16H98q-16 0-16-16z" fill="var(--ink)" />
+        <rect x="82" y="194" width="96" height="6" fill="var(--brand)" />
+        <rect x="91" y="205" width="5" height="16" rx="2.5" fill="var(--surface)" opacity=".14" />
+        <g className="tb-loader-lid">
+          <path d="M78 180c6-22 98-22 104 0z" fill="var(--cool)" />
+          <rect x="122" y="164" width="16" height="6" rx="3" fill="var(--cool)" />
+          <path d="M92 172c8-6 20-8 30-8" stroke="var(--surface)" strokeOpacity=".35" strokeWidth="3" strokeLinecap="round" />
+        </g>
+      </svg>
+      <p>{label}<span className="loading-ellipsis" aria-hidden="true">...</span></p>
     </div>
   );
 }
@@ -5010,260 +5050,215 @@ function AdminAnalytics() {
 
 function AboutPage() { usePageMeta('About', 'Why TaskBakeAI exists: practical, tested AI workflows for real work.'); return <SiteShell><div className="prose-page shell"><span className="kicker">About the field guide</span><h1>Less prompt theatre.<br /><em>More useful work.</em></h1><p className="lead">TaskBakeAI is an Indian-first library of practical workflows for people who have something real to do.</p><div className="prose-columns"><div><h2>Why this exists</h2><p>The internet is full of impressive prompts. We wanted the other thing: instructions you can copy on a Tuesday morning, with the context, caveats, and checks that make them actually work.</p><p>Recipes begin with the problem, not the model. Each one is tested, edited, and written to be useful whether you are running a small business in Jaipur, studying in Kochi, or making your next thing from a shared desk.</p></div><div><h2>Our standard</h2><p>A good recipe tells you what to bring, what to ask, what a decent result looks like, and how to improve it. It leaves you with a skill, not a dependency.</p><p>Have a workflow that deserves a place here? <Link href="/submit" data-testid="link-about-submit">Send it in.</Link></p></div></div></div></SiteShell>; }
 
-const whyRecipeExamples = [
+const whyDesignExamples = [
   {
-    name: 'Improve a resume',
-    context: 'Writing / Career',
-    plainPrompt: 'Improve my resume for a software engineer role.',
-    quickOutput: {
+    t: 'Improve a resume',
+    q: '“Improve my resume for a software engineer role.”',
+    qo: {
       title: 'Software Engineer',
-      summary: 'Motivated professional seeking an opportunity at a growing company.',
-      points: ['Worked on web applications.', 'Helped fix bugs and support releases.', 'Collaborated with a team.'],
+      text: 'Motivated professional seeking an opportunity at a growing company.',
+      points: ['Worked on web applications.', 'Helped fix bugs.'],
     },
-    recipeTitle: 'A resume tailored to a real role',
-    role: 'Act as a careful resume editor. Improve clarity and relevance without adding or guessing facts.',
-    inputs: [
-      ['Target role', '{{target_role}}'],
-      ['Resume', '{{resume}}'],
-      ['Verified achievements', '{{achievements}}'],
-      ['Region and preferences', '{{region_and_preferences}}'],
+    r: [
+      ['Role & intent', 'Act as a careful resume editor. Improve clarity and relevance without adding or guessing facts.'],
+      ['Inputs', ['{{target_role}}', '{{resume}}', '{{achievements}}']],
+      ['Rules', 'Match experience to the role. Keep claims grounded. Mark missing metrics — never invent them.'],
     ],
-    rules: [
-      'Match relevant experience to the role description.',
-      'Keep all claims grounded in the supplied resume and achievements.',
-      'Use clear, scannable headings and concise action-led bullets.',
-      'Mark missing details for the person to verify; never invent metrics.',
-    ],
-    output: [
-      ['01', 'Role-aligned summary', 'A concise opening based only on the supplied experience.'],
-      ['02', 'Relevant experience', 'Reordered, clearer bullets with verified details preserved.'],
-      ['03', 'Review notes', 'A short list of gaps or claims to confirm before using.'],
-    ],
-    recipeResult: {
-      title: 'Role-aligned summary',
-      summary: 'Software engineer with experience building and maintaining web applications. Brings hands-on work with the tools and responsibilities listed in the supplied resume.',
-      points: ['Selected experience is ordered to match the target role.', 'Achievements use only the details provided; missing metrics are flagged for review.'],
-      review: 'Add a verified project outcome or metric where available.',
-    },
-    takeaways: ['Role-specific focus, not generic career language.', 'Evidence stays tied to what the person supplied.', 'A review step makes uncertainty visible.'],
+    res: 'a role-aligned summary, reordered experience, and review notes flagging gaps to confirm.',
   },
   {
-    name: 'Write a customer message',
-    context: 'Business / Communication',
-    plainPrompt: 'Write a WhatsApp pitch for my product.',
-    quickOutput: {
-      title: 'Introducing our product',
-      summary: 'Hi! We offer a great product that can help your business save time and improve results.',
-      points: ['It is easy to use.', 'Get in touch to learn more.'],
+    t: 'Write a customer message',
+    q: '“Write an email to a customer about a delayed order.”',
+    qo: {
+      title: 'Dear Customer,',
+      text: 'We apologize for any inconvenience. Your order is delayed. Thank you for your patience.',
+      points: [],
     },
-    recipeTitle: 'A concise, considerate customer message',
-    role: 'Act as a thoughtful customer communications writer. Be specific, honest, and respectful of the reader’s time.',
-    inputs: [
-      ['Customer and context', '{{customer_context}}'],
-      ['Genuine customer need', '{{customer_need}}'],
-      ['Product benefit you can support', '{{verified_benefit}}'],
-      ['Tone and next step', '{{tone_and_next_step}}'],
+    r: [
+      ['Role & intent', 'Act as a calm support lead. Be honest, specific, and kind without over-promising.'],
+      ['Inputs', ['{{customer_name}}', '{{order_details}}', '{{new_date}}']],
+      ['Rules', "Lead with the update. Own the delay. Offer one clear next step. Never promise what isn't confirmed."],
     ],
-    rules: [
-      'Open with a relevant detail, not a generic greeting.',
-      'Connect one real product benefit to the stated need.',
-      'Keep the message short and easy to read on a phone.',
-      'Avoid pressure, unsupported promises, and fabricated proof.',
-    ],
-    output: [
-      ['01', 'Personal opening', 'A brief, context-aware first line.'],
-      ['02', 'Relevant value', 'One supported benefit, explained in plain language.'],
-      ['03', 'Low-pressure close', 'A clear next step the recipient can comfortably decline.'],
-    ],
-    recipeResult: {
-      title: 'A message grounded in your details',
-      summary: 'Hi [Name] — saw that [relevant context]. If [stated need] is something you’re working on, [verified benefit] may be useful.',
-      points: ['Short enough for a quick read.', 'Uses a real benefit and a clear, optional next step.'],
-      review: 'Replace bracketed text with accurate details before sending.',
-    },
-    takeaways: ['The message starts from the recipient’s situation.', 'Only supported product details make it into the copy.', 'The call to action is clear without being pushy.'],
+    res: 'a short message with the new date, a plain apology, and one concrete next step.',
   },
   {
-    name: 'Plan a study session',
-    context: 'Learning / Study',
-    plainPrompt: 'Help me study for my exam.',
-    quickOutput: {
-      title: 'Study plan',
-      summary: 'Review your notes, practice the main topics, and take breaks. Make sure to get enough rest before the exam.',
-      points: ['Review important material.', 'Practice questions.', 'Stay organized and take breaks.'],
+    t: 'Plan a study session',
+    q: '“Make me a study plan for my exam.”',
+    qo: {
+      title: 'Study Plan',
+      text: 'Review your notes each day. Take practice tests. Get enough sleep.',
+      points: [],
     },
-    recipeTitle: 'A study plan that fits the week',
-    role: 'Act as a practical study coach. Make a realistic plan and invite active recall rather than passive rereading.',
-    inputs: [
-      ['Subject and exam date', '{{subject_and_date}}'],
-      ['Topics to cover', '{{topics}}'],
-      ['Available study time', '{{available_time}}'],
-      ['Hardest topic right now', '{{priority_topic}}'],
+    r: [
+      ['Role & intent', 'Act as a study coach. Build a realistic plan around the time and topics supplied.'],
+      ['Inputs', ['{{exam_date}}', '{{topics}}', '{{hours_per_day}}']],
+      ['Rules', 'Prioritise weak topics. Schedule breaks and recall practice. Leave a buffer day before the exam.'],
     ],
-    rules: [
-      'Fit the schedule to the time actually available.',
-      'Break topics into manageable sessions with short breaks.',
-      'Include practice questions or recall, not only rereading.',
-      'Leave a final review slot and flag assumptions to confirm.',
-    ],
-    output: [
-      ['01', 'Priorities', 'Topics ordered by urgency and confidence.'],
-      ['02', 'Session plan', 'A flexible schedule using the available study time.'],
-      ['03', 'Recall and review', 'A way to check understanding and adjust the plan.'],
-    ],
-    recipeResult: {
-      title: 'A flexible plan for your available time',
-      summary: 'Start with [priority topic] in a focused session, then use a short recall exercise to check what you remember without looking at your notes.',
-      points: ['Next, review [second topic] and note any questions to revisit.', 'Finish with a brief recap and adjust the next session based on what still feels difficult.'],
-      review: 'Add your exam date and actual study hours to turn this outline into a schedule.',
-    },
-    takeaways: ['The plan reflects the exam date and available hours.', 'Active practice is built into the workflow.', 'The schedule is a flexible starting point, not a promise.'],
+    res: 'a day-by-day schedule with topic blocks, recall checks, and a buffer before exam day.',
   },
+] as const;
+
+const whyPageTakeaways = [
+  'Role-specific focus, not generic language.',
+  'Evidence stays tied to what you supplied.',
+  'A review step makes uncertainty visible.',
 ];
 
 function WhyRecipesPage() {
-  const [selectedExample, setSelectedExample] = useState(0);
+  const [activeTab, setActiveTab] = useState(0);
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
-  const example = whyRecipeExamples[selectedExample];
-  const recipePrompt = [
-    `# ROLE\n${example.role}`,
-    `# INPUTS\n${example.inputs.map(([label, variable]) => `- ${label}: ${variable}`).join('\n')}`,
-    `# WORKFLOW\n${example.rules.map((rule, index) => `${index + 1}. ${rule}`).join('\n')}`,
-    `# OUTPUT FORMAT\n${example.output.map(([index, heading]) => `${index}. ${heading}`).join('\n')}\n\nBefore using the result, review the notes and verify details that matter.`,
-  ].join('\n\n');
+  const copyTimer = useRef<number | undefined>(undefined);
+  const example = whyDesignExamples[activeTab];
+  const recipePrompt = example.r
+    .map(([label, value]) => `${label}: ${Array.isArray(value) ? value.join(' ') : value}`)
+    .join('\n');
+
+  useEffect(() => () => {
+    if (copyTimer.current !== undefined) window.clearTimeout(copyTimer.current);
+  }, []);
+
+  usePageMeta(
+    'Why AI Recipes',
+    'See how a little context, clear rules, and reviewable output turn a prompt into a practical workflow.',
+  );
 
   const copyRecipePrompt = async () => {
+    if (copyTimer.current !== undefined) window.clearTimeout(copyTimer.current);
     try {
       await navigator.clipboard.writeText(recipePrompt);
       setCopyState('copied');
     } catch {
       setCopyState('failed');
     }
-    window.setTimeout(() => setCopyState('idle'), 2200);
+    copyTimer.current = window.setTimeout(() => setCopyState('idle'), 1500);
   };
-
-  const selectExample = (index: number) => {
-    setSelectedExample(index);
-    setCopyState('idle');
-  };
-
-  usePageMeta(
-    'Better workflows start with better context',
-    'Compare a quick prompt with a reusable AI recipe: clear context, practical instructions, and a reviewable result.',
-  );
 
   return <SiteShell>
     <div className="why-page">
-      <section className="why-hero shell">
-        <div className="why-hero-copy">
-          <span className="kicker"><span className="kicker-mark" />A field guide to doing better work with AI</span>
+      <header className="hero">
+        <div className="wrap">
+          <span className="eyebrow">A field guide to better work with AI</span>
           <h1>Good work needs<br /><em>more than a prompt.</em></h1>
-          <p className="why-lede">An AI Recipe gives a task the context, steps, and checks a one-line prompt leaves out. So you can start with a clearer process—and stay in charge of the result.</p>
-          <div className="why-hero-actions"><a href="#why-comparison-title" className="button button-dark" data-testid="link-why-see-comparison">See the difference <ArrowDown size={15} /></a><Link href="/recipes" className="why-text-link" data-testid="link-why-browse">Browse the recipe shelf <ArrowRight size={15} /></Link></div>
-          <div className="why-hero-note"><span>FIELD NOTE / 001</span><span>Practical beats impressive.</span></div>
-        </div>
-        <aside className="why-hero-art" aria-label="An AI Recipe has four parts">
-          <div className="why-art-stamp">THE<br />RECIPE<br /><span>METHOD</span></div>
-          <div className="why-art-orbit why-art-orbit-one" />
-          <div className="why-art-orbit why-art-orbit-two" />
-          <div className="why-art-index"><span>01 — 04</span><strong>Context<br />to clarity.</strong><small>A considered way<br />through the work.</small></div>
-          <span className="why-art-caption">AI RECIPES / FIELD GUIDE</span>
-        </aside>
-      </section>
-
-      <section className="why-comparison shell" aria-labelledby="why-comparison-title">
-        <div className="why-section-heading">
-          <div><span className="kicker"><span className="kicker-mark" />The difference, in practice</span><h2 id="why-comparison-title">A quick ask. A considered workflow.</h2></div>
-          <p>Choose a task. Follow the prompt through to an example result. The details change; the method holds.</p>
-        </div>
-        <div className="why-example-tabs" role="group" aria-label="Choose a workflow example" data-testid="why-example-tabs" style={{ '--selected-tab': selectedExample } as React.CSSProperties}>
-          <span className="why-example-tab-indicator" aria-hidden="true" />
-          {whyRecipeExamples.map((item, index) => <button
-            key={item.name}
-            type="button"
-            className={`why-example-tab ${selectedExample === index ? 'is-active' : ''}`}
-            aria-pressed={selectedExample === index}
-            onClick={() => selectExample(index)}
-            data-testid={`button-why-example-${index}`}
-          ><span className="why-tab-index">{String(index + 1).padStart(2, '0')}</span><span>{item.name}</span><ArrowRight size={14} /></button>)}
-        </div>
-        <div key={selectedExample} className="why-comparison-grid" data-testid="why-example-content" aria-live="polite">
-          <article className="why-example-card why-plain-card">
-            <header className="why-panel-header why-panel-header--plain"><div><span className="why-panel-index">01</span><h3>The quick ask</h3></div><span className="why-panel-tag">Raw Prompt · Low Context</span></header>
-            <div className="why-panel-body">
-              <span className="why-detail-label">Your prompt</span>
-              <blockquote>“{example.plainPrompt}”</blockquote>
-              <div className="why-output-label"><span>Typical risk</span><span className="why-risk-mark">Needs more context</span></div>
-              <div className="why-quick-output" data-testid="why-quick-output">
-                <div className="why-output-preview-label"><span className="why-result-dot why-result-dot--plain" />A possible quick response</div>
-                <div className="why-output-preview">
-                  <strong>{example.quickOutput.title}</strong>
-                  <p>{example.quickOutput.summary}</p>
-                  <ul>{example.quickOutput.points.map((point) => <li key={point}>{point}</li>)}</ul>
-                </div>
-              </div>
-            </div>
-            <footer className="why-panel-footer"><span><Info size={14} /> The model has to fill in the gaps.</span></footer>
-          </article>
-          <article className="why-example-card why-recipe-card">
-            <header className="why-panel-header why-panel-header--recipe"><div><span className="why-panel-index">02</span><h3>The recipe prompt</h3></div><button type="button" onClick={copyRecipePrompt} className="why-copy-button" data-testid="button-why-copy-prompt"><Copy size={13} />{copyState === 'copied' ? 'Copied!' : 'Copy recipe prompt'}</button></header>
-            <div className="why-prompt-meta"><span><span className="why-status-dot" />{example.context}</span><span>Reusable structure</span></div>
-            <div className="why-prompt-content" data-testid="why-recipe-prompt">
-              <div className="why-prompt-section"><span className="why-prompt-label"><i>01</i> ROLE & INTENT</span><p>{example.role}</p></div>
-              <div className="why-prompt-section"><span className="why-prompt-label"><i>02</i> INPUT VARIABLES</span><ul>{example.inputs.map(([label, variable]) => <li key={variable}><span>{label}</span><code>{variable}</code></li>)}</ul></div>
-              <div className="why-prompt-section"><span className="why-prompt-label"><i>03</i> EXECUTION RULES</span><ol>{example.rules.map((rule) => <li key={rule}>{rule}</li>)}</ol></div>
-            </div>
-            {copyState === 'failed' && <p role="status" className="why-copy-status">Clipboard access is unavailable. You can still select and copy each visible prompt section.</p>}
-            <footer className="why-panel-footer why-panel-footer--recipe"><span><Check size={14} /> Clear inputs. Explicit constraints.</span><span>02 / 03</span></footer>
-          </article>
-          <article className="why-example-card why-output-card">
-            <header className="why-panel-header why-panel-header--output"><div><span className="why-panel-index">03</span><h3>An illustrative result</h3></div><span className="why-output-badge"><Check size={12} />Recipe-shaped draft</span></header>
-            <div className="why-output-body">
-              <p className="why-output-intro">A possible response shaped by the recipe prompt. Replace example details with your own and review before use.</p>
-              <div className="why-result-preview" data-testid="why-recipe-output">
-                <div className="why-result-preview-top"><span><Check size={12} /> RECIPE-SHAPED DRAFT</span><span>EXAMPLE</span></div>
-                <h4>{example.recipeResult.title}</h4>
-                <p className="why-result-summary">{example.recipeResult.summary}</p>
-                <ul>{example.recipeResult.points.map((point) => <li key={point}><Check size={13} />{point}</li>)}</ul>
-                <div className="why-result-review"><ShieldCheck size={14} /><span>{example.recipeResult.review}</span></div>
-              </div>
-              <div className="why-output-structure">
-                <span className="why-detail-label">What the workflow asks for</span>
-                {example.output.map(([index, title, description]) => <div className="why-result-row" key={index}><span>{index}</span><div><strong>{title}</strong><p>{description}</p></div></div>)}
-              </div>
-              <div className="why-review-note"><ShieldCheck size={15} /><p>Check important details before you use or share the result.</p></div>
-            </div>
-            <footer className="why-panel-footer why-panel-footer--output"><span><Info size={14} /> Examples, not guaranteed outcomes.</span></footer>
-          </article>
-        </div>
-        <div className="why-comparison-caption"><span>01 — 03 / ONE TASK, THREE LAYERS</span><span>Structure helps. Your judgment still matters.</span></div>
-      </section>
-
-      <section className="why-principles">
-        <div className="shell">
-          <div className="why-section-heading">
-            <div><span className="kicker"><span className="kicker-mark" />A better way to frame the work</span><h2 id="why-principles-title">Four ingredients.<br /><em>One clearer process.</em></h2></div>
-            <p>Recipes are not magic prompts. They are practical scaffolding for work you still understand and own.</p>
+          <p className="lede">An AI Recipe gives a task the context, steps, and checks a one-line prompt leaves out — so you start with a clearer process and stay in charge of the result.</p>
+          <div className="actions">
+            <a className="btn dark" href="#compare" data-testid="link-why-see-comparison">See the difference ↓</a>
+            <Link className="btn link" href="/recipes" data-testid="link-why-browse">Browse the recipe shelf →</Link>
           </div>
-          <div className="why-principle-grid" aria-labelledby="why-principles-title">
-            <article><span>THE INGREDIENTS / 01</span><span className="why-ingredient-number">01</span><h3>Useful variables</h3><p>Bring in the audience, facts, constraints, and preferences that make this task yours.</p><code>{'{{your_context}}'}</code></article>
-            <article><span>THE INGREDIENTS / 02</span><span className="why-ingredient-number">02</span><h3>Role & context</h3><p>Give the model a relevant perspective and explain what a good result needs to do.</p><code>intent + audience</code></article>
-            <article><span>THE INGREDIENTS / 03</span><span className="why-ingredient-number">03</span><h3>Practical rules</h3><p>Set useful boundaries, sequence the work, and call out what should not be assumed.</p><code>steps + constraints</code></article>
-            <article><span>THE INGREDIENTS / 04</span><span className="why-ingredient-number">04</span><h3>Reviewable output</h3><p>Ask for a format you can inspect, refine, and adapt before putting it to use.</p><code>format + checks</code></article>
+          <div className="steps" aria-label="An AI Recipe has four parts">
+            <div className="step"><b>01</b><p>Your context goes in</p></div>
+            <div className="step"><b>02</b><p>A role sets the focus</p></div>
+            <div className="step"><b>03</b><p>Rules guide the steps</p></div>
+            <div className="step"><b>04</b><p>You review the output</p></div>
           </div>
         </div>
-      </section>
+      </header>
 
-      <section className="why-takeaways shell">
-        <div className="why-takeaways-heading"><span className="kicker"><span className="kicker-mark" />What changes</span><h2>Less guesswork.<br /><em>More to work with.</em></h2><p>Across different kinds of work, the useful shift is the same: move from an underspecified ask to a process you can inspect and improve.</p></div>
-        <div className="why-takeaways-list" data-testid="why-takeaways">
-          {example.takeaways.map((item, index) => <div key={item}><span>{String(index + 1).padStart(2, '0')}</span><p>{item}</p><Check size={16} /></div>)}
+      <section id="compare" className="compare-section">
+        <div className="wrap">
+          <div className="head">
+            <span className="eyebrow">The difference, in practice</span>
+            <h2>A quick ask. <em>A considered workflow.</em></h2>
+            <p>Pick a task and compare a one-line prompt with a recipe. The details change; the method holds.</p>
+          </div>
+          <div className="tabs" role="group" aria-label="Choose an example" id="tabs" data-testid="why-example-tabs">
+            {whyDesignExamples.map((item, index) => (
+              <button
+                key={item.t}
+                className="tab"
+                type="button"
+                aria-pressed={activeTab === index}
+                onClick={() => {
+                  setActiveTab(index);
+                  setCopyState('idle');
+                }}
+                data-testid={`button-why-example-${index}`}
+              >
+                {item.t}
+              </button>
+            ))}
+          </div>
+          <div className="cmp" aria-live="polite" data-testid="why-example-content">
+            <article className="card">
+              <span className="tag">Quick ask · low context</span>
+              <h3>Without a recipe</h3>
+              <blockquote>{example.q}</blockquote>
+              <div className="out" data-testid="why-quick-output">
+                <strong>{example.qo.title}</strong>
+                {example.qo.text}
+                {example.qo.points.length > 0 && <ul>{example.qo.points.map((point) => <li key={point}>{point}</li>)}</ul>}
+              </div>
+              <p className="note">The model has to fill in the gaps.</p>
+            </article>
+            <article className="card good">
+              <span className="tag">Recipe · reusable structure</span>
+              <h3>With a recipe</h3>
+              <div className="prompt" data-testid="why-recipe-prompt">
+                {example.r.map(([label, value]) => (
+                  <div key={label}>
+                    <small>{label}</small>
+                    {Array.isArray(value)
+                      ? value.map((variable) => <code key={variable}>{variable}</code>)
+                      : value}
+                  </div>
+                ))}
+              </div>
+              <div className="result" data-testid="why-recipe-output"><b>Result:</b> {example.res}</div>
+              <button
+                className="copy"
+                type="button"
+                onClick={copyRecipePrompt}
+                aria-label={copyState === 'copied' ? 'Recipe prompt copied' : 'Copy recipe prompt'}
+                data-testid="button-why-copy-prompt"
+              >
+                {copyState === 'copied' ? 'Copied ✓' : copyState === 'failed' ? 'Copy failed' : 'Copy recipe prompt'}
+              </button>
+              {copyState === 'failed' && <span className="copy-error" role="status">Clipboard access is unavailable.</span>}
+            </article>
+          </div>
+          <p className="note compare-note">Illustrative examples, not guaranteed outcomes. Structure helps — your judgment still matters.</p>
         </div>
       </section>
 
-      <section className="why-cta">
-        <div className="shell why-cta-inner"><div><span className="kicker"><span className="kicker-mark" />Start with the work</span><h2>Find a recipe for the thing you need to do next.</h2><p>Browse practical workflows, adapt one to your context, and keep your judgment in the loop.</p></div><div className="why-cta-actions"><Link href="/recipes" className="button button-dark" data-testid="link-why-explore">Explore recipes <ArrowRight size={16} /></Link><Link href="/submit" className="why-cta-secondary" data-testid="link-why-submit">Share a workflow <ArrowRight size={14} /></Link></div></div>
+      <section className="dark-band">
+        <div className="wrap">
+          <div className="head">
+            <span className="eyebrow">A better way to frame the work</span>
+            <h2>Four ingredients. <em>One clearer process.</em></h2>
+            <p>Recipes aren't magic prompts. They're practical scaffolding for work you still understand and own.</p>
+          </div>
+          <div className="ing">
+            <article><div className="n">01</div><h3>Useful variables</h3><p>Bring in the audience, facts, constraints, and preferences that make this task yours.</p><code>{'{{your_context}}'}</code></article>
+            <article><div className="n">02</div><h3>Role &amp; context</h3><p>Give the model a relevant perspective and explain what a good result needs to do.</p><code>intent + audience</code></article>
+            <article><div className="n">03</div><h3>Practical rules</h3><p>Set boundaries, sequence the work, and call out what should not be assumed.</p><code>steps + constraints</code></article>
+            <article><div className="n">04</div><h3>Reviewable output</h3><p>Ask for a format you can inspect, refine, and adapt before using it.</p><code>format + checks</code></article>
+          </div>
+        </div>
       </section>
+
+      <section className="take-section">
+        <div className="wrap">
+          <div className="head">
+            <span className="eyebrow">What changes</span>
+            <h2>Less guesswork. <em>More to work with.</em></h2>
+            <p>Across different kinds of work, the shift is the same: from an underspecified ask to a process you can inspect and improve.</p>
+          </div>
+          <div className="take" data-testid="why-takeaways">
+            {whyPageTakeaways.map((item) => <div key={item}><span aria-hidden="true">✓</span>{item}</div>)}
+          </div>
+        </div>
+      </section>
+
+      <div className="wrap">
+        <div className="cta">
+          <span className="eyebrow">Start with the work</span>
+          <h2>Find a recipe for what you need to do next.</h2>
+          <p>Browse practical workflows, adapt one to your context, and keep your judgment in the loop.</p>
+          <div className="actions">
+            <Link className="btn dark" href="/recipes" data-testid="link-why-explore">Explore recipes →</Link>
+            <Link className="btn link" href="/submit" data-testid="link-why-submit">Share a workflow →</Link>
+          </div>
+        </div>
+      </div>
     </div>
   </SiteShell>;
 }
@@ -5283,24 +5278,24 @@ function AuthBrand() {
 
 function AuthWorkflowCanvas() {
   return (
-    <div className="auth-workflow-canvas" aria-hidden="true">
+    <div className="auth-workflow-canvas" role="group" aria-label="Explore workflow examples">
       <span className="auth-workflow-connector auth-workflow-connector--one" />
       <span className="auth-workflow-connector auth-workflow-connector--two" />
-      <article className="auth-workflow-card auth-workflow-card--one">
+      <Link href="/recipes" className="auth-workflow-card auth-workflow-card--one">
         <span><i>01</i> WRITING</span>
         <strong>Shape a customer reply</strong>
         <small>Tone · Context · Review</small>
-      </article>
-      <article className="auth-workflow-card auth-workflow-card--two">
+      </Link>
+      <Link href="/recipes" className="auth-workflow-card auth-workflow-card--two">
         <span><i>02</i> PLANNING</span>
         <strong>Turn a brief into a plan</strong>
         <small>Milestones · Owners · Dates</small>
-      </article>
-      <article className="auth-workflow-card auth-workflow-card--three">
+      </Link>
+      <Link href="/recipes" className="auth-workflow-card auth-workflow-card--three">
         <span><i>03</i> RESEARCH</span>
         <strong>Compare the useful details</strong>
         <small>Sources · Signals · Summary</small>
-      </article>
+      </Link>
     </div>
   );
 }

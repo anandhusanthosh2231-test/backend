@@ -1,0 +1,280 @@
+.auth-page {
+  min-height: 0;
+  align-items: stretch;
+  gap: 0;
+  padding: clamp(24px, 4vh, 40px) 0;
+  background: var(--bg);
+}
+
+.auth-aside {
+  min-width: 0;
+  justify-content: center;
+  padding: clamp(28px, 4vw, 56px) clamp(24px, 5vw, 72px);
+  background: var(--sand);
+  color: var(--ink);
+}
+
+.auth-aside :where(h1, h2, p, .kicker, .auth-quote) {
+  color: var(--ink);
+}
+
+.auth-aside .auth-brand {
+  display: block;
+  position: static;
+  width: min(250px, 100%);
+  margin-bottom: clamp(24px, 4vh, 40px);
+}
+
+.auth-aside .kicker {
+  margin-top: 0;
+  color: var(--brand-dark);
+  font-size: 12px;
+  letter-spacing: .02em;
+}
+
+.auth-aside h1 {
+  max-width: 600px;
+  margin: 16px 0;
+  font-family: var(--app-font-serif);
+  font-size: clamp(46px, 5.2vw, 72px);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.02;
+  word-spacing: normal;
+}
+
+.auth-aside p {
+  max-width: 470px;
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.auth-workflow-canvas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: min(100%, 700px);
+  margin-top: 24px;
+}
+
+.auth-workflow-connector {
+  display: none;
+}
+
+.auth-workflow-card {
+  min-width: 0;
+  min-height: 126px;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  text-decoration: none;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.auth-workflow-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand);
+  box-shadow: 0 12px 28px rgb(var(--ink-rgb) / .1);
+}
+
+.auth-workflow-card:focus-visible {
+  outline: 2px solid var(--brand-dark);
+  outline-offset: 3px;
+}
+
+.auth-workflow-card > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-family: var(--app-font-mono);
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+
+.auth-workflow-card i {
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.auth-workflow-card strong {
+  display: block;
+  color: var(--ink);
+  font-family: var(--app-font-serif);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+
+.auth-workflow-card small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.auth-quote {
+  max-width: 500px;
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  color: var(--brand-dark);
+  font-family: var(--app-font-serif);
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+.auth-card {
+  min-width: 0;
+  align-content: center;
+  padding: 16px clamp(20px, 4vw, 48px);
+  background: var(--bg);
+}
+
+.auth-card > div {
+  width: min(100%, 440px);
+  margin-inline: auto;
+}
+
+.auth-card [class*="cl-cardBox"] {
+  width: 100%;
+  max-width: 440px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.auth-card [class*="cl-cardBox"] > [class*="cl-card"] {
+  gap: 20px;
+  padding: 20px clamp(20px, 3vw, 32px);
+}
+
+.auth-card [class*="cl-cardBox"] > [class*="cl-footer"] {
+  padding-top: 4px;
+}
+
+.auth-card [class*="cl-headerSubtitle"],
+.auth-card [class*="cl-formFieldLabel"] {
+  color: var(--ink);
+  font-family: var(--app-font-sans);
+}
+
+.auth-card [class*="cl-headerTitle"] {
+  color: var(--ink);
+  font-family: var(--app-font-serif);
+  letter-spacing: -.02em;
+}
+
+.auth-card [class*="cl-formFieldInput"] {
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--app-font-sans);
+}
+
+.auth-card [class*="cl-formFieldInput"]:focus,
+.auth-card [class*="cl-formFieldInput"]:focus-visible {
+  border-color: var(--brand-dark);
+  box-shadow: 0 0 0 3px rgb(var(--brand-rgb) / .25);
+}
+
+.auth-card button[class*="cl-formFieldAction"],
+.auth-card button[class*="cl-formFieldInputShowPasswordButton"] {
+  display: inline-flex;
+  min-width: 40px;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.auth-card button[class*="cl-formFieldAction"]:hover,
+.auth-card button[class*="cl-formFieldInputShowPasswordButton"]:hover {
+  background: var(--sand);
+  color: var(--ink);
+}
+
+.auth-card [class*="cl-formButtonPrimary"],
+.auth-card [class*="cl-socialButtonsBlockButton"] {
+  display: flex;
+  width: 100%;
+  height: 48px;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border-radius: 9px;
+  font-family: var(--app-font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+
+.auth-card [class*="cl-formButtonPrimary"] {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: none;
+}
+
+.auth-card [class*="cl-formButtonPrimary"]:hover:not(:disabled) {
+  border-color: var(--brand-dark);
+  background: var(--brand-dark);
+  color: var(--bg);
+}
+
+.auth-card [class*="cl-formButtonPrimary"]:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+
+.auth-card [class*="cl-socialButtonsBlockButton"] {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.auth-card [class*="cl-socialButtonsBlockButton"]:hover {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+  color: var(--ink);
+}
+
+.auth-card [class*="cl-socialButtonsBlockButtonText"] {
+  height: auto;
+  min-height: 0;
+  color: inherit;
+  font-family: var(--app-font-sans);
+  font-weight: 600;
+  line-height: 1.2;
+  opacity: 1;
+}
+
+.auth-card :where(button, a, input):focus-visible {
+  outline: 2px solid var(--brand-dark);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-workflow-card {
+    transition: none !important;
+  }
+}

@@ -917,6 +917,677 @@
   }
 }
 
+/* Readable contrast, refined surfaces, and accessible control sizing. */
+.custom-oven-hero {
+  isolation: isolate;
+  overflow: visible;
+  background:
+    radial-gradient(ellipse at 82% 55%, rgb(232 188 132 / 0.18), transparent 38%),
+    linear-gradient(135deg, var(--dark-surface), var(--cool));
+}
+
+.custom-oven-hero::before {
+  position: absolute;
+  z-index: -1;
+  inset: 12% 8% 8% 42%;
+  border-radius: 50%;
+  background: rgb(185 124 69 / 0.25);
+  content: "";
+  filter: blur(58px);
+  pointer-events: none;
+}
+
+.custom-oven-copy .custom-bake-kicker,
+.custom-oven-status {
+  color: #E8BC84;
+}
+
+.custom-oven-copy h1,
+.custom-oven-card .custom-oven-detail strong,
+.custom-oven-card .custom-oven-time strong {
+  color: #fff;
+}
+
+.custom-oven-copy h1 {
+  font-size: clamp(36px, 6vw, 64px);
+}
+
+.custom-oven-copy > p,
+.custom-crumb,
+.custom-crumb a {
+  color: rgba(255, 255, 255, .86);
+}
+
+.custom-oven-card .custom-oven-time small,
+.custom-oven-detail span {
+  color: rgba(255, 255, 255, .78);
+}
+
+.custom-oven-card {
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 20px;
+  background: rgba(22, 19, 15, .72);
+  backdrop-filter: blur(10px);
+}
+
+.custom-oven-status {
+  border-color: rgba(232, 188, 132, .48);
+  background: rgba(232, 188, 132, .12);
+  font-size: 12px;
+  letter-spacing: .08em;
+}
+
+.custom-bake-content {
+  gap: 72px;
+}
+
+.custom-bake-section.custom-ingredients,
+.custom-bake-section.custom-prompt-studio,
+.custom-bake-section.custom-pipeline-section,
+.custom-bake-section.custom-safety {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px;
+  background: var(--surface);
+  box-shadow: 0 8px 30px rgba(22, 19, 15, .06);
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.custom-bake-heading h2 {
+  font-size: clamp(30px, 4vw, 44px);
+}
+
+.custom-bake-heading h2 em {
+  color: var(--brand-dark);
+}
+
+.custom-bake-section .custom-bake-kicker,
+.custom-pipeline-intro .custom-bake-kicker,
+.custom-progress-title,
+.custom-pipeline-detail dt {
+  color: var(--brand-dark);
+  font-size: 12px;
+  letter-spacing: .08em;
+}
+
+.custom-bake-section p,
+.custom-bake-section label,
+.custom-bake-section .custom-model-tip,
+.custom-bake-section .custom-ingredient-help,
+.custom-bake-section .custom-ingredient-footer,
+.custom-bake-section .custom-pipeline-detail,
+.custom-bake-section .custom-pipeline-detail dd,
+.custom-bake-section .custom-safety-list label,
+.custom-bake-section .custom-safety-card > p {
+  font-size: 14px;
+}
+
+.custom-oven-time small,
+.custom-oven-detail,
+.custom-flames small,
+.custom-hero-serves,
+.custom-crumb,
+.custom-bake-toolbar,
+.custom-actions-inline > a,
+.custom-pantry-copy,
+.custom-pantry-copy strong,
+.custom-pantry > p,
+.custom-ingredients .prompt-variable-form > label,
+.custom-ingredients .prompt-input-label,
+.custom-ingredients .prompt-variable-form small:not(.form-error),
+.custom-field-error,
+.custom-form-error,
+.custom-ingredient-label label,
+.custom-segment-field legend,
+.custom-ingredient-help,
+.custom-ingredient-footer,
+.custom-chip,
+.custom-suggestions button,
+.custom-segments button,
+.custom-model-tabs button,
+.custom-model-tip,
+.custom-prompt-toolbar,
+.custom-privacy-note,
+.custom-copy-toast,
+.custom-sample-details > summary small,
+.custom-notion-header > span,
+.custom-notion-header small,
+.custom-notion-range,
+.custom-summary-grid article > span,
+.custom-summary-grid article p,
+.custom-trending-row > strong,
+.custom-trending-row span,
+.custom-top-posts h4 small,
+.custom-post-source,
+.custom-top-posts article p,
+.custom-post-summary,
+.custom-empty-example,
+.custom-pipeline-intro p,
+.custom-pipeline-number,
+.custom-pipeline-detail dt,
+.custom-pipeline-detail dd,
+.custom-authored-steps li > span,
+.custom-authored-steps p,
+.custom-refinement-pills button > span,
+.custom-refinement-pills button > small,
+.custom-related-card > span,
+.custom-related-card > i,
+.custom-safety-state,
+.custom-progress-rail a {
+  font-size: 14px;
+}
+
+.custom-bake-kicker,
+.custom-progress-title,
+.custom-oven-status,
+.custom-oven-time small,
+.custom-prompt-toolbar,
+.custom-notion-header small,
+.custom-notion-range,
+.custom-summary-grid article > span,
+.custom-post-source,
+.custom-safety-state > span,
+.custom-pipeline-number,
+.custom-pipeline-detail dt,
+.custom-authored-steps li > span,
+.custom-refinement-pills button > span {
+  font-size: 12px;
+  letter-spacing: .08em;
+}
+
+.custom-bake-section small,
+.custom-bake-section .custom-pipeline-detail dt,
+.custom-bake-section .custom-pipeline-number,
+.custom-bake-section .custom-authored-steps li > span,
+.custom-bake-section .custom-refinement-pills button > span,
+.custom-bake-section .custom-related-card > i {
+  color: var(--muted);
+}
+
+.custom-bake-toolbar > a,
+.custom-actions-inline > a,
+.custom-bake-section .custom-bake-kicker,
+.custom-bake-section .custom-chip,
+.custom-bake-section .custom-troubleshoot-list article > button svg,
+.custom-bake-section .custom-related-card > svg,
+.custom-bake-section .custom-related-card > i {
+  color: var(--brand-dark);
+}
+
+.custom-ingredients .required-mark,
+.custom-badge-required {
+  border-color: #E8BC84;
+  background: rgba(232, 188, 132, .22);
+  color: var(--brand-dark);
+  font: 12px var(--app-font-mono, "Space Mono", monospace);
+  letter-spacing: .08em;
+}
+
+.custom-ingredients .optional-mark,
+.custom-badge-optional {
+  border-color: var(--border);
+  background: var(--cool);
+  color: var(--muted);
+  font: 12px var(--app-font-mono, "Space Mono", monospace);
+  letter-spacing: .08em;
+}
+
+.custom-ingredients .prompt-variable-form input,
+.custom-ingredients .prompt-variable-form textarea,
+.custom-ingredients .prompt-variable-form select,
+.custom-text-input,
+.custom-notion-input,
+.custom-chipbox {
+  border-radius: 12px;
+}
+
+.custom-ingredients .prompt-variable-form input,
+.custom-ingredients .prompt-variable-form textarea,
+.custom-ingredients .prompt-variable-form select,
+.custom-text-input {
+  min-height: 48px;
+  padding: 12px 14px;
+  font-size: 16px;
+}
+
+.custom-notion-input > input,
+.custom-chipbox > input {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+.custom-ingredients .prompt-variable-form input:focus,
+.custom-ingredients .prompt-variable-form textarea:focus,
+.custom-ingredients .prompt-variable-form select:focus,
+.custom-text-input:focus,
+.custom-chipbox:focus-within,
+.custom-notion-input:focus-within {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px var(--brand), 0 0 0 5px rgb(var(--brand-rgb) / .16);
+  outline: 0;
+}
+
+.custom-recipe-experience input::placeholder,
+.custom-recipe-experience textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+.custom-ingredient-footer button:disabled,
+.custom-primary-button:disabled,
+.custom-mobile-copy-bar button:disabled {
+  opacity: .65;
+}
+
+.custom-progress-rail a {
+  min-height: 44px;
+  transition: color .2s ease, background .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.custom-progress-rail a > span {
+  width: 40px;
+  height: 40px;
+  border-color: var(--border);
+  color: var(--muted);
+  background: var(--surface);
+  font: 12px var(--app-font-mono, "Space Mono", monospace);
+}
+
+.custom-progress-rail a.is-active,
+.custom-progress-rail a.is-done {
+  border-color: transparent;
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.custom-progress-rail a.is-active > span {
+  border-color: #B97C45;
+  color: #fff;
+  background: #B97C45;
+}
+
+.custom-progress-rail a.is-done > span {
+  border-color: #2D766B;
+  color: #fff;
+  background: #2D766B;
+}
+
+.custom-suggestions button {
+  min-height: 40px;
+  border-radius: 999px;
+  padding: 8px 13px;
+  color: var(--muted);
+  font-size: 14px;
+  transition: border-color .2s ease, background .2s ease, color .2s ease, transform .2s ease;
+}
+
+.custom-suggestions button:hover {
+  transform: translateY(-1px);
+  border-color: #E8BC84;
+  color: var(--brand-dark);
+  background: rgba(232, 188, 132, .2);
+}
+
+.custom-model-tabs {
+  gap: 3px;
+  border-color: var(--border);
+  padding: 4px;
+  background: var(--cool);
+}
+
+.custom-model-tabs button {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+.custom-model-tabs button[aria-selected="true"] {
+  color: #fff;
+  background: var(--ink);
+}
+
+.custom-prompt-toolbar {
+  min-height: 64px;
+  font-size: 12px;
+}
+
+.custom-recipe-experience .custom-prompt-code pre {
+  color: var(--dark-text);
+  font-size: 14px;
+}
+
+.custom-prompt-line::before {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.custom-prompt-value {
+  color: var(--dark-text);
+  background: rgba(232, 188, 132, .22);
+}
+
+.custom-primary-button,
+.custom-mobile-copy-bar button {
+  min-height: 48px;
+  border: 0;
+  color: var(--ink);
+  background: linear-gradient(110deg, #E8BC84, #B97C45);
+  font-size: 14px;
+  transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+
+.custom-primary-button:not(:disabled) {
+  animation: custom-copy-pulse 2.8s ease-in-out infinite;
+}
+
+.custom-primary-button:hover:not(:disabled),
+.custom-mobile-copy-bar button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: saturate(1.08);
+  box-shadow: 0 6px 20px rgba(185, 124, 69, .28);
+}
+
+.custom-primary-button:disabled {
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--cool);
+}
+
+.custom-hero-actions .custom-ghost-button,
+.custom-hero-actions .button-save,
+.custom-actions-inline .custom-ghost-button,
+.custom-actions-inline .button-save {
+  min-height: 44px;
+  font-size: 14px;
+  transition: transform .2s ease, border-color .2s ease, background .2s ease, color .2s ease;
+}
+
+.custom-actions-inline > a {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 18px;
+  color: var(--ink);
+  background: linear-gradient(110deg, #E8BC84, #B97C45);
+  font-weight: 700;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.custom-actions-inline > a:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(185, 124, 69, .24);
+}
+
+.custom-chip,
+.custom-segments button,
+.custom-sample-details,
+.custom-pipeline-stage,
+.custom-related-card,
+.custom-refinement-pills button,
+.custom-troubleshoot-list article,
+.custom-safety-card {
+  transition: border-color .2s ease, background .2s ease, color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+@keyframes custom-copy-pulse {
+  50% { box-shadow: 0 0 0 5px rgba(232, 188, 132, .16); }
+}
+
+@media (max-width: 768px) {
+  .custom-recipe-experience {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 16px 16px calc(150px + var(--safe-bottom, 0px));
+  }
+
+  .custom-oven-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 23px;
+  }
+
+  .custom-bake-content {
+    gap: 32px;
+  }
+
+  .custom-bake-section.custom-ingredients,
+  .custom-bake-section.custom-prompt-studio,
+  .custom-bake-section.custom-pipeline-section,
+  .custom-bake-section.custom-safety {
+    padding: 24px;
+  }
+
+  .custom-ingredients .prompt-variable-form,
+  .custom-pipeline {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .custom-progress-rail {
+    position: sticky;
+    z-index: 20;
+    top: 78px;
+    display: flex;
+    height: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: -16px -16px 18px;
+    border: 0;
+    padding: 8px 16px;
+    background: rgb(var(--surface-rgb) / .96);
+    backdrop-filter: blur(14px);
+  }
+
+  .custom-progress-title {
+    display: block;
+    flex: 1 0 100%;
+    margin: 0;
+  }
+
+  .custom-progress-rail a {
+    position: static;
+    display: flex;
+    min-width: 44px;
+    min-height: 44px;
+    flex: 1 1 auto;
+    gap: 7px;
+    overflow: visible;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px 8px 2px 2px;
+    color: var(--muted);
+    background: var(--surface);
+    font-size: 12px;
+  }
+
+  .custom-progress-rail a > span {
+    display: grid;
+    width: 40px;
+    height: 40px;
+  }
+
+  .custom-progress-rail a.is-active,
+  .custom-progress-rail a.is-done {
+    border-color: var(--border);
+    color: var(--text-primary);
+    background: var(--surface);
+  }
+
+  .custom-progress-rail a.is-active::before,
+  .custom-progress-rail a.is-done::before {
+    content: none;
+  }
+
+  .custom-hero-actions > *,
+  .custom-actions-inline > *,
+  .custom-primary-button,
+  .custom-mobile-copy-bar button {
+    width: 100%;
+  }
+
+  .custom-hero-actions .custom-ghost-button,
+  .custom-hero-actions .button-save,
+  .custom-actions-inline .custom-ghost-button,
+  .custom-actions-inline .button-save,
+  .custom-actions-inline > a {
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .custom-suggestions button,
+  .custom-model-tabs button,
+  .custom-segments button,
+  .custom-chip button,
+  .custom-ingredient-footer button,
+  .custom-refinement-pills button,
+  .custom-troubleshoot-list article > button {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .custom-primary-button:not(:disabled) {
+    animation: none;
+  }
+}
+
+/* Keep inactive, disabled, and example states readable on their surfaces. */
+.custom-model-tabs button {
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  background: var(--surface);
+}
+
+.custom-model-tabs button:hover:not([aria-selected="true"]) {
+  border-color: var(--border);
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.custom-model-tabs button[aria-selected="true"] {
+  border-color: var(--ink);
+  color: #fff;
+  background: var(--ink);
+}
+
+.custom-primary-button:disabled,
+.custom-mobile-copy-bar button:disabled {
+  border-color: var(--border);
+  color: var(--text-primary);
+  background: var(--surface-subtle);
+  opacity: .8;
+}
+
+.custom-prompt-toolbar {
+  color: var(--dark-text-secondary);
+}
+
+.custom-prompt-toolbar > span {
+  color: var(--dark-text-secondary);
+}
+
+.custom-prompt-toolbar .custom-primary-button {
+  color: var(--ink);
+}
+
+.custom-safety-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: 0 4px 18px rgba(22, 19, 15, .06);
+}
+
+.custom-safety-card > p,
+.custom-safety-list label,
+.custom-safety-state {
+  color: var(--text-primary);
+}
+
+.custom-safety-list label {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.custom-safety-list label.is-checked {
+  border-color: var(--brand-dark);
+  background: var(--brand-tint);
+  color: var(--text-primary);
+}
+
+.custom-checkmark {
+  border-color: var(--muted);
+  background: var(--surface);
+  color: transparent;
+}
+
+.custom-safety-list label.is-checked .custom-checkmark {
+  border-color: var(--brand-dark);
+  background: var(--brand-dark);
+  color: #fff;
+}
+
+.custom-safety-state {
+  border-color: var(--border);
+}
+
+.custom-safety-state > span,
+.custom-safety-state > strong {
+  color: var(--muted);
+}
+
+.custom-notion-mock {
+  border-color: var(--border);
+  background: var(--brand-tint);
+  color: var(--text-primary);
+}
+
+.custom-notion-header {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.custom-notion-header > span,
+.custom-notion-header small,
+.custom-notion-range,
+.custom-summary-grid article > span,
+.custom-summary-grid article p,
+.custom-top-posts article p,
+.custom-post-source,
+.custom-post-summary,
+.custom-empty-example {
+  color: var(--muted);
+}
+
+.custom-notion-page h3,
+.custom-top-posts h4,
+.custom-trending-row > strong {
+  color: var(--text-primary);
+}
+
+.custom-summary-grid article {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.custom-trending-row,
+.custom-top-posts,
+.custom-top-posts article {
+  border-color: var(--border);
+}
+
+.custom-trending-row span {
+  border-color: var(--cool);
+  color: #fff;
+  background: var(--cool);
+}
+
+@media (max-width: 768px) {
+  .custom-safety-card {
+    padding: 18px;
+  }
+}
+
 @media (max-width: 720px) {
   .custom-pipeline-line {
     background: linear-gradient(180deg, rgb(var(--brand-rgb) / 0.08), rgb(var(--brand-rgb) / 0.5), rgb(var(--brand-rgb) / 0.08));
@@ -1097,5 +1768,92 @@
   .custom-mobile-copy-bar button {
     min-height: 48px;
     font-size: 13px;
+  }
+}
+
+/* Make the ingredients label and optional status stand out on light surfaces. */
+.custom-recipe-experience .custom-ingredients .custom-bake-heading .custom-bake-kicker {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border: 1px solid rgb(var(--brand-rgb) / .24);
+  border-radius: 999px;
+  padding: 7px 11px;
+  color: var(--brand-dark);
+  background: var(--brand-tint);
+  font: 12px/1.4 var(--app-font-mono, "Space Mono", monospace);
+  letter-spacing: .08em;
+}
+
+.custom-recipe-experience .custom-ingredients .optional-mark,
+.custom-recipe-experience .custom-ingredients .custom-badge-optional {
+  border-color: var(--border);
+  color: #51493F;
+  background: #F1EEE8;
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+
+.custom-recipe-experience .custom-ingredients .required-mark,
+.custom-recipe-experience .custom-ingredients .custom-badge-required {
+  border-color: rgb(185 124 69 / .5);
+  color: #75431F;
+  background: #F8E8D5;
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+
+/* A clean, floating segmented selector replaces the heavy outlined capsule. */
+.custom-recipe-experience .custom-model-tabs {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  gap: 6px;
+  border: 0;
+  border-radius: 16px;
+  padding: 6px;
+  background: var(--surface-subtle);
+  box-shadow: inset 0 0 0 1px var(--border), 0 6px 18px rgb(var(--ink-rgb) / .06);
+}
+
+.custom-recipe-experience .custom-model-tabs button {
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  padding: 10px 17px;
+  color: var(--text-secondary);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  transition: color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.custom-recipe-experience .custom-model-tabs button:hover:not([aria-selected="true"]) {
+  color: var(--text-primary);
+  background: var(--surface);
+}
+
+.custom-recipe-experience .custom-model-tabs button[aria-selected="true"] {
+  border-color: var(--ink);
+  color: var(--surface);
+  background: var(--ink);
+  box-shadow: 0 3px 9px rgb(var(--ink-rgb) / .18);
+}
+
+.custom-recipe-experience .custom-model-tabs button:focus-visible {
+  outline: 2px solid var(--brand-dark);
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .custom-recipe-experience .custom-model-tabs {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .custom-recipe-experience .custom-model-tabs button {
+    width: 100%;
+    padding-inline: 10px;
   }
 }

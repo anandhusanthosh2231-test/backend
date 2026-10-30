@@ -8,6 +8,7 @@ import './premium.css';
 import './mobile-app.css';
 import './home-hero.css';
 import './tokens.css';
+import './landing-polish.css';
 
 createRoot(document.getElementById('root')!, {
   // Keeps caught errors off reportError(), which would raise the dev overlay.

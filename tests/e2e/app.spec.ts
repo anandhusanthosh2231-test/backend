@@ -257,7 +257,7 @@ test('mobile layout preserves zoom and carousel touch target sizes', async ({ pa
   }
 });
 
-test('mobile auth uses the light wordmark and keeps the bottom menu available', async ({ page }) => {
+test('mobile auth uses a contrast-safe wordmark and keeps the bottom menu available', async ({ page }) => {
   await mockApi(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/sign-in');
@@ -265,7 +265,7 @@ test('mobile auth uses the light wordmark and keeps the bottom menu available', 
   const authBrand = page.locator('.auth-brand');
   const authWordmark = authBrand.locator('img');
   await expect(authBrand).toBeVisible();
-  await expect(authWordmark).toHaveAttribute('src', '/taskbakeai-wordmark-light.png');
+  await expect(authWordmark).toHaveAttribute('src', '/taskbakeai-wordmark.png');
   await expect.poll(() => authWordmark.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   await expect(page.getByTestId('mobile-nav-account')).toBeVisible();
   await expect(page.getByTestId('mobile-link-submit')).not.toContainText('Create');
@@ -287,9 +287,11 @@ test('desktop auth presents the workflow canvas without clipping', async ({ page
     await expect(canvas.locator('.auth-workflow-card')).toHaveCount(3);
     await expect(page.locator('.auth-aside .auth-brand')).toBeHidden();
     const googleButtonText = page.locator('.auth-card [class*="cl-socialButtonsBlockButtonText"]');
+    const googleButton = page.locator('.auth-card button[class*="cl-socialButtonsBlockButton"]');
     if (await googleButtonText.count()) {
-      await expect.poll(() => googleButtonText.evaluate((element) => getComputedStyle(element).color)).toBe('rgb(39, 34, 53)');
+      await expect.poll(() => googleButtonText.evaluate((element) => getComputedStyle(element).color)).toBe('rgb(22, 19, 15)');
       await expect(googleButtonText).toBeVisible();
+      await expect.poll(() => googleButton.evaluate((element) => element.getBoundingClientRect().height)).toBe(48);
     }
     const layoutFits = await page.evaluate(() => {
       const aside = document.querySelector('.auth-aside')!.getBoundingClientRect();
@@ -310,6 +312,10 @@ test('desktop auth presents the workflow canvas without clipping', async ({ page
   await page.goto('/sign-up');
   await expect(page.locator('.auth-workflow-canvas')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const signupCard = page.locator('.auth-card [class*="cl-cardBox"]');
+  if (await signupCard.count()) {
+    await expect.poll(() => signupCard.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(700);
+  }
 
   await expect.poll(() => page.locator('.auth-workflow-card').first().evaluate((element) =>
     getComputedStyle(element).animationName,
@@ -449,7 +455,7 @@ test('why AI Recipes page uses the site shell and switches its examples', async 
   await expect(page.getByTestId('link-why-explore')).toHaveAttribute('href', '/recipes');
   await expect(page.getByTestId('link-footer-why recipes')).toHaveAttribute('href', '/why-ai-recipes');
 
-  for (const width of [1920, 1440, 768, 390]) {
+  for (const width of [1920, 1440, 1024, 768, 430, 390, 360]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(page.getByTestId('why-example-content')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -1128,7 +1134,10 @@ test('admin custom-layout editor saves structured workflow content and can publi
   await page.getByLabel('Input 1 required').check();
   await page.getByRole('button', { name: 'Add Verification Checklist' }).click();
   await page.getByRole('textbox', { name: 'Verification Checklist 1' }).fill('Confirm every role is currently open.');
-  await page.getByLabel('Workflow Diagram (optional Mermaid)').fill('flowchart TD\n  A[Collect] --> B[Verify]');
+  await page.getByLabel('Workflow Diagram (optional Mermaid)').fill('graph TD A[Input] --> B[AI]');
+  await page.getByTestId('tab-editor-preview').click();
+  await expect(page.locator('.layout-diagram')).toBeVisible();
+  await page.getByTestId('tab-editor-form').click();
   await page.getByLabel('Publishing Status').selectOption('PUBLISHED');
   await page.getByTestId('button-save-editor').click();
 
@@ -1142,7 +1151,7 @@ test('admin custom-layout editor saves structured workflow content and can publi
     expectedOutput: { description: 'A prioritized list of roles and next actions.' },
     customContent: {
       verificationChecklist: ['Confirm every role is currently open.'],
-      workflowDiagram: 'flowchart TD\n  A[Collect] --> B[Verify]',
+      workflowDiagram: 'graph TD A[Input] --> B[AI]',
     },
   });
 
@@ -1159,7 +1168,7 @@ test('admin custom-layout editor saves structured workflow content and can publi
     guide: {
       customContent: {
         verificationChecklist: ['Confirm every role is currently open.'],
-        workflowDiagram: 'flowchart TD\n  A[Collect] --> B[Verify]',
+        workflowDiagram: 'graph TD A[Input] --> B[AI]',
       },
     },
   });

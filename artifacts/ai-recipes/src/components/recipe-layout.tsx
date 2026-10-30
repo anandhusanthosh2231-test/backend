@@ -76,13 +76,17 @@ function MermaidDiagram({ source }: { source: string }) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const [image, setImage] = useState('');
   const [failed, setFailed] = useState(false);
+  const normalizedSource = source.replace(
+    /^([ \t]*(?:graph|flowchart)[ \t]+(?:TB|TD|BT|RL|LR))[ \t]+(?=\S)/i,
+    '$1\n  ',
+  );
 
   useEffect(() => {
     let active = true;
     void import('mermaid').then(({ default: mermaid }) => {
       if (!active) return undefined;
       mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'neutral' });
-      return mermaid.render(`recipe-diagram-${id}`, source);
+      return mermaid.render(`recipe-diagram-${id}`, normalizedSource);
     }).then((result) => {
       if (result && active) {
         setImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(result.svg)}`);
@@ -95,7 +99,7 @@ function MermaidDiagram({ source }: { source: string }) {
       }
     });
     return () => { active = false; };
-  }, [id, source]);
+  }, [id, normalizedSource]);
 
   if (failed) return <div className="layout-diagram-error" role="status">Diagram syntax could not be rendered. Review the Mermaid source.</div>;
   if (!image) return <div className="layout-diagram-loading" role="status">Rendering workflow diagram…</div>;
