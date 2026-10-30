@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { RecipeGuidePromptVariablesItem } from "@workspace/api-client-react";
 import type { ReactNode } from "react";
 import { validateRecipeInputValue } from "@/lib/recipe-prompt";
@@ -11,6 +12,7 @@ export function RecipePromptInputs({
   idPrefix = "recipe-input",
   nativeRequired = true,
   allowReset = true,
+  deferErrors = false,
 }: {
   fields: RecipeGuidePromptVariablesItem[];
   values: Record<string, string>;
@@ -19,7 +21,9 @@ export function RecipePromptInputs({
   idPrefix?: string;
   nativeRequired?: boolean;
   allowReset?: boolean;
+  deferErrors?: boolean;
 }) {
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const hasChanges = fields.some((field) =>
     (values[field.name] ?? field.defaultValue ?? "") !== (field.defaultValue ?? ""),
   );
@@ -45,13 +49,15 @@ export function RecipePromptInputs({
       const presentation = getRecipePromptFieldPresentation(field);
       const id = `${idPrefix}-${index}`;
       const error = errors[field.name];
+      const visibleError = deferErrors && !touched[field.name] ? undefined : error;
       const value = values[field.name] ?? field.defaultValue ?? "";
       const commonProps = {
         id,
         required: nativeRequired && (field.required ?? false),
         placeholder: presentation.placeholder,
-        "aria-invalid": Boolean(error),
-        "aria-describedby": [presentation.helpText ? `${id}-help` : "", error ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined,
+        "aria-invalid": Boolean(visibleError),
+        "aria-describedby": [presentation.helpText ? `${id}-help` : "", visibleError ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined,
+        onBlur: () => setTouched((current) => ({ ...current, [field.name]: true })),
       };
       let control: ReactNode;
       switch (presentation.type ?? "text") {
@@ -85,7 +91,7 @@ export function RecipePromptInputs({
         {control}
         {presentation.helpText && <small id={`${id}-help`}>{presentation.helpText}</small>}
         {presentation.type === "file" && !presentation.helpText && <small id={`${id}-help`}>The selected file name is added to the prompt; the file is not uploaded.</small>}
-        {error && <small id={`${id}-error`} className="form-error">{error}</small>}
+        {visibleError && <small id={`${id}-error`} className="form-error">{visibleError}</small>}
       </label>;
     })}
     </div>

@@ -5,6 +5,42 @@ import { defineConfig, type Plugin } from 'vite';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 
+const withUtf8HtmlCharset = (contentType: string): string => {
+  if (!/^text\/html(?:;|$)/i.test(contentType)) return contentType;
+  if (/\bcharset\s*=/i.test(contentType)) {
+    return contentType.replace(/\bcharset\s*=\s*[^;\s]+/i, 'charset=utf-8');
+  }
+  return `${contentType}; charset=utf-8`;
+};
+
+const utf8HtmlResponses = (): Plugin => ({
+  name: 'utf8-html-responses',
+  configureServer(server) {
+    server.middlewares.use((request, response, next) => {
+      const setHeader = response.setHeader.bind(response);
+      response.setHeader = (name, value) => {
+        const normalizedValue = name.toLowerCase() === 'content-type' && typeof value === 'string'
+          ? withUtf8HtmlCharset(value)
+          : value;
+        return setHeader(name, normalizedValue);
+      };
+      next();
+    });
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use((request, response, next) => {
+      const setHeader = response.setHeader.bind(response);
+      response.setHeader = (name, value) => {
+        const normalizedValue = name.toLowerCase() === 'content-type' && typeof value === 'string'
+          ? withUtf8HtmlCharset(value)
+          : value;
+        return setHeader(name, normalizedValue);
+      };
+      next();
+    });
+  },
+});
+
 const deferStylesheets = (): Plugin => ({
   name: 'defer-stylesheets',
   enforce: 'post',
@@ -57,6 +93,7 @@ export default defineConfig({
     tailwindcss(),
     runtimeErrorOverlay(),
     deferStylesheets(),
+    utf8HtmlResponses(),
     ...(process.env.NODE_ENV !== 'production' &&
     process.env.REPL_ID !== undefined
       ? [

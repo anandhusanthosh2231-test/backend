@@ -5,6 +5,344 @@
  * API for AI Recipes, an Indian-first library of practical AI workflows.
  * OpenAPI spec version: 0.1.0
  */
+export type VybeContentType = typeof VybeContentType[keyof typeof VybeContentType];
+
+
+export const VybeContentType = {
+  image: 'image',
+  video: 'video',
+  art: 'art',
+  design: 'design',
+  '3d': '3d',
+  app: 'app',
+  game: 'game',
+  interactive: 'interactive',
+  custom: 'custom',
+} as const;
+
+export type VybeUrl = string;
+
+export type VybeAssetType = typeof VybeAssetType[keyof typeof VybeAssetType];
+
+
+export const VybeAssetType = {
+  image: 'image',
+  video: 'video',
+} as const;
+
+export interface VybeAsset {
+  /** @maxLength 200 */
+  assetId?: string;
+  /**
+     * @maxLength 2048
+     * @pattern ^https://
+     */
+  url: string;
+  /** @maxLength 500 */
+  alt: string;
+  type: VybeAssetType;
+  /** @maxLength 500 */
+  caption?: string;
+}
+
+export type VybeCreationInputParameters = { [key: string]: unknown };
+
+export type VybeCreationInputExtraData = { [key: string]: unknown };
+
+export type VybeCreationInputStatus = typeof VybeCreationInputStatus[keyof typeof VybeCreationInputStatus];
+
+
+export const VybeCreationInputStatus = {
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  ARCHIVED: 'ARCHIVED',
+} as const;
+
+export interface VybeCreationInput {
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  title: string;
+  /**
+     * @maxLength 180
+     * @pattern ^[a-z0-9]+(?:-[a-z0-9]+)*$
+     */
+  slug: string;
+  /**
+     * @minLength 1
+     * @maxLength 280
+     */
+  shortDescription: string;
+  /**
+     * @minLength 1
+     * @maxLength 12000
+     */
+  description: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  category?: string;
+  contentType: VybeContentType;
+  /** @maxLength 160 */
+  model?: string;
+  /**
+     * @maxItems 20
+     * @items.minLength 1
+     * @items.maxLength 100
+     */
+  models?: string[];
+  /** @maxLength 20000 */
+  prompt?: string;
+  /** @maxLength 10000 */
+  negativePrompt?: string;
+  /** @maxLength 500 */
+  style?: string;
+  /** @maxLength 40 */
+  aspectRatio?: string;
+  parameters?: VybeCreationInputParameters;
+  /** @maxLength 10000 */
+  scene?: string;
+  /** @maxLength 10000 */
+  motion?: string;
+  /** @maxLength 10000 */
+  cameraInstructions?: string;
+  /**
+     * @minimum 1
+     * @maximum 3600
+     * @nullable
+     */
+  durationSeconds?: number | null;
+  videoUrl?: VybeUrl;
+  posterUrl?: VybeUrl;
+  /** @maxItems 30 */
+  visualReferences?: VybeAsset[];
+  /** @maxItems 30 */
+  exampleOutputs?: VybeAsset[];
+  /** @maxLength 10000 */
+  refinementInstructions?: string;
+  /** @maxLength 20000 */
+  builderInstructions?: string;
+  /**
+     * @maxItems 30
+     * @items.minLength 1
+     * @items.maxLength 100
+     */
+  tools?: string[];
+  demoUrl?: VybeUrl;
+  /** @maxLength 10000 */
+  verificationDetails?: string;
+  experienceUrl?: VybeUrl;
+  /**
+     * @maxItems 30
+     * @items.minLength 1
+     * @items.maxLength 200
+     */
+  experienceControls?: string[];
+  /** @maxItems 50 */
+  mediaAssets?: VybeAsset[];
+  extraData?: VybeCreationInputExtraData;
+  imageUrl?: VybeUrl;
+  /** @maxLength 500 */
+  imageAlt?: string;
+  /**
+     * @maxItems 30
+     * @items.minLength 1
+     * @items.maxLength 50
+     */
+  tags?: string[];
+  status?: VybeCreationInputStatus;
+  featured?: boolean;
+  /**
+     * @minimum 0
+     * @maximum 10000
+     */
+  featuredPosition?: number;
+  trending?: boolean;
+}
+
+/**
+ * @nullable
+ */
+export type VybeCreationMetadata = { [key: string]: unknown } | null;
+
+export type VybeCreation = VybeCreationInput & ({
+  id: number;
+  /** @nullable */
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  metadata?: VybeCreationMetadata;
+});
+
+export interface VybeListResponse {
+  items: VybeCreation[];
+  page: number;
+  pageSize: number;
+  total: number;
+  categories: string[];
+}
+
+export type VybeAdminListResponse = VybeListResponse;
+
+export interface VybeSummary {
+  total: number;
+  drafts: number;
+  published: number;
+  archived: number;
+  featured: number;
+  categories: number;
+}
+
+export interface VybeCsvField {
+  name: string;
+  type: string;
+  required: boolean;
+  values?: string[];
+}
+
+export type VybeCsvSchemaStrategiesItem = typeof VybeCsvSchemaStrategiesItem[keyof typeof VybeCsvSchemaStrategiesItem];
+
+
+export const VybeCsvSchemaStrategiesItem = {
+  'create-only': 'create-only',
+  'update-existing': 'update-existing',
+  upsert: 'upsert',
+} as const;
+
+export interface VybeCsvSchema {
+  version: string;
+  maxBytes: number;
+  maxRows: number;
+  strategies: VybeCsvSchemaStrategiesItem[];
+  fields: VybeCsvField[];
+  protectedFields: string[];
+}
+
+export type VybeCsvImportBodyMapping = {[key: string]: string};
+
+export type VybeCsvImportBodyStrategy = typeof VybeCsvImportBodyStrategy[keyof typeof VybeCsvImportBodyStrategy];
+
+
+export const VybeCsvImportBodyStrategy = {
+  'create-only': 'create-only',
+  'update-existing': 'update-existing',
+  upsert: 'upsert',
+} as const;
+
+export interface VybeCsvImportBody {
+  /** @maxLength 5242880 */
+  csv: string;
+  mapping?: VybeCsvImportBodyMapping;
+  strategy?: VybeCsvImportBodyStrategy;
+  publishImported?: boolean;
+}
+
+export type VybeCsvImportCommitBody = VybeCsvImportBody & {
+  idempotencyKey: string;
+};
+
+export type VybeCsvValidationResponseStrategy = typeof VybeCsvValidationResponseStrategy[keyof typeof VybeCsvValidationResponseStrategy];
+
+
+export const VybeCsvValidationResponseStrategy = {
+  'create-only': 'create-only',
+  'update-existing': 'update-existing',
+  upsert: 'upsert',
+} as const;
+
+export type VybeCsvValidationResponseCounts = {
+  create: number;
+  update: number;
+  skipped: number;
+  invalid: number;
+  total: number;
+};
+
+export type VybeCsvValidationResponseRowsItemErrorsItem = { [key: string]: unknown };
+
+export type VybeCsvValidationResponseRowsItemAction = typeof VybeCsvValidationResponseRowsItemAction[keyof typeof VybeCsvValidationResponseRowsItemAction];
+
+
+export const VybeCsvValidationResponseRowsItemAction = {
+  invalid: 'invalid',
+  skip: 'skip',
+  update: 'update',
+  create: 'create',
+} as const;
+
+export type VybeCsvValidationResponseRowsItem = {
+  row: number;
+  slug: string;
+  valid: boolean;
+  errors: VybeCsvValidationResponseRowsItemErrorsItem[];
+  warnings: string[];
+  action: VybeCsvValidationResponseRowsItemAction;
+};
+
+export interface VybeCsvValidationResponse {
+  schemaVersion: string;
+  strategy: VybeCsvValidationResponseStrategy;
+  publishImported: boolean;
+  counts: VybeCsvValidationResponseCounts;
+  rows: VybeCsvValidationResponseRowsItem[];
+}
+
+export type VybeCsvImportJobStrategy = typeof VybeCsvImportJobStrategy[keyof typeof VybeCsvImportJobStrategy];
+
+
+export const VybeCsvImportJobStrategy = {
+  'create-only': 'create-only',
+  'update-existing': 'update-existing',
+  upsert: 'upsert',
+} as const;
+
+export type VybeCsvImportJobReport = { [key: string]: unknown };
+
+export interface VybeCsvImportJob {
+  id: number;
+  status: string;
+  strategy: VybeCsvImportJobStrategy;
+  totalRows: number;
+  importedRows: number;
+  skippedRows: number;
+  failedRows: number;
+  report: VybeCsvImportJobReport;
+  adminId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type VybeCsvImportJobSummaryStrategy = typeof VybeCsvImportJobSummaryStrategy[keyof typeof VybeCsvImportJobSummaryStrategy];
+
+
+export const VybeCsvImportJobSummaryStrategy = {
+  'create-only': 'create-only',
+  'update-existing': 'update-existing',
+  upsert: 'upsert',
+} as const;
+
+export interface VybeCsvImportJobSummary {
+  id: number;
+  status: string;
+  strategy: VybeCsvImportJobSummaryStrategy;
+  totalRows: number;
+  importedRows: number;
+  skippedRows: number;
+  failedRows: number;
+  createdAt: string;
+}
+
+export type VybeCsvImportJobResponseReport = { [key: string]: unknown };
+
+export interface VybeCsvImportJobResponse {
+  job: VybeCsvImportJob;
+  report: VybeCsvImportJobResponseReport;
+  alreadyProcessed?: boolean;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -71,6 +409,7 @@ export interface RecipeCard {
   viewCount: number;
   copyCount: number;
   saveCount: number;
+  catalogue?: string;
 }
 
 export type RecipeLayoutMode = typeof RecipeLayoutMode[keyof typeof RecipeLayoutMode];
@@ -101,6 +440,16 @@ export interface RecipeVisualImage {
   alt: string;
   /** @maxLength 500 */
   caption?: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  fileId?: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  filePath?: string;
 }
 
 export interface RecipePromptStudio {
@@ -441,6 +790,7 @@ export type Recipe = RecipeCard & ({
   refinementPrompts: string[];
   verificationNotes: string;
   status: string;
+  catalogue: string;
   version: string;
   /** @nullable */
   testedAt?: string | null;
@@ -489,6 +839,7 @@ export interface RecipeInput {
   verificationNotes: string;
   tags: string[];
   status: string;
+  catalogue?: string;
   featured: boolean;
   trending: boolean;
   recipeOfDay: boolean;
@@ -523,6 +874,80 @@ export interface AdminMediaItem {
 export interface AdminMediaListResponse {
   configured: boolean;
   items: AdminMediaItem[];
+}
+
+export interface ImageKitConfigResponse {
+  configured: boolean;
+  publicKey?: string;
+  urlEndpoint?: string;
+  maxFileSizeBytes?: number;
+}
+
+export interface ImageKitUploadAuth {
+  token: string;
+  expire: number;
+  signature: string;
+  publicKey: string;
+  urlEndpoint: string;
+}
+
+export interface ImageKitAsset {
+  fileId: string;
+  filePath: string;
+  url: string;
+  fileName: string;
+  fileType: string;
+  size: number;
+  alt: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ImageKitAssetInputFileType = typeof ImageKitAssetInputFileType[keyof typeof ImageKitAssetInputFileType];
+
+
+export const ImageKitAssetInputFileType = {
+  image: 'image',
+  'non-image': 'non-image',
+} as const;
+
+export interface ImageKitAssetInput {
+  /** @maxLength 200 */
+  fileId: string;
+  /** @maxLength 500 */
+  filePath: string;
+  /** @maxLength 2048 */
+  url: string;
+  /** @maxLength 255 */
+  name: string;
+  fileType: ImageKitAssetInputFileType;
+  /** @minimum 1 */
+  size: number;
+  /** @maxLength 500 */
+  alt: string;
+  /**
+     * @maxItems 20
+     * @items.maxLength 50
+     */
+  tags: string[];
+}
+
+export interface ImageKitAssetUpdate {
+  /** @maxLength 500 */
+  alt?: string;
+  /**
+     * @maxItems 20
+     * @items.maxLength 50
+     */
+  tags?: string[];
+}
+
+export interface ImageKitAssetListResponse {
+  items: ImageKitAsset[];
+  page: number;
+  pageSize: number;
+  total: number;
 }
 
 export interface ImportAdminRecipesBody {
@@ -572,6 +997,10 @@ export interface RecipeListResponse {
 
 export type AdminRecipeListItem = RecipeCard & {
   status: string;
+  updatedAt: string;
+  contentType: string;
+  imageUrl?: string;
+  catalogue: string;
 };
 
 export interface AdminRecipeListResponse {
@@ -590,6 +1019,7 @@ export const BulkUpdateAdminRecipesBodyStatus = {
 } as const;
 
 export interface BulkUpdateAdminRecipesBody {
+  catalogue?: string;
   /**
      * @minItems 1
      * @maxItems 500
@@ -603,6 +1033,20 @@ export interface BulkUpdateAdminRecipesBody {
 
 export interface BulkUpdateAdminRecipesResponse {
   updatedCount: number;
+}
+
+export interface BulkDeleteAdminRecipesBody {
+  catalogue?: string;
+  /**
+     * @minItems 1
+     * @maxItems 500
+     * @items.minimum 1
+     */
+  ids: number[];
+}
+
+export interface BulkDeleteAdminRecipesResponse {
+  deletedCount: number;
 }
 
 export interface CollectionResponse {
@@ -759,6 +1203,9 @@ export interface AdminSummary {
   publishedRecipes: number;
   draftRecipes: number;
   testingRecipes: number;
+  featuredRecipes: number;
+  missingArtworkRecipes: number;
+  recipesMissingRequiredContent: number;
   views: number;
   copies: number;
   saves: number;
@@ -825,6 +1272,111 @@ export type GetRelatedRecipesParams = {
 limit?: number;
 };
 
+export type ListVybeCreationsParams = {
+/**
+ * @maxLength 200
+ */
+q?: string;
+/**
+ * @maxLength 80
+ */
+category?: string;
+contentType?: VybeContentType;
+featured?: boolean;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+pageSize?: number;
+};
+
+export type ListAdminVybeCreationsParams = {
+/**
+ * @maxLength 200
+ */
+q?: string;
+status?: ListAdminVybeCreationsStatus;
+/**
+ * @maxLength 80
+ */
+category?: string;
+contentType?: VybeContentType;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+pageSize?: number;
+};
+
+export type ListAdminVybeCreationsStatus = typeof ListAdminVybeCreationsStatus[keyof typeof ListAdminVybeCreationsStatus];
+
+
+export const ListAdminVybeCreationsStatus = {
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  ARCHIVED: 'ARCHIVED',
+} as const;
+
+export type ListAdminVybeCsvImportJobsParams = {
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+limit?: number;
+};
+
+export type ListAdminVybeCsvImportJobs200 = {
+  jobs: VybeCsvImportJobSummary[];
+};
+
+export type ExportAdminVybeCreationsParams = {
+/**
+ * @maxLength 200
+ */
+q?: string;
+status?: ExportAdminVybeCreationsStatus;
+/**
+ * @maxLength 80
+ */
+category?: string;
+contentType?: VybeContentType;
+/**
+ * Comma-separated selection of up to 500 IDs
+ */
+ids?: string;
+sort?: ExportAdminVybeCreationsSort;
+};
+
+export type ExportAdminVybeCreationsStatus = typeof ExportAdminVybeCreationsStatus[keyof typeof ExportAdminVybeCreationsStatus];
+
+
+export const ExportAdminVybeCreationsStatus = {
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  ARCHIVED: 'ARCHIVED',
+} as const;
+
+export type ExportAdminVybeCreationsSort = typeof ExportAdminVybeCreationsSort[keyof typeof ExportAdminVybeCreationsSort];
+
+
+export const ExportAdminVybeCreationsSort = {
+  title: 'title',
+  status: 'status',
+  featured: 'featured',
+} as const;
+
+export type GetAdminSummaryParams = {
+catalogue?: string;
+};
+
 export type ListAdminRecipeMediaParams = {
 /**
  * @minimum 1
@@ -848,13 +1400,47 @@ export const UploadAdminRecipeMediaPurpose = {
   sections: 'sections',
 } as const;
 
-export type ListAdminRecipesParams = {
+export type ListAdminImageKitAssetsParams = {
+/**
+ * @maxLength 200
+ */
 q?: string;
-status?: string;
-category?: string;
+fileType?: ListAdminImageKitAssetsFileType;
 /**
  * @minimum 1
  */
 page?: number;
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+pageSize?: number;
+};
+
+export type ListAdminImageKitAssetsFileType = typeof ListAdminImageKitAssetsFileType[keyof typeof ListAdminImageKitAssetsFileType];
+
+
+export const ListAdminImageKitAssetsFileType = {
+  image: 'image',
+  'non-image': 'non-image',
+} as const;
+
+export type ListAdminRecipesParams = {
+q?: string;
+status?: string;
+category?: string;
+catalogue?: string;
+/**
+ * @minimum 1
+ */
+page?: number;
+};
+
+export type ImportAdminRecipesCsvParams = {
+catalogue?: string;
+};
+
+export type ExportAdminRecipesCsvParams = {
+catalogue?: string;
 };
 

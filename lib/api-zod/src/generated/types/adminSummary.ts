@@ -11,6 +11,9 @@ export interface AdminSummary {
   publishedRecipes: number;
   draftRecipes: number;
   testingRecipes: number;
+  featuredRecipes: number;
+  missingArtworkRecipes: number;
+  recipesMissingRequiredContent: number;
   views: number;
   copies: number;
   saves: number;

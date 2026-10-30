@@ -87,6 +87,8 @@ const recipeVisualImageSchema = z.object({
   url: z.string().url().max(2_048),
   alt: z.string().trim().min(1).max(500),
   caption: z.string().max(500).optional(),
+  fileId: z.string().min(1).max(200).optional(),
+  filePath: z.string().min(1).max(500).optional(),
 }).strict();
 
 const promptStudioSchema = z.object({

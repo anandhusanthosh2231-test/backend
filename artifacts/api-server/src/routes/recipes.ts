@@ -1,4 +1,4 @@
-import { and, asc, count, countDistinct, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, count, countDistinct, desc, eq, ilike, inArray, ne, or, sql } from "drizzle-orm";
 import express, { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
 import {
@@ -27,6 +27,8 @@ import {
   ListAudiencesResponse,
   ListAdminSubmissionsResponse,
   BulkUpdateAdminRecipesBody,
+  BulkDeleteAdminRecipesBody,
+  BulkDeleteAdminRecipesResponse,
   ListAudiencesResponseItem,
   GetRecipeResponse,
   SubmitFeedbackBody,
@@ -89,7 +91,36 @@ const cardColumns = {
   viewCount: recipesTable.viewCount,
   copyCount: recipesTable.copyCount,
   saveCount: recipesTable.saveCount,
+  catalogue: recipesTable.catalogue,
 };
+
+function getRecipeArtworkUrl(
+  guide: unknown,
+  layoutConfig: unknown,
+): string | undefined {
+  const visualGuide = guide as {
+    imagesJson?: Array<{ url?: unknown }>;
+    customContent?: { images?: Array<{ url?: unknown }> };
+  } | null;
+  const image = [
+    ...(visualGuide?.imagesJson ?? []),
+    ...(visualGuide?.customContent?.images ?? []),
+  ].find((candidate) => {
+    if (typeof candidate.url !== "string") return false;
+    try {
+      return ["http:", "https:"].includes(new URL(candidate.url).protocol);
+    } catch {
+      return false;
+    }
+  });
+  if (typeof image?.url === "string") return image.url;
+
+  const blocks = (layoutConfig as {
+    blocks?: Array<{ type?: string; imageUrl?: unknown }>;
+  } | null)?.blocks;
+  const hero = blocks?.find((block) => block.type === "hero" && typeof block.imageUrl === "string");
+  return typeof hero?.imageUrl === "string" ? hero.imageUrl : undefined;
+}
 
 async function fetchCards(options: {
   where?: ReturnType<typeof and>;
@@ -168,6 +199,7 @@ router.get("/recipes", async (req, res): Promise<void> => {
 
   const filters = [
     eq(recipesTable.status, "PUBLISHED"),
+    eq(recipesTable.catalogue, "TASKBAKE"),
     category ? eq(categoriesTable.slug, category) : undefined,
     audience ? inArray(
       recipesTable.id,
@@ -215,7 +247,7 @@ router.get("/recipes/:slug", async (req, res): Promise<void> => {
     return;
   }
   const row = await findRecipe(params.data.slug);
-  if (!row || row.recipe.status !== "PUBLISHED") {
+  if (!row || row.recipe.status !== "PUBLISHED" || row.recipe.catalogue !== "TASKBAKE") {
     res.status(404).json({ error: "Recipe not found" });
     return;
   }
@@ -248,7 +280,11 @@ router.get("/recipes/:slug/related", async (req, res): Promise<void> => {
     .from(recipesTable)
     .innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id))
     .innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id))
-    .where(and(eq(recipesTable.status, "PUBLISHED"), sql`${recipesTable.id} <> ${row.recipe.id}`))
+    .where(and(
+      eq(recipesTable.status, "PUBLISHED"),
+      eq(recipesTable.catalogue, "TASKBAKE"),
+      sql`${recipesTable.id} <> ${row.recipe.id}`,
+    ))
     .orderBy(desc(recipesTable.updatedAt))
     .limit(100);
 
@@ -310,12 +346,12 @@ router.get("/home", async (_req, res): Promise<void> => {
       .from(recipesTable)
       .innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id))
       .innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id))
-      .where(and(eq(recipesTable.status, "PUBLISHED"), eq(recipesTable.recipeOfDay, true)))
+      .where(and(eq(recipesTable.status, "PUBLISHED"), eq(recipesTable.catalogue, "TASKBAKE"), eq(recipesTable.recipeOfDay, true)))
       .limit(1),
-    fetchCards({ where: eq(recipesTable.status, "PUBLISHED"), orderBy: desc(sql`${recipesTable.viewCount} + ${recipesTable.copyCount} * 3 + ${recipesTable.saveCount} * 4`), limit: 6 }),
-    fetchCards({ where: eq(recipesTable.status, "PUBLISHED"), orderBy: desc(recipesTable.copyCount), limit: 6 }),
-    db.select({ id: categoriesTable.id, name: categoriesTable.name, slug: categoriesTable.slug, description: categoriesTable.description, recipeCount: count(recipesTable.id) }).from(categoriesTable).leftJoin(recipesTable, and(eq(recipesTable.categoryId, categoriesTable.id), eq(recipesTable.status, "PUBLISHED"))).groupBy(categoriesTable.id).orderBy(desc(count(recipesTable.id)), asc(categoriesTable.name)).limit(8),
-    db.select({ id: audiencesTable.id, name: audiencesTable.name, slug: audiencesTable.slug, description: audiencesTable.description, recipeCount: countDistinct(recipesTable.id) }).from(audiencesTable).leftJoin(recipeAudiencesTable, eq(recipeAudiencesTable.audienceId, audiencesTable.id)).leftJoin(recipesTable, and(eq(recipeAudiencesTable.recipeId, recipesTable.id), eq(recipesTable.status, "PUBLISHED"))).groupBy(audiencesTable.id).orderBy(desc(countDistinct(recipesTable.id)), asc(audiencesTable.name)).limit(8),
+    fetchCards({ where: and(eq(recipesTable.status, "PUBLISHED"), eq(recipesTable.catalogue, "TASKBAKE")), orderBy: desc(sql`${recipesTable.viewCount} + ${recipesTable.copyCount} * 3 + ${recipesTable.saveCount} * 4`), limit: 6 }),
+    fetchCards({ where: and(eq(recipesTable.status, "PUBLISHED"), eq(recipesTable.catalogue, "TASKBAKE")), orderBy: desc(recipesTable.copyCount), limit: 6 }),
+    db.select({ id: categoriesTable.id, name: categoriesTable.name, slug: categoriesTable.slug, description: categoriesTable.description, recipeCount: count(recipesTable.id) }).from(categoriesTable).leftJoin(recipesTable, and(eq(recipesTable.categoryId, categoriesTable.id), eq(recipesTable.status, "PUBLISHED"), eq(recipesTable.catalogue, "TASKBAKE"))).groupBy(categoriesTable.id).orderBy(desc(count(recipesTable.id)), asc(categoriesTable.name)).limit(8),
+    db.select({ id: audiencesTable.id, name: audiencesTable.name, slug: audiencesTable.slug, description: audiencesTable.description, recipeCount: countDistinct(recipesTable.id) }).from(audiencesTable).leftJoin(recipeAudiencesTable, eq(recipeAudiencesTable.audienceId, audiencesTable.id)).leftJoin(recipesTable, and(eq(recipeAudiencesTable.recipeId, recipesTable.id), eq(recipesTable.status, "PUBLISHED"), eq(recipesTable.catalogue, "TASKBAKE"))).groupBy(audiencesTable.id).orderBy(desc(countDistinct(recipesTable.id)), asc(audiencesTable.name)).limit(8),
   ]);
   const normalizedCategories = categories.map((item) => ({ ...item, recipeCount: Number(item.recipeCount) }));
   const normalizedAudiences = audiences.map((item) => ({ ...item, recipeCount: Number(item.recipeCount) }));
@@ -329,7 +365,7 @@ router.get("/home", async (_req, res): Promise<void> => {
 });
 
 router.get("/categories", async (_req, res): Promise<void> => {
-  const rows = await db.select({ id: categoriesTable.id, name: categoriesTable.name, slug: categoriesTable.slug, description: categoriesTable.description, recipeCount: count(recipesTable.id) }).from(categoriesTable).leftJoin(recipesTable, and(eq(recipesTable.categoryId, categoriesTable.id), eq(recipesTable.status, "PUBLISHED"))).groupBy(categoriesTable.id).orderBy(asc(categoriesTable.name));
+  const rows = await db.select({ id: categoriesTable.id, name: categoriesTable.name, slug: categoriesTable.slug, description: categoriesTable.description, recipeCount: count(recipesTable.id) }).from(categoriesTable).leftJoin(recipesTable, and(eq(recipesTable.categoryId, categoriesTable.id), eq(recipesTable.status, "PUBLISHED"), eq(recipesTable.catalogue, "TASKBAKE"))).groupBy(categoriesTable.id).orderBy(asc(categoriesTable.name));
   res.json(ListCategoriesResponse.parse(rows.map((row) => ({ ...row, recipeCount: Number(row.recipeCount) }))));
 });
 
@@ -338,12 +374,12 @@ router.get("/categories/:slug", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const [category] = await db.select().from(categoriesTable).where(eq(categoriesTable.slug, params.data.slug));
   if (!category) { res.status(404).json({ error: "Category not found" }); return; }
-  const recipes = await fetchCards({ where: and(eq(recipesTable.categoryId, category.id), eq(recipesTable.status, "PUBLISHED")), limit: 50 });
+  const recipes = await fetchCards({ where: and(eq(recipesTable.categoryId, category.id), eq(recipesTable.status, "PUBLISHED"), eq(recipesTable.catalogue, "TASKBAKE")), limit: 50 });
   res.json({ name: category.name, slug: category.slug, description: category.description, recipes });
 });
 
 router.get("/audiences", async (_req, res): Promise<void> => {
-  const rows = await db.select({ id: audiencesTable.id, name: audiencesTable.name, slug: audiencesTable.slug, description: audiencesTable.description, recipeCount: countDistinct(recipesTable.id) }).from(audiencesTable).leftJoin(recipeAudiencesTable, eq(recipeAudiencesTable.audienceId, audiencesTable.id)).leftJoin(recipesTable, and(eq(recipeAudiencesTable.recipeId, recipesTable.id), eq(recipesTable.status, "PUBLISHED"))).groupBy(audiencesTable.id).orderBy(asc(audiencesTable.name));
+  const rows = await db.select({ id: audiencesTable.id, name: audiencesTable.name, slug: audiencesTable.slug, description: audiencesTable.description, recipeCount: countDistinct(recipesTable.id) }).from(audiencesTable).leftJoin(recipeAudiencesTable, eq(recipeAudiencesTable.audienceId, audiencesTable.id)).leftJoin(recipesTable, and(eq(recipeAudiencesTable.recipeId, recipesTable.id), eq(recipesTable.status, "PUBLISHED"), eq(recipesTable.catalogue, "TASKBAKE"))).groupBy(audiencesTable.id).orderBy(asc(audiencesTable.name));
   res.json(ListAudiencesResponse.parse(rows.map((row) => ({ ...row, recipeCount: Number(row.recipeCount) }))));
 });
 
@@ -361,6 +397,7 @@ router.get("/audiences/:slug", async (req, res): Promise<void> => {
           .where(eq(recipeAudiencesTable.audienceId, audience.id)),
       ),
       eq(recipesTable.status, "PUBLISHED"),
+      eq(recipesTable.catalogue, "TASKBAKE"),
     ),
     limit: 50,
   });
@@ -421,19 +458,29 @@ router.post("/submissions", async (req, res): Promise<void> => {
 router.get("/me", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   const userId = req.userId!;
   const [[saved], [history]] = await Promise.all([
-    db.select({ count: count() }).from(savedRecipesTable).where(eq(savedRecipesTable.userId, userId)),
-    db.select({ count: count() }).from(historyTable).where(eq(historyTable.userId, userId)),
+    db.select({ count: count() }).from(savedRecipesTable)
+      .innerJoin(recipesTable, eq(savedRecipesTable.recipeId, recipesTable.id))
+      .where(and(eq(savedRecipesTable.userId, userId), eq(recipesTable.catalogue, "TASKBAKE"))),
+    db.select({ count: count() }).from(historyTable)
+      .innerJoin(recipesTable, eq(historyTable.recipeId, recipesTable.id))
+      .where(and(eq(historyTable.userId, userId), eq(recipesTable.catalogue, "TASKBAKE"))),
   ]);
   res.json({ userId, displayName: "AI Recipes member", savedCount: Number(saved?.count ?? 0), historyCount: Number(history?.count ?? 0) });
 });
 
 router.get("/me/saved", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
-  const rows = await db.select(cardColumns).from(savedRecipesTable).innerJoin(recipesTable, eq(savedRecipesTable.recipeId, recipesTable.id)).innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id)).innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id)).where(eq(savedRecipesTable.userId, req.userId!)).orderBy(desc(savedRecipesTable.createdAt));
+  const rows = await db.select(cardColumns).from(savedRecipesTable).innerJoin(recipesTable, eq(savedRecipesTable.recipeId, recipesTable.id)).innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id)).innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id)).where(and(eq(savedRecipesTable.userId, req.userId!), eq(recipesTable.catalogue, "TASKBAKE"))).orderBy(desc(savedRecipesTable.createdAt));
   res.json(ListSavedRecipesResponse.parse(rows));
 });
 
 router.post("/me/saved/:recipeId", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
   const recipeId = parseId(req.params.recipeId);
+  const [recipe] = await db.select({ catalogue: recipesTable.catalogue, status: recipesTable.status })
+    .from(recipesTable).where(eq(recipesTable.id, recipeId));
+  if (!recipe || recipe.catalogue !== "TASKBAKE" || recipe.status !== "PUBLISHED") {
+    res.status(404).json({ error: "TaskBakeAI recipe not found." });
+    return;
+  }
   const [saved] = await db.insert(savedRecipesTable).values({ userId: req.userId!, recipeId }).onConflictDoNothing().returning();
   if (saved) {
     await db.update(recipesTable).set({ saveCount: sql`${recipesTable.saveCount} + 1` }).where(eq(recipesTable.id, recipeId));
@@ -453,24 +500,40 @@ router.delete("/me/saved/:recipeId", requireAuth, async (req: AuthenticatedReque
 });
 
 router.get("/me/history", requireAuth, async (req: AuthenticatedRequest, res): Promise<void> => {
-  const rows = await db.select(cardColumns).from(historyTable).innerJoin(recipesTable, eq(historyTable.recipeId, recipesTable.id)).innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id)).innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id)).where(eq(historyTable.userId, req.userId!)).orderBy(desc(historyTable.viewedAt)).limit(20);
+  const rows = await db.select(cardColumns).from(historyTable).innerJoin(recipesTable, eq(historyTable.recipeId, recipesTable.id)).innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id)).innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id)).where(and(eq(historyTable.userId, req.userId!), eq(recipesTable.catalogue, "TASKBAKE"))).orderBy(desc(historyTable.viewedAt)).limit(20);
   res.json(ListHistoryResponse.parse(rows));
 });
 
-router.get("/admin/summary", requireAdmin, async (_req, res): Promise<void> => {
+router.get("/admin/summary", requireAdmin, async (req, res): Promise<void> => {
+  const catalogue = typeof req.query.catalogue === "string" && req.query.catalogue
+    ? req.query.catalogue
+    : "TASKBAKE";
   const [[totals], [submissionCount]] = await Promise.all([
     db.select({
       totalRecipes: count(recipesTable.id),
       publishedRecipes: sql<number>`count(*) filter (where ${recipesTable.status} = 'PUBLISHED')`,
       draftRecipes: sql<number>`count(*) filter (where ${recipesTable.status} in ('DRAFT', 'IDEA'))`,
       testingRecipes: sql<number>`count(*) filter (where ${recipesTable.status} = 'TESTING')`,
+      featuredRecipes: sql<number>`count(*) filter (where ${recipesTable.featured})`,
+      missingArtworkRecipes: sql<number>`count(*) filter (where NOT (
+        jsonb_path_exists(coalesce(${recipesTable.guide}, '{}'::jsonb), '$.imagesJson[*] ? (@.url.type() == "string" && @.url != "")')
+        OR jsonb_path_exists(coalesce(${recipesTable.guide}, '{}'::jsonb), '$.customContent.images[*] ? (@.url.type() == "string" && @.url != "")')
+        OR jsonb_path_exists(coalesce(${recipesTable.layoutConfig}, '{}'::jsonb), '$.blocks[*] ? (@.type == "hero" && @.imageUrl.type() == "string" && @.imageUrl != "")')
+      ))`,
+      recipesMissingRequiredContent: sql<number>`count(*) filter (where
+        btrim(${recipesTable.title}) = ''
+        OR btrim(${recipesTable.slug}) = ''
+        OR btrim(${recipesTable.shortDescription}) = ''
+        OR btrim(${recipesTable.prompt}) = ''
+        OR coalesce(array_length(${recipesTable.steps}, 1), 0) = 0
+      )`,
       views: sql<number>`coalesce(sum(${recipesTable.viewCount}), 0)`,
       copies: sql<number>`coalesce(sum(${recipesTable.copyCount}), 0)`,
       saves: sql<number>`coalesce(sum(${recipesTable.saveCount}), 0)`,
       shares: sql<number>`coalesce(sum(${recipesTable.shareCount}), 0)`,
       positiveFeedback: sql<number>`coalesce(sum(${recipesTable.positiveFeedbackCount}), 0)`,
       negativeFeedback: sql<number>`coalesce(sum(${recipesTable.negativeFeedbackCount}), 0)`,
-    }).from(recipesTable),
+    }).from(recipesTable).where(eq(recipesTable.catalogue, catalogue)),
     db.select({ pendingSubmissions: count() }).from(submissionsTable).where(eq(submissionsTable.status, "PENDING")),
   ]);
   res.json(GetAdminSummaryResponse.parse(Object.fromEntries(Object.entries({ ...totals, ...submissionCount }).map(([key, value]) => [key, Number(value)]))));
@@ -679,6 +742,7 @@ router.get("/admin/recipes", requireAdmin, async (req, res): Promise<void> => {
   const offset = (parsed.data.page - 1) * pageSize;
   const search = parsed.data.q?.trim();
   const where = and(
+    eq(recipesTable.catalogue, parsed.data.catalogue ?? "TASKBAKE"),
     search
       ? or(
           ilike(recipesTable.title, `%${search}%`),
@@ -691,7 +755,14 @@ router.get("/admin/recipes", requireAdmin, async (req, res): Promise<void> => {
     parsed.data.category ? eq(categoriesTable.slug, parsed.data.category) : undefined,
   );
   const [items, [totalRow]] = await Promise.all([
-    db.select({ ...cardColumns, status: recipesTable.status })
+    db.select({
+      ...cardColumns,
+      status: recipesTable.status,
+      updatedAt: recipesTable.updatedAt,
+      catalogue: recipesTable.catalogue,
+      guide: recipesTable.guide,
+      layoutConfig: recipesTable.layoutConfig,
+    })
       .from(recipesTable)
       .innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id))
       .innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id))
@@ -704,7 +775,18 @@ router.get("/admin/recipes", requireAdmin, async (req, res): Promise<void> => {
       .innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id))
       .where(where),
   ]);
-  res.json({ items, page: parsed.data.page, pageSize, total: Number(totalRow?.total ?? 0), query: search ?? "" });
+  res.json({
+    items: items.map(({ guide, layoutConfig, ...recipe }) => ({
+      ...recipe,
+      contentType: typeof guide === "object" && guide !== null && "promptType" in guide
+        && typeof guide.promptType === "string" ? guide.promptType : "text",
+      imageUrl: getRecipeArtworkUrl(guide, layoutConfig),
+    })),
+    page: parsed.data.page,
+    pageSize,
+    total: Number(totalRow?.total ?? 0),
+    query: search ?? "",
+  });
 });
 
 router.post("/admin/recipes/bulk-update", requireAdmin, async (req, res): Promise<void> => {
@@ -731,20 +813,20 @@ router.post("/admin/recipes/bulk-update", requireAdmin, async (req, res): Promis
       if (!category) return { kind: "not-found" as const, error: "Category not found." };
     }
 
+    const catalogue = parsed.data.catalogue ?? "TASKBAKE";
     const existing = await tx.select({ id: recipesTable.id })
       .from(recipesTable)
-      .where(inArray(recipesTable.id, parsed.data.ids));
+      .where(and(inArray(recipesTable.id, parsed.data.ids), eq(recipesTable.catalogue, catalogue)));
     if (existing.length !== parsed.data.ids.length) {
       const existingIds = new Set(existing.map(({ id }) => id));
       const missingIds = parsed.data.ids.filter((id) => !existingIds.has(id));
       return { kind: "not-found" as const, error: `Recipes not found: ${missingIds.join(", ")}.` };
     }
-
     const updated = await tx.update(recipesTable).set({
       ...(status ? { status, publishedAt: new Date() } : {}),
       ...(categoryId !== undefined ? { categoryId } : {}),
       updatedAt: new Date(),
-    }).where(inArray(recipesTable.id, parsed.data.ids)).returning({ id: recipesTable.id });
+    }).where(and(inArray(recipesTable.id, parsed.data.ids), eq(recipesTable.catalogue, catalogue))).returning({ id: recipesTable.id });
     return { kind: "updated" as const, updatedCount: updated.length };
   });
 
@@ -755,7 +837,47 @@ router.post("/admin/recipes/bulk-update", requireAdmin, async (req, res): Promis
   res.json(result);
 });
 
-router.get("/admin/recipes/export-csv", requireAdmin, async (_req, res): Promise<void> => {
+router.post("/admin/recipes/bulk-delete", requireAdmin, async (req, res): Promise<void> => {
+  const parsed = BulkDeleteAdminRecipesBody.safeParse(req.body);
+  if (!parsed.success || new Set(parsed.data.ids).size !== parsed.data.ids.length) {
+    res.status(400).json({
+      error: !parsed.success ? parsed.error.message : "Recipe IDs must be unique.",
+    });
+    return;
+  }
+
+  const catalogue = parsed.data.catalogue ?? "TASKBAKE";
+  const result = await db.transaction(async (tx) => {
+    const existing = await tx.select({ id: recipesTable.id })
+      .from(recipesTable)
+      .where(and(inArray(recipesTable.id, parsed.data.ids), eq(recipesTable.catalogue, catalogue)));
+    if (existing.length !== parsed.data.ids.length) {
+      const existingIds = new Set(existing.map(({ id }) => id));
+      const missingIds = parsed.data.ids.filter((id) => !existingIds.has(id));
+      return { kind: "not-found" as const, error: `Recipes not found: ${missingIds.join(", ")}.` };
+    }
+
+    await tx.delete(savedRecipesTable).where(inArray(savedRecipesTable.recipeId, parsed.data.ids));
+    await tx.delete(historyTable).where(inArray(historyTable.recipeId, parsed.data.ids));
+    await tx.delete(feedbackTable).where(inArray(feedbackTable.recipeId, parsed.data.ids));
+    await tx.delete(eventsTable).where(inArray(eventsTable.recipeId, parsed.data.ids));
+    const deleted = await tx.delete(recipesTable)
+      .where(and(inArray(recipesTable.id, parsed.data.ids), eq(recipesTable.catalogue, catalogue)))
+      .returning({ id: recipesTable.id });
+    return { kind: "deleted" as const, deletedCount: deleted.length };
+  });
+
+  if (result.kind === "not-found") {
+    res.status(404).json({ error: result.error });
+    return;
+  }
+  res.json(BulkDeleteAdminRecipesResponse.parse(result));
+});
+
+router.get("/admin/recipes/export-csv", requireAdmin, async (req, res): Promise<void> => {
+  const catalogue = typeof req.query.catalogue === "string" && req.query.catalogue
+    ? req.query.catalogue
+    : "TASKBAKE";
   const [rows, audienceRows] = await Promise.all([
     db.select({
       recipe: recipesTable,
@@ -764,6 +886,7 @@ router.get("/admin/recipes/export-csv", requireAdmin, async (_req, res): Promise
     }).from(recipesTable)
       .innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id))
       .innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id))
+      .where(eq(recipesTable.catalogue, catalogue))
       .orderBy(asc(recipesTable.id)),
     db.select({ recipeId: recipeAudiencesTable.recipeId, audience: audiencesTable.name })
       .from(recipeAudiencesTable)
@@ -780,7 +903,7 @@ router.get("/admin/recipes/export-csv", requireAdmin, async (_req, res): Promise
     audiences: audienceNamesByRecipe.get(recipe.id) ?? [],
   })));
   res.status(200)
-    .setHeader("Content-Disposition", 'attachment; filename="ai-recipes-v2.csv"')
+    .setHeader("Content-Disposition", `attachment; filename="${catalogue.toLowerCase()}-recipes-v2.csv"`)
     .type("text/csv; charset=utf-8")
     .send(csv);
 });
@@ -792,6 +915,8 @@ router.post("/admin/recipes", requireAdmin, async (req, res): Promise<void> => {
   if (layoutError) { res.status(400).json({ error: layoutError }); return; }
   const promptConfigurationError = validateRecipePromptConfiguration(parsed.data.guide, parsed.data.prompt);
   if (promptConfigurationError) { res.status(400).json({ error: promptConfigurationError }); return; }
+  const [slugConflict] = await db.select({ id: recipesTable.id }).from(recipesTable).where(eq(recipesTable.slug, parsed.data.slug)).limit(1);
+  if (slugConflict) { res.status(409).json({ error: "That URL slug is already in use. Choose a unique slug." }); return; }
   const [created] = await db.insert(recipesTable).values({
     ...parsed.data,
     testedAt: parsed.data.testedAt ? parsed.data.testedAt.toISOString().slice(0, 10) : null,
@@ -813,6 +938,9 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
     next();
   });
 }, async (req, res): Promise<void> => {
+  const catalogue = typeof req.query.catalogue === "string" && req.query.catalogue
+    ? req.query.catalogue
+    : "TASKBAKE";
   const parsedBody = ImportAdminRecipesCsvBody.safeParse(req.body);
   const csvText = typeof req.body === "string" ? req.body : parsedBody.success ? parsedBody.data.csv : "";
   const preview = parsedBody.success && parsedBody.data.preview === true;
@@ -842,11 +970,14 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
     slug: (record["url slug"] ?? record.slug ?? "").trim().toLowerCase()
       .replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, ""),
   }));
-  const [existingCategories, existingAudiences, existingRecipes] = await Promise.all([
+  const [existingCategories, existingAudiences] = await Promise.all([
     db.select().from(categoriesTable),
     db.select().from(audiencesTable),
-    db.select({ id: recipesTable.id, slug: recipesTable.slug }).from(recipesTable),
   ]);
+  const storedRecipeSlugs = await db.select({ id: recipesTable.id, slug: recipesTable.slug })
+    .from(recipesTable)
+    .where(eq(recipesTable.catalogue, catalogue));
+  const allRecipes = storedRecipeSlugs.map((recipe) => ({ ...recipe, catalogue }));
   const categoryByNameOrSlug = new Map(existingCategories.flatMap((item) => [
     [normalizeRecipeCsvHeader(item.name), item] as const,
     [normalizeRecipeCsvHeader(item.slug), item] as const,
@@ -891,7 +1022,7 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
     }
   }
 
-  const existingRecipesBySlug = new Map(existingRecipes.map((recipe) => [recipe.slug, recipe]));
+  const existingRecipesBySlug = new Map(allRecipes.map((recipe) => [recipe.slug, recipe]));
   const seenSlugs = new Set<string>();
   const plannedRows: Array<{
     row: number;
@@ -949,7 +1080,7 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
     }
 
     try {
-      const input = mapRecipeCsvRecord(row.record, category.id, rowAudiences[0]!.id);
+      const input = { ...mapRecipeCsvRecord(row.record, category.id, rowAudiences[0]!.id), catalogue };
       const parsed = CreateAdminRecipeBody.safeParse(input);
       if (!parsed.success) {
         const message = parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; ");
@@ -1028,7 +1159,8 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
         let recipeId: number;
         if (row.action === "update" && row.existingRecipeId) {
           const [updated] = await tx.update(recipesTable).set({ ...values, updatedAt: new Date() })
-            .where(eq(recipesTable.id, row.existingRecipeId)).returning({ id: recipesTable.id });
+            .where(and(eq(recipesTable.id, row.existingRecipeId), eq(recipesTable.catalogue, catalogue)))
+            .returning({ id: recipesTable.id });
           if (!updated) throw new Error(`Recipe "${row.slug}" no longer exists.`);
           recipeId = updated.id;
           await tx.delete(recipeAudiencesTable).where(eq(recipeAudiencesTable.recipeId, recipeId));
@@ -1062,6 +1194,27 @@ router.post("/admin/recipes/import-csv", requireAdmin, (req, res, next) => {
   });
 });
 
+router.get("/admin/recipes/:id", requireAdmin, async (req, res): Promise<void> => {
+  const params = UpdateAdminRecipeParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid recipe ID." });
+    return;
+  }
+  const [row] = await db.select({
+    recipe: recipesTable,
+    category: categoriesTable,
+    audience: audiencesTable,
+  }).from(recipesTable)
+    .innerJoin(categoriesTable, eq(recipesTable.categoryId, categoriesTable.id))
+    .innerJoin(audiencesTable, eq(recipesTable.audienceId, audiencesTable.id))
+    .where(eq(recipesTable.id, params.data.id));
+  if (!row) {
+    res.status(404).json({ error: "Recipe not found." });
+    return;
+  }
+  res.json(recipeResponse(row.recipe, row.category, row.audience));
+});
+
 router.patch("/admin/recipes/:id", requireAdmin, async (req, res): Promise<void> => {
   const params = UpdateAdminRecipeParams.safeParse(req.params);
   const parsed = UpdateAdminRecipeBody.safeParse(req.body);
@@ -1070,11 +1223,21 @@ router.patch("/admin/recipes/:id", requireAdmin, async (req, res): Promise<void>
   if (layoutError) { res.status(400).json({ error: layoutError }); return; }
   const promptConfigurationError = validateRecipePromptConfiguration(parsed.data.guide, parsed.data.prompt);
   if (promptConfigurationError) { res.status(400).json({ error: promptConfigurationError }); return; }
-  const [previous] = await db.select({ audienceId: recipesTable.audienceId })
-    .from(recipesTable)
-    .where(eq(recipesTable.id, params.data.id));
+  const [previous] = await db.select({
+    audienceId: recipesTable.audienceId,
+    catalogue: recipesTable.catalogue,
+  }).from(recipesTable).where(eq(recipesTable.id, params.data.id));
+  if (!previous) { res.status(404).json({ error: "Recipe not found." }); return; }
+  if (parsed.data.catalogue && parsed.data.catalogue !== previous.catalogue) {
+    res.status(400).json({ error: "A recipe's catalogue cannot be changed after creation." });
+    return;
+  }
+  const [slugConflict] = await db.select({ id: recipesTable.id }).from(recipesTable)
+    .where(and(eq(recipesTable.slug, parsed.data.slug), ne(recipesTable.id, params.data.id))).limit(1);
+  if (slugConflict) { res.status(409).json({ error: "That URL slug is already in use. Choose a unique slug." }); return; }
   const [updated] = await db.update(recipesTable).set({
     ...parsed.data,
+    catalogue: previous.catalogue,
     testedAt: parsed.data.testedAt ? parsed.data.testedAt.toISOString().slice(0, 10) : null,
     updatedAt: new Date(),
     publishedAt: parsed.data.status === "PUBLISHED" ? new Date() : undefined,

@@ -58,7 +58,8 @@ export const ListRecipesResponse = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string().optional()
 })),
   "page": zod.number(),
   "pageSize": zod.number(),
@@ -80,6 +81,10 @@ export const getRecipeResponseTwoGuideOneImagesJsonItemUrlMax = 2048;
 export const getRecipeResponseTwoGuideOneImagesJsonItemAltMax = 500;
 
 export const getRecipeResponseTwoGuideOneImagesJsonItemCaptionMax = 500;
+
+export const getRecipeResponseTwoGuideOneImagesJsonItemFileIdMax = 200;
+
+export const getRecipeResponseTwoGuideOneImagesJsonItemFilePathMax = 500;
 
 export const getRecipeResponseTwoGuideOneImagesJsonMax = 20;
 
@@ -138,6 +143,10 @@ export const getRecipeResponseTwoGuideOneCustomContentImagesItemAltMax = 500;
 
 export const getRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax = 500;
 
+export const getRecipeResponseTwoGuideOneCustomContentImagesItemFileIdMax = 200;
+
+export const getRecipeResponseTwoGuideOneCustomContentImagesItemFilePathMax = 500;
+
 export const getRecipeResponseTwoGuideOneCustomContentImagesMax = 20;
 
 export const getRecipeResponseTwoLayoutConfigOneBlocksItemIdMax = 100;
@@ -182,7 +191,8 @@ export const GetRecipeResponse = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string()
 }).and(zod.object({
   "problem": zod.string(),
   "subcategory": zod.string(),
@@ -195,6 +205,7 @@ export const GetRecipeResponse = zod.object({
   "refinementPrompts": zod.array(zod.string()),
   "verificationNotes": zod.string(),
   "status": zod.string(),
+  "catalogue": zod.string(),
   "version": zod.string(),
   "testedAt": zod.coerce.date().nullish(),
   "testedWith": zod.array(zod.string()),
@@ -207,7 +218,9 @@ export const GetRecipeResponse = zod.object({
   "imagesJson": zod.array(zod.object({
   "url": zod.url().max(getRecipeResponseTwoGuideOneImagesJsonItemUrlMax),
   "alt": zod.string().min(1).max(getRecipeResponseTwoGuideOneImagesJsonItemAltMax),
-  "caption": zod.string().max(getRecipeResponseTwoGuideOneImagesJsonItemCaptionMax).optional()
+  "caption": zod.string().max(getRecipeResponseTwoGuideOneImagesJsonItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(getRecipeResponseTwoGuideOneImagesJsonItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(getRecipeResponseTwoGuideOneImagesJsonItemFilePathMax).optional()
 })).max(getRecipeResponseTwoGuideOneImagesJsonMax).optional(),
   "promptStudio": zod.object({
   "style": zod.string().max(getRecipeResponseTwoGuideOnePromptStudioStyleMax).optional(),
@@ -281,7 +294,9 @@ export const GetRecipeResponse = zod.object({
   "images": zod.array(zod.object({
   "url": zod.url().max(getRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax),
   "alt": zod.string().min(1).max(getRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
-  "caption": zod.string().max(getRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional()
+  "caption": zod.string().max(getRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(getRecipeResponseTwoGuideOneCustomContentImagesItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(getRecipeResponseTwoGuideOneCustomContentImagesItemFilePathMax).optional()
 })).max(getRecipeResponseTwoGuideOneCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
@@ -368,9 +383,1694 @@ export const GetRelatedRecipesResponseItem = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string().optional()
 })
 export const GetRelatedRecipesResponse = zod.array(GetRelatedRecipesResponseItem)
+
+
+/**
+ * Returns published creations only and is available only when VYBE_ENABLED is true.
+ * @summary Search published VYBE creations
+ */
+export const listVybeCreationsQueryQMax = 200;
+
+export const listVybeCreationsQueryCategoryMax = 80;
+
+export const listVybeCreationsQueryFeaturedDefault = false;
+export const listVybeCreationsQueryPageDefault = 1;
+
+export const listVybeCreationsQueryPageSizeDefault = 24;
+export const listVybeCreationsQueryPageSizeMax = 50;
+
+
+
+export const ListVybeCreationsQueryParams = zod.object({
+  "q": zod.coerce.string().max(listVybeCreationsQueryQMax).optional(),
+  "category": zod.coerce.string().max(listVybeCreationsQueryCategoryMax).optional(),
+  "contentType": zod.enum(['image', 'video', 'art', 'design', '3d', 'app', 'game', 'interactive', 'custom']).optional(),
+  "featured": zod.coerce.boolean().default(listVybeCreationsQueryFeaturedDefault),
+  "page": zod.coerce.number().int().min(1).default(listVybeCreationsQueryPageDefault),
+  "pageSize": zod.coerce.number().int().min(1).max(listVybeCreationsQueryPageSizeMax).default(listVybeCreationsQueryPageSizeDefault)
+})
+
+export const listVybeCreationsResponseItemsItemOneTitleMax = 160;
+
+export const listVybeCreationsResponseItemsItemOneSlugMax = 180;
+
+
+export const listVybeCreationsResponseItemsItemOneSlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+export const listVybeCreationsResponseItemsItemOneShortDescriptionMax = 280;
+
+export const listVybeCreationsResponseItemsItemOneDescriptionMax = 12000;
+
+export const listVybeCreationsResponseItemsItemOneCategoryMax = 80;
+
+export const listVybeCreationsResponseItemsItemOneModelMax = 160;
+
+export const listVybeCreationsResponseItemsItemOneModelsItemMax = 100;
+
+export const listVybeCreationsResponseItemsItemOneModelsMax = 20;
+
+export const listVybeCreationsResponseItemsItemOnePromptMax = 20000;
+
+export const listVybeCreationsResponseItemsItemOneNegativePromptMax = 10000;
+
+export const listVybeCreationsResponseItemsItemOneStyleMax = 500;
+
+export const listVybeCreationsResponseItemsItemOneAspectRatioMax = 40;
+
+export const listVybeCreationsResponseItemsItemOneSceneMax = 10000;
+
+export const listVybeCreationsResponseItemsItemOneMotionMax = 10000;
+
+export const listVybeCreationsResponseItemsItemOneCameraInstructionsMax = 10000;
+
+export const listVybeCreationsResponseItemsItemOneDurationSecondsMax = 3600;
+
+export const listVybeCreationsResponseItemsItemOneVideoUrlOneMax = 0;
+
+export const listVybeCreationsResponseItemsItemOneVideoUrlTwoRegExp = new RegExp('^https:/');
+export const listVybeCreationsResponseItemsItemOnePosterUrlOneMax = 0;
+
+export const listVybeCreationsResponseItemsItemOnePosterUrlTwoRegExp = new RegExp('^https:/');
+export const listVybeCreationsResponseItemsItemOneVisualReferencesItemAssetIdMax = 200;
+
+export const listVybeCreationsResponseItemsItemOneVisualReferencesItemUrlMax = 2048;
+
+
+export const listVybeCreationsResponseItemsItemOneVisualReferencesItemUrlRegExp = new RegExp('^https:/');
+export const listVybeCreationsResponseItemsItemOneVisualReferencesItemAltMax = 500;
+
+export const listVybeCreationsResponseItemsItemOneVisualReferencesItemCaptionMax = 500;
+
+export const listVybeCreationsResponseItemsItemOneVisualReferencesMax = 30;
+
+export const listVybeCreationsResponseItemsItemOneExampleOutputsItemAssetIdMax = 200;
+
+export const listVybeCreationsResponseItemsItemOneExampleOutputsItemUrlMax = 2048;
+
+
+export const listVybeCreationsResponseItemsItemOneExampleOutputsItemUrlRegExp = new RegExp('^https:/');
+export const listVybeCreationsResponseItemsItemOneExampleOutputsItemAltMax = 500;
+
+export const listVybeCreationsResponseItemsItemOneExampleOutputsItemCaptionMax = 500;
+
+export const listVybeCreationsResponseItemsItemOneExampleOutputsMax = 30;
+
+export const listVybeCreationsResponseItemsItemOneRefinementInstructionsMax = 10000;
+
+export const listVybeCreationsResponseItemsItemOneBuilderInstructionsMax = 20000;
+
+export const listVybeCreationsResponseItemsItemOneToolsItemMax = 100;
+
+export const listVybeCreationsResponseItemsItemOneToolsMax = 30;
+
+export const listVybeCreationsResponseItemsItemOneDemoUrlOneMax = 0;
+
+export const listVybeCreationsResponseItemsItemOneDemoUrlTwoRegExp = new RegExp('^https:/');
+export const listVybeCreationsResponseItemsItemOneVerificationDetailsMax = 10000;
+
+export const listVybeCreationsResponseItemsItemOneExperienceUrlOneMax = 0;
+
+export const listVybeCreationsResponseItemsItemOneExperienceUrlTwoRegExp = new RegExp('^https:/');
+export const listVybeCreationsResponseItemsItemOneExperienceControlsItemMax = 200;
+
+export const listVybeCreationsResponseItemsItemOneExperienceControlsMax = 30;
+
+export const listVybeCreationsResponseItemsItemOneMediaAssetsItemAssetIdMax = 200;
+
+export const listVybeCreationsResponseItemsItemOneMediaAssetsItemUrlMax = 2048;
+
+
+export const listVybeCreationsResponseItemsItemOneMediaAssetsItemUrlRegExp = new RegExp('^https:/');
+export const listVybeCreationsResponseItemsItemOneMediaAssetsItemAltMax = 500;
+
+export const listVybeCreationsResponseItemsItemOneMediaAssetsItemCaptionMax = 500;
+
+export const listVybeCreationsResponseItemsItemOneMediaAssetsMax = 50;
+
+export const listVybeCreationsResponseItemsItemOneImageUrlOneMax = 0;
+
+export const listVybeCreationsResponseItemsItemOneImageUrlTwoRegExp = new RegExp('^https:/');
+export const listVybeCreationsResponseItemsItemOneImageAltMax = 500;
+
+export const listVybeCreationsResponseItemsItemOneTagsItemMax = 50;
+
+export const listVybeCreationsResponseItemsItemOneTagsMax = 30;
+
+export const listVybeCreationsResponseItemsItemOneFeaturedPositionMin = 0;
+export const listVybeCreationsResponseItemsItemOneFeaturedPositionMax = 10000;
+
+
+
+export const ListVybeCreationsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "title": zod.string().min(1).max(listVybeCreationsResponseItemsItemOneTitleMax),
+  "slug": zod.string().max(listVybeCreationsResponseItemsItemOneSlugMax).regex(listVybeCreationsResponseItemsItemOneSlugRegExp),
+  "shortDescription": zod.string().min(1).max(listVybeCreationsResponseItemsItemOneShortDescriptionMax),
+  "description": zod.string().min(1).max(listVybeCreationsResponseItemsItemOneDescriptionMax),
+  "category": zod.string().min(1).max(listVybeCreationsResponseItemsItemOneCategoryMax).optional(),
+  "contentType": zod.enum(['image', 'video', 'art', 'design', '3d', 'app', 'game', 'interactive', 'custom']),
+  "model": zod.string().max(listVybeCreationsResponseItemsItemOneModelMax).optional(),
+  "models": zod.array(zod.string().min(1).max(listVybeCreationsResponseItemsItemOneModelsItemMax)).max(listVybeCreationsResponseItemsItemOneModelsMax).optional(),
+  "prompt": zod.string().max(listVybeCreationsResponseItemsItemOnePromptMax).optional(),
+  "negativePrompt": zod.string().max(listVybeCreationsResponseItemsItemOneNegativePromptMax).optional(),
+  "style": zod.string().max(listVybeCreationsResponseItemsItemOneStyleMax).optional(),
+  "aspectRatio": zod.string().max(listVybeCreationsResponseItemsItemOneAspectRatioMax).optional(),
+  "parameters": zod.record(zod.string(), zod.unknown()).optional(),
+  "scene": zod.string().max(listVybeCreationsResponseItemsItemOneSceneMax).optional(),
+  "motion": zod.string().max(listVybeCreationsResponseItemsItemOneMotionMax).optional(),
+  "cameraInstructions": zod.string().max(listVybeCreationsResponseItemsItemOneCameraInstructionsMax).optional(),
+  "durationSeconds": zod.int().min(1).max(listVybeCreationsResponseItemsItemOneDurationSecondsMax).nullish(),
+  "videoUrl": zod.union([zod.string().max(listVybeCreationsResponseItemsItemOneVideoUrlOneMax),zod.url().regex(listVybeCreationsResponseItemsItemOneVideoUrlTwoRegExp)]).optional(),
+  "posterUrl": zod.union([zod.string().max(listVybeCreationsResponseItemsItemOnePosterUrlOneMax),zod.url().regex(listVybeCreationsResponseItemsItemOnePosterUrlTwoRegExp)]).optional(),
+  "visualReferences": zod.array(zod.object({
+  "assetId": zod.string().max(listVybeCreationsResponseItemsItemOneVisualReferencesItemAssetIdMax).optional(),
+  "url": zod.url().max(listVybeCreationsResponseItemsItemOneVisualReferencesItemUrlMax).regex(listVybeCreationsResponseItemsItemOneVisualReferencesItemUrlRegExp),
+  "alt": zod.string().max(listVybeCreationsResponseItemsItemOneVisualReferencesItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(listVybeCreationsResponseItemsItemOneVisualReferencesItemCaptionMax).optional()
+})).max(listVybeCreationsResponseItemsItemOneVisualReferencesMax).optional(),
+  "exampleOutputs": zod.array(zod.object({
+  "assetId": zod.string().max(listVybeCreationsResponseItemsItemOneExampleOutputsItemAssetIdMax).optional(),
+  "url": zod.url().max(listVybeCreationsResponseItemsItemOneExampleOutputsItemUrlMax).regex(listVybeCreationsResponseItemsItemOneExampleOutputsItemUrlRegExp),
+  "alt": zod.string().max(listVybeCreationsResponseItemsItemOneExampleOutputsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(listVybeCreationsResponseItemsItemOneExampleOutputsItemCaptionMax).optional()
+})).max(listVybeCreationsResponseItemsItemOneExampleOutputsMax).optional(),
+  "refinementInstructions": zod.string().max(listVybeCreationsResponseItemsItemOneRefinementInstructionsMax).optional(),
+  "builderInstructions": zod.string().max(listVybeCreationsResponseItemsItemOneBuilderInstructionsMax).optional(),
+  "tools": zod.array(zod.string().min(1).max(listVybeCreationsResponseItemsItemOneToolsItemMax)).max(listVybeCreationsResponseItemsItemOneToolsMax).optional(),
+  "demoUrl": zod.union([zod.string().max(listVybeCreationsResponseItemsItemOneDemoUrlOneMax),zod.url().regex(listVybeCreationsResponseItemsItemOneDemoUrlTwoRegExp)]).optional(),
+  "verificationDetails": zod.string().max(listVybeCreationsResponseItemsItemOneVerificationDetailsMax).optional(),
+  "experienceUrl": zod.union([zod.string().max(listVybeCreationsResponseItemsItemOneExperienceUrlOneMax),zod.url().regex(listVybeCreationsResponseItemsItemOneExperienceUrlTwoRegExp)]).optional(),
+  "experienceControls": zod.array(zod.string().min(1).max(listVybeCreationsResponseItemsItemOneExperienceControlsItemMax)).max(listVybeCreationsResponseItemsItemOneExperienceControlsMax).optional(),
+  "mediaAssets": zod.array(zod.object({
+  "assetId": zod.string().max(listVybeCreationsResponseItemsItemOneMediaAssetsItemAssetIdMax).optional(),
+  "url": zod.url().max(listVybeCreationsResponseItemsItemOneMediaAssetsItemUrlMax).regex(listVybeCreationsResponseItemsItemOneMediaAssetsItemUrlRegExp),
+  "alt": zod.string().max(listVybeCreationsResponseItemsItemOneMediaAssetsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(listVybeCreationsResponseItemsItemOneMediaAssetsItemCaptionMax).optional()
+})).max(listVybeCreationsResponseItemsItemOneMediaAssetsMax).optional(),
+  "extraData": zod.record(zod.string(), zod.unknown()).optional(),
+  "imageUrl": zod.union([zod.string().max(listVybeCreationsResponseItemsItemOneImageUrlOneMax),zod.url().regex(listVybeCreationsResponseItemsItemOneImageUrlTwoRegExp)]).optional(),
+  "imageAlt": zod.string().max(listVybeCreationsResponseItemsItemOneImageAltMax).optional(),
+  "tags": zod.array(zod.string().min(1).max(listVybeCreationsResponseItemsItemOneTagsItemMax)).max(listVybeCreationsResponseItemsItemOneTagsMax).optional(),
+  "status": zod.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional(),
+  "featured": zod.boolean().optional(),
+  "featuredPosition": zod.int().min(listVybeCreationsResponseItemsItemOneFeaturedPositionMin).max(listVybeCreationsResponseItemsItemOneFeaturedPositionMax).optional(),
+  "trending": zod.boolean().optional()
+}).and(zod.object({
+  "id": zod.int(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullish()
+}))),
+  "page": zod.int(),
+  "pageSize": zod.int(),
+  "total": zod.int(),
+  "categories": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Get a published VYBE creation
+ */
+export const GetVybeCreationParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const getVybeCreationResponseOneTitleMax = 160;
+
+export const getVybeCreationResponseOneSlugMax = 180;
+
+
+export const getVybeCreationResponseOneSlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+export const getVybeCreationResponseOneShortDescriptionMax = 280;
+
+export const getVybeCreationResponseOneDescriptionMax = 12000;
+
+export const getVybeCreationResponseOneCategoryMax = 80;
+
+export const getVybeCreationResponseOneModelMax = 160;
+
+export const getVybeCreationResponseOneModelsItemMax = 100;
+
+export const getVybeCreationResponseOneModelsMax = 20;
+
+export const getVybeCreationResponseOnePromptMax = 20000;
+
+export const getVybeCreationResponseOneNegativePromptMax = 10000;
+
+export const getVybeCreationResponseOneStyleMax = 500;
+
+export const getVybeCreationResponseOneAspectRatioMax = 40;
+
+export const getVybeCreationResponseOneSceneMax = 10000;
+
+export const getVybeCreationResponseOneMotionMax = 10000;
+
+export const getVybeCreationResponseOneCameraInstructionsMax = 10000;
+
+export const getVybeCreationResponseOneDurationSecondsMax = 3600;
+
+export const getVybeCreationResponseOneVideoUrlOneMax = 0;
+
+export const getVybeCreationResponseOneVideoUrlTwoRegExp = new RegExp('^https:/');
+export const getVybeCreationResponseOnePosterUrlOneMax = 0;
+
+export const getVybeCreationResponseOnePosterUrlTwoRegExp = new RegExp('^https:/');
+export const getVybeCreationResponseOneVisualReferencesItemAssetIdMax = 200;
+
+export const getVybeCreationResponseOneVisualReferencesItemUrlMax = 2048;
+
+
+export const getVybeCreationResponseOneVisualReferencesItemUrlRegExp = new RegExp('^https:/');
+export const getVybeCreationResponseOneVisualReferencesItemAltMax = 500;
+
+export const getVybeCreationResponseOneVisualReferencesItemCaptionMax = 500;
+
+export const getVybeCreationResponseOneVisualReferencesMax = 30;
+
+export const getVybeCreationResponseOneExampleOutputsItemAssetIdMax = 200;
+
+export const getVybeCreationResponseOneExampleOutputsItemUrlMax = 2048;
+
+
+export const getVybeCreationResponseOneExampleOutputsItemUrlRegExp = new RegExp('^https:/');
+export const getVybeCreationResponseOneExampleOutputsItemAltMax = 500;
+
+export const getVybeCreationResponseOneExampleOutputsItemCaptionMax = 500;
+
+export const getVybeCreationResponseOneExampleOutputsMax = 30;
+
+export const getVybeCreationResponseOneRefinementInstructionsMax = 10000;
+
+export const getVybeCreationResponseOneBuilderInstructionsMax = 20000;
+
+export const getVybeCreationResponseOneToolsItemMax = 100;
+
+export const getVybeCreationResponseOneToolsMax = 30;
+
+export const getVybeCreationResponseOneDemoUrlOneMax = 0;
+
+export const getVybeCreationResponseOneDemoUrlTwoRegExp = new RegExp('^https:/');
+export const getVybeCreationResponseOneVerificationDetailsMax = 10000;
+
+export const getVybeCreationResponseOneExperienceUrlOneMax = 0;
+
+export const getVybeCreationResponseOneExperienceUrlTwoRegExp = new RegExp('^https:/');
+export const getVybeCreationResponseOneExperienceControlsItemMax = 200;
+
+export const getVybeCreationResponseOneExperienceControlsMax = 30;
+
+export const getVybeCreationResponseOneMediaAssetsItemAssetIdMax = 200;
+
+export const getVybeCreationResponseOneMediaAssetsItemUrlMax = 2048;
+
+
+export const getVybeCreationResponseOneMediaAssetsItemUrlRegExp = new RegExp('^https:/');
+export const getVybeCreationResponseOneMediaAssetsItemAltMax = 500;
+
+export const getVybeCreationResponseOneMediaAssetsItemCaptionMax = 500;
+
+export const getVybeCreationResponseOneMediaAssetsMax = 50;
+
+export const getVybeCreationResponseOneImageUrlOneMax = 0;
+
+export const getVybeCreationResponseOneImageUrlTwoRegExp = new RegExp('^https:/');
+export const getVybeCreationResponseOneImageAltMax = 500;
+
+export const getVybeCreationResponseOneTagsItemMax = 50;
+
+export const getVybeCreationResponseOneTagsMax = 30;
+
+export const getVybeCreationResponseOneFeaturedPositionMin = 0;
+export const getVybeCreationResponseOneFeaturedPositionMax = 10000;
+
+
+
+export const GetVybeCreationResponse = zod.object({
+  "title": zod.string().min(1).max(getVybeCreationResponseOneTitleMax),
+  "slug": zod.string().max(getVybeCreationResponseOneSlugMax).regex(getVybeCreationResponseOneSlugRegExp),
+  "shortDescription": zod.string().min(1).max(getVybeCreationResponseOneShortDescriptionMax),
+  "description": zod.string().min(1).max(getVybeCreationResponseOneDescriptionMax),
+  "category": zod.string().min(1).max(getVybeCreationResponseOneCategoryMax).optional(),
+  "contentType": zod.enum(['image', 'video', 'art', 'design', '3d', 'app', 'game', 'interactive', 'custom']),
+  "model": zod.string().max(getVybeCreationResponseOneModelMax).optional(),
+  "models": zod.array(zod.string().min(1).max(getVybeCreationResponseOneModelsItemMax)).max(getVybeCreationResponseOneModelsMax).optional(),
+  "prompt": zod.string().max(getVybeCreationResponseOnePromptMax).optional(),
+  "negativePrompt": zod.string().max(getVybeCreationResponseOneNegativePromptMax).optional(),
+  "style": zod.string().max(getVybeCreationResponseOneStyleMax).optional(),
+  "aspectRatio": zod.string().max(getVybeCreationResponseOneAspectRatioMax).optional(),
+  "parameters": zod.record(zod.string(), zod.unknown()).optional(),
+  "scene": zod.string().max(getVybeCreationResponseOneSceneMax).optional(),
+  "motion": zod.string().max(getVybeCreationResponseOneMotionMax).optional(),
+  "cameraInstructions": zod.string().max(getVybeCreationResponseOneCameraInstructionsMax).optional(),
+  "durationSeconds": zod.int().min(1).max(getVybeCreationResponseOneDurationSecondsMax).nullish(),
+  "videoUrl": zod.union([zod.string().max(getVybeCreationResponseOneVideoUrlOneMax),zod.url().regex(getVybeCreationResponseOneVideoUrlTwoRegExp)]).optional(),
+  "posterUrl": zod.union([zod.string().max(getVybeCreationResponseOnePosterUrlOneMax),zod.url().regex(getVybeCreationResponseOnePosterUrlTwoRegExp)]).optional(),
+  "visualReferences": zod.array(zod.object({
+  "assetId": zod.string().max(getVybeCreationResponseOneVisualReferencesItemAssetIdMax).optional(),
+  "url": zod.url().max(getVybeCreationResponseOneVisualReferencesItemUrlMax).regex(getVybeCreationResponseOneVisualReferencesItemUrlRegExp),
+  "alt": zod.string().max(getVybeCreationResponseOneVisualReferencesItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(getVybeCreationResponseOneVisualReferencesItemCaptionMax).optional()
+})).max(getVybeCreationResponseOneVisualReferencesMax).optional(),
+  "exampleOutputs": zod.array(zod.object({
+  "assetId": zod.string().max(getVybeCreationResponseOneExampleOutputsItemAssetIdMax).optional(),
+  "url": zod.url().max(getVybeCreationResponseOneExampleOutputsItemUrlMax).regex(getVybeCreationResponseOneExampleOutputsItemUrlRegExp),
+  "alt": zod.string().max(getVybeCreationResponseOneExampleOutputsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(getVybeCreationResponseOneExampleOutputsItemCaptionMax).optional()
+})).max(getVybeCreationResponseOneExampleOutputsMax).optional(),
+  "refinementInstructions": zod.string().max(getVybeCreationResponseOneRefinementInstructionsMax).optional(),
+  "builderInstructions": zod.string().max(getVybeCreationResponseOneBuilderInstructionsMax).optional(),
+  "tools": zod.array(zod.string().min(1).max(getVybeCreationResponseOneToolsItemMax)).max(getVybeCreationResponseOneToolsMax).optional(),
+  "demoUrl": zod.union([zod.string().max(getVybeCreationResponseOneDemoUrlOneMax),zod.url().regex(getVybeCreationResponseOneDemoUrlTwoRegExp)]).optional(),
+  "verificationDetails": zod.string().max(getVybeCreationResponseOneVerificationDetailsMax).optional(),
+  "experienceUrl": zod.union([zod.string().max(getVybeCreationResponseOneExperienceUrlOneMax),zod.url().regex(getVybeCreationResponseOneExperienceUrlTwoRegExp)]).optional(),
+  "experienceControls": zod.array(zod.string().min(1).max(getVybeCreationResponseOneExperienceControlsItemMax)).max(getVybeCreationResponseOneExperienceControlsMax).optional(),
+  "mediaAssets": zod.array(zod.object({
+  "assetId": zod.string().max(getVybeCreationResponseOneMediaAssetsItemAssetIdMax).optional(),
+  "url": zod.url().max(getVybeCreationResponseOneMediaAssetsItemUrlMax).regex(getVybeCreationResponseOneMediaAssetsItemUrlRegExp),
+  "alt": zod.string().max(getVybeCreationResponseOneMediaAssetsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(getVybeCreationResponseOneMediaAssetsItemCaptionMax).optional()
+})).max(getVybeCreationResponseOneMediaAssetsMax).optional(),
+  "extraData": zod.record(zod.string(), zod.unknown()).optional(),
+  "imageUrl": zod.union([zod.string().max(getVybeCreationResponseOneImageUrlOneMax),zod.url().regex(getVybeCreationResponseOneImageUrlTwoRegExp)]).optional(),
+  "imageAlt": zod.string().max(getVybeCreationResponseOneImageAltMax).optional(),
+  "tags": zod.array(zod.string().min(1).max(getVybeCreationResponseOneTagsItemMax)).max(getVybeCreationResponseOneTagsMax).optional(),
+  "status": zod.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional(),
+  "featured": zod.boolean().optional(),
+  "featuredPosition": zod.int().min(getVybeCreationResponseOneFeaturedPositionMin).max(getVybeCreationResponseOneFeaturedPositionMax).optional(),
+  "trending": zod.boolean().optional()
+}).and(zod.object({
+  "id": zod.int(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullish()
+}))
+
+
+/**
+ * @summary Search and paginate VYBE creations for admins
+ */
+export const listAdminVybeCreationsQueryQMax = 200;
+
+export const listAdminVybeCreationsQueryCategoryMax = 80;
+
+export const listAdminVybeCreationsQueryPageDefault = 1;
+
+export const listAdminVybeCreationsQueryPageSizeDefault = 24;
+export const listAdminVybeCreationsQueryPageSizeMax = 50;
+
+
+
+export const ListAdminVybeCreationsQueryParams = zod.object({
+  "q": zod.coerce.string().max(listAdminVybeCreationsQueryQMax).optional(),
+  "status": zod.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional(),
+  "category": zod.coerce.string().max(listAdminVybeCreationsQueryCategoryMax).optional(),
+  "contentType": zod.enum(['image', 'video', 'art', 'design', '3d', 'app', 'game', 'interactive', 'custom']).optional(),
+  "page": zod.coerce.number().int().min(1).default(listAdminVybeCreationsQueryPageDefault),
+  "pageSize": zod.coerce.number().int().min(1).max(listAdminVybeCreationsQueryPageSizeMax).default(listAdminVybeCreationsQueryPageSizeDefault)
+})
+
+export const listAdminVybeCreationsResponseOneItemsItemOneTitleMax = 160;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneSlugMax = 180;
+
+
+export const listAdminVybeCreationsResponseOneItemsItemOneSlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+export const listAdminVybeCreationsResponseOneItemsItemOneShortDescriptionMax = 280;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneDescriptionMax = 12000;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneCategoryMax = 80;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneModelMax = 160;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneModelsItemMax = 100;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneModelsMax = 20;
+
+export const listAdminVybeCreationsResponseOneItemsItemOnePromptMax = 20000;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneNegativePromptMax = 10000;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneStyleMax = 500;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneAspectRatioMax = 40;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneSceneMax = 10000;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneMotionMax = 10000;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneCameraInstructionsMax = 10000;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneDurationSecondsMax = 3600;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneVideoUrlOneMax = 0;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneVideoUrlTwoRegExp = new RegExp('^https:/');
+export const listAdminVybeCreationsResponseOneItemsItemOnePosterUrlOneMax = 0;
+
+export const listAdminVybeCreationsResponseOneItemsItemOnePosterUrlTwoRegExp = new RegExp('^https:/');
+export const listAdminVybeCreationsResponseOneItemsItemOneVisualReferencesItemAssetIdMax = 200;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneVisualReferencesItemUrlMax = 2048;
+
+
+export const listAdminVybeCreationsResponseOneItemsItemOneVisualReferencesItemUrlRegExp = new RegExp('^https:/');
+export const listAdminVybeCreationsResponseOneItemsItemOneVisualReferencesItemAltMax = 500;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneVisualReferencesItemCaptionMax = 500;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneVisualReferencesMax = 30;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneExampleOutputsItemAssetIdMax = 200;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneExampleOutputsItemUrlMax = 2048;
+
+
+export const listAdminVybeCreationsResponseOneItemsItemOneExampleOutputsItemUrlRegExp = new RegExp('^https:/');
+export const listAdminVybeCreationsResponseOneItemsItemOneExampleOutputsItemAltMax = 500;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneExampleOutputsItemCaptionMax = 500;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneExampleOutputsMax = 30;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneRefinementInstructionsMax = 10000;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneBuilderInstructionsMax = 20000;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneToolsItemMax = 100;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneToolsMax = 30;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneDemoUrlOneMax = 0;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneDemoUrlTwoRegExp = new RegExp('^https:/');
+export const listAdminVybeCreationsResponseOneItemsItemOneVerificationDetailsMax = 10000;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneExperienceUrlOneMax = 0;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneExperienceUrlTwoRegExp = new RegExp('^https:/');
+export const listAdminVybeCreationsResponseOneItemsItemOneExperienceControlsItemMax = 200;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneExperienceControlsMax = 30;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneMediaAssetsItemAssetIdMax = 200;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneMediaAssetsItemUrlMax = 2048;
+
+
+export const listAdminVybeCreationsResponseOneItemsItemOneMediaAssetsItemUrlRegExp = new RegExp('^https:/');
+export const listAdminVybeCreationsResponseOneItemsItemOneMediaAssetsItemAltMax = 500;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneMediaAssetsItemCaptionMax = 500;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneMediaAssetsMax = 50;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneImageUrlOneMax = 0;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneImageUrlTwoRegExp = new RegExp('^https:/');
+export const listAdminVybeCreationsResponseOneItemsItemOneImageAltMax = 500;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneTagsItemMax = 50;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneTagsMax = 30;
+
+export const listAdminVybeCreationsResponseOneItemsItemOneFeaturedPositionMin = 0;
+export const listAdminVybeCreationsResponseOneItemsItemOneFeaturedPositionMax = 10000;
+
+
+
+export const ListAdminVybeCreationsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "title": zod.string().min(1).max(listAdminVybeCreationsResponseOneItemsItemOneTitleMax),
+  "slug": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneSlugMax).regex(listAdminVybeCreationsResponseOneItemsItemOneSlugRegExp),
+  "shortDescription": zod.string().min(1).max(listAdminVybeCreationsResponseOneItemsItemOneShortDescriptionMax),
+  "description": zod.string().min(1).max(listAdminVybeCreationsResponseOneItemsItemOneDescriptionMax),
+  "category": zod.string().min(1).max(listAdminVybeCreationsResponseOneItemsItemOneCategoryMax).optional(),
+  "contentType": zod.enum(['image', 'video', 'art', 'design', '3d', 'app', 'game', 'interactive', 'custom']),
+  "model": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneModelMax).optional(),
+  "models": zod.array(zod.string().min(1).max(listAdminVybeCreationsResponseOneItemsItemOneModelsItemMax)).max(listAdminVybeCreationsResponseOneItemsItemOneModelsMax).optional(),
+  "prompt": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOnePromptMax).optional(),
+  "negativePrompt": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneNegativePromptMax).optional(),
+  "style": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneStyleMax).optional(),
+  "aspectRatio": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneAspectRatioMax).optional(),
+  "parameters": zod.record(zod.string(), zod.unknown()).optional(),
+  "scene": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneSceneMax).optional(),
+  "motion": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneMotionMax).optional(),
+  "cameraInstructions": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneCameraInstructionsMax).optional(),
+  "durationSeconds": zod.int().min(1).max(listAdminVybeCreationsResponseOneItemsItemOneDurationSecondsMax).nullish(),
+  "videoUrl": zod.union([zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneVideoUrlOneMax),zod.url().regex(listAdminVybeCreationsResponseOneItemsItemOneVideoUrlTwoRegExp)]).optional(),
+  "posterUrl": zod.union([zod.string().max(listAdminVybeCreationsResponseOneItemsItemOnePosterUrlOneMax),zod.url().regex(listAdminVybeCreationsResponseOneItemsItemOnePosterUrlTwoRegExp)]).optional(),
+  "visualReferences": zod.array(zod.object({
+  "assetId": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneVisualReferencesItemAssetIdMax).optional(),
+  "url": zod.url().max(listAdminVybeCreationsResponseOneItemsItemOneVisualReferencesItemUrlMax).regex(listAdminVybeCreationsResponseOneItemsItemOneVisualReferencesItemUrlRegExp),
+  "alt": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneVisualReferencesItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneVisualReferencesItemCaptionMax).optional()
+})).max(listAdminVybeCreationsResponseOneItemsItemOneVisualReferencesMax).optional(),
+  "exampleOutputs": zod.array(zod.object({
+  "assetId": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneExampleOutputsItemAssetIdMax).optional(),
+  "url": zod.url().max(listAdminVybeCreationsResponseOneItemsItemOneExampleOutputsItemUrlMax).regex(listAdminVybeCreationsResponseOneItemsItemOneExampleOutputsItemUrlRegExp),
+  "alt": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneExampleOutputsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneExampleOutputsItemCaptionMax).optional()
+})).max(listAdminVybeCreationsResponseOneItemsItemOneExampleOutputsMax).optional(),
+  "refinementInstructions": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneRefinementInstructionsMax).optional(),
+  "builderInstructions": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneBuilderInstructionsMax).optional(),
+  "tools": zod.array(zod.string().min(1).max(listAdminVybeCreationsResponseOneItemsItemOneToolsItemMax)).max(listAdminVybeCreationsResponseOneItemsItemOneToolsMax).optional(),
+  "demoUrl": zod.union([zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneDemoUrlOneMax),zod.url().regex(listAdminVybeCreationsResponseOneItemsItemOneDemoUrlTwoRegExp)]).optional(),
+  "verificationDetails": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneVerificationDetailsMax).optional(),
+  "experienceUrl": zod.union([zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneExperienceUrlOneMax),zod.url().regex(listAdminVybeCreationsResponseOneItemsItemOneExperienceUrlTwoRegExp)]).optional(),
+  "experienceControls": zod.array(zod.string().min(1).max(listAdminVybeCreationsResponseOneItemsItemOneExperienceControlsItemMax)).max(listAdminVybeCreationsResponseOneItemsItemOneExperienceControlsMax).optional(),
+  "mediaAssets": zod.array(zod.object({
+  "assetId": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneMediaAssetsItemAssetIdMax).optional(),
+  "url": zod.url().max(listAdminVybeCreationsResponseOneItemsItemOneMediaAssetsItemUrlMax).regex(listAdminVybeCreationsResponseOneItemsItemOneMediaAssetsItemUrlRegExp),
+  "alt": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneMediaAssetsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneMediaAssetsItemCaptionMax).optional()
+})).max(listAdminVybeCreationsResponseOneItemsItemOneMediaAssetsMax).optional(),
+  "extraData": zod.record(zod.string(), zod.unknown()).optional(),
+  "imageUrl": zod.union([zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneImageUrlOneMax),zod.url().regex(listAdminVybeCreationsResponseOneItemsItemOneImageUrlTwoRegExp)]).optional(),
+  "imageAlt": zod.string().max(listAdminVybeCreationsResponseOneItemsItemOneImageAltMax).optional(),
+  "tags": zod.array(zod.string().min(1).max(listAdminVybeCreationsResponseOneItemsItemOneTagsItemMax)).max(listAdminVybeCreationsResponseOneItemsItemOneTagsMax).optional(),
+  "status": zod.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional(),
+  "featured": zod.boolean().optional(),
+  "featuredPosition": zod.int().min(listAdminVybeCreationsResponseOneItemsItemOneFeaturedPositionMin).max(listAdminVybeCreationsResponseOneItemsItemOneFeaturedPositionMax).optional(),
+  "trending": zod.boolean().optional()
+}).and(zod.object({
+  "id": zod.int(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullish()
+}))),
+  "page": zod.int(),
+  "pageSize": zod.int(),
+  "total": zod.int(),
+  "categories": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Create a VYBE creation
+ */
+export const createAdminVybeCreationBodyTitleMax = 160;
+
+export const createAdminVybeCreationBodySlugMax = 180;
+
+
+export const createAdminVybeCreationBodySlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+export const createAdminVybeCreationBodyShortDescriptionMax = 280;
+
+export const createAdminVybeCreationBodyDescriptionMax = 12000;
+
+export const createAdminVybeCreationBodyCategoryMax = 80;
+
+export const createAdminVybeCreationBodyModelMax = 160;
+
+export const createAdminVybeCreationBodyModelsItemMax = 100;
+
+export const createAdminVybeCreationBodyModelsMax = 20;
+
+export const createAdminVybeCreationBodyPromptMax = 20000;
+
+export const createAdminVybeCreationBodyNegativePromptMax = 10000;
+
+export const createAdminVybeCreationBodyStyleMax = 500;
+
+export const createAdminVybeCreationBodyAspectRatioMax = 40;
+
+export const createAdminVybeCreationBodySceneMax = 10000;
+
+export const createAdminVybeCreationBodyMotionMax = 10000;
+
+export const createAdminVybeCreationBodyCameraInstructionsMax = 10000;
+
+export const createAdminVybeCreationBodyDurationSecondsMax = 3600;
+
+export const createAdminVybeCreationBodyVideoUrlOneMax = 0;
+
+export const createAdminVybeCreationBodyVideoUrlTwoRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationBodyPosterUrlOneMax = 0;
+
+export const createAdminVybeCreationBodyPosterUrlTwoRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationBodyVisualReferencesItemAssetIdMax = 200;
+
+export const createAdminVybeCreationBodyVisualReferencesItemUrlMax = 2048;
+
+
+export const createAdminVybeCreationBodyVisualReferencesItemUrlRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationBodyVisualReferencesItemAltMax = 500;
+
+export const createAdminVybeCreationBodyVisualReferencesItemCaptionMax = 500;
+
+export const createAdminVybeCreationBodyVisualReferencesMax = 30;
+
+export const createAdminVybeCreationBodyExampleOutputsItemAssetIdMax = 200;
+
+export const createAdminVybeCreationBodyExampleOutputsItemUrlMax = 2048;
+
+
+export const createAdminVybeCreationBodyExampleOutputsItemUrlRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationBodyExampleOutputsItemAltMax = 500;
+
+export const createAdminVybeCreationBodyExampleOutputsItemCaptionMax = 500;
+
+export const createAdminVybeCreationBodyExampleOutputsMax = 30;
+
+export const createAdminVybeCreationBodyRefinementInstructionsMax = 10000;
+
+export const createAdminVybeCreationBodyBuilderInstructionsMax = 20000;
+
+export const createAdminVybeCreationBodyToolsItemMax = 100;
+
+export const createAdminVybeCreationBodyToolsMax = 30;
+
+export const createAdminVybeCreationBodyDemoUrlOneMax = 0;
+
+export const createAdminVybeCreationBodyDemoUrlTwoRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationBodyVerificationDetailsMax = 10000;
+
+export const createAdminVybeCreationBodyExperienceUrlOneMax = 0;
+
+export const createAdminVybeCreationBodyExperienceUrlTwoRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationBodyExperienceControlsItemMax = 200;
+
+export const createAdminVybeCreationBodyExperienceControlsMax = 30;
+
+export const createAdminVybeCreationBodyMediaAssetsItemAssetIdMax = 200;
+
+export const createAdminVybeCreationBodyMediaAssetsItemUrlMax = 2048;
+
+
+export const createAdminVybeCreationBodyMediaAssetsItemUrlRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationBodyMediaAssetsItemAltMax = 500;
+
+export const createAdminVybeCreationBodyMediaAssetsItemCaptionMax = 500;
+
+export const createAdminVybeCreationBodyMediaAssetsMax = 50;
+
+export const createAdminVybeCreationBodyImageUrlOneMax = 0;
+
+export const createAdminVybeCreationBodyImageUrlTwoRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationBodyImageAltMax = 500;
+
+export const createAdminVybeCreationBodyTagsItemMax = 50;
+
+export const createAdminVybeCreationBodyTagsMax = 30;
+
+export const createAdminVybeCreationBodyFeaturedPositionMin = 0;
+export const createAdminVybeCreationBodyFeaturedPositionMax = 10000;
+
+
+
+export const CreateAdminVybeCreationBody = zod.object({
+  "title": zod.string().min(1).max(createAdminVybeCreationBodyTitleMax),
+  "slug": zod.string().max(createAdminVybeCreationBodySlugMax).regex(createAdminVybeCreationBodySlugRegExp),
+  "shortDescription": zod.string().min(1).max(createAdminVybeCreationBodyShortDescriptionMax),
+  "description": zod.string().min(1).max(createAdminVybeCreationBodyDescriptionMax),
+  "category": zod.string().min(1).max(createAdminVybeCreationBodyCategoryMax).optional(),
+  "contentType": zod.enum(['image', 'video', 'art', 'design', '3d', 'app', 'game', 'interactive', 'custom']),
+  "model": zod.string().max(createAdminVybeCreationBodyModelMax).optional(),
+  "models": zod.array(zod.string().min(1).max(createAdminVybeCreationBodyModelsItemMax)).max(createAdminVybeCreationBodyModelsMax).optional(),
+  "prompt": zod.string().max(createAdminVybeCreationBodyPromptMax).optional(),
+  "negativePrompt": zod.string().max(createAdminVybeCreationBodyNegativePromptMax).optional(),
+  "style": zod.string().max(createAdminVybeCreationBodyStyleMax).optional(),
+  "aspectRatio": zod.string().max(createAdminVybeCreationBodyAspectRatioMax).optional(),
+  "parameters": zod.record(zod.string(), zod.unknown()).optional(),
+  "scene": zod.string().max(createAdminVybeCreationBodySceneMax).optional(),
+  "motion": zod.string().max(createAdminVybeCreationBodyMotionMax).optional(),
+  "cameraInstructions": zod.string().max(createAdminVybeCreationBodyCameraInstructionsMax).optional(),
+  "durationSeconds": zod.int().min(1).max(createAdminVybeCreationBodyDurationSecondsMax).nullish(),
+  "videoUrl": zod.union([zod.string().max(createAdminVybeCreationBodyVideoUrlOneMax),zod.url().regex(createAdminVybeCreationBodyVideoUrlTwoRegExp)]).optional(),
+  "posterUrl": zod.union([zod.string().max(createAdminVybeCreationBodyPosterUrlOneMax),zod.url().regex(createAdminVybeCreationBodyPosterUrlTwoRegExp)]).optional(),
+  "visualReferences": zod.array(zod.object({
+  "assetId": zod.string().max(createAdminVybeCreationBodyVisualReferencesItemAssetIdMax).optional(),
+  "url": zod.url().max(createAdminVybeCreationBodyVisualReferencesItemUrlMax).regex(createAdminVybeCreationBodyVisualReferencesItemUrlRegExp),
+  "alt": zod.string().max(createAdminVybeCreationBodyVisualReferencesItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(createAdminVybeCreationBodyVisualReferencesItemCaptionMax).optional()
+})).max(createAdminVybeCreationBodyVisualReferencesMax).optional(),
+  "exampleOutputs": zod.array(zod.object({
+  "assetId": zod.string().max(createAdminVybeCreationBodyExampleOutputsItemAssetIdMax).optional(),
+  "url": zod.url().max(createAdminVybeCreationBodyExampleOutputsItemUrlMax).regex(createAdminVybeCreationBodyExampleOutputsItemUrlRegExp),
+  "alt": zod.string().max(createAdminVybeCreationBodyExampleOutputsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(createAdminVybeCreationBodyExampleOutputsItemCaptionMax).optional()
+})).max(createAdminVybeCreationBodyExampleOutputsMax).optional(),
+  "refinementInstructions": zod.string().max(createAdminVybeCreationBodyRefinementInstructionsMax).optional(),
+  "builderInstructions": zod.string().max(createAdminVybeCreationBodyBuilderInstructionsMax).optional(),
+  "tools": zod.array(zod.string().min(1).max(createAdminVybeCreationBodyToolsItemMax)).max(createAdminVybeCreationBodyToolsMax).optional(),
+  "demoUrl": zod.union([zod.string().max(createAdminVybeCreationBodyDemoUrlOneMax),zod.url().regex(createAdminVybeCreationBodyDemoUrlTwoRegExp)]).optional(),
+  "verificationDetails": zod.string().max(createAdminVybeCreationBodyVerificationDetailsMax).optional(),
+  "experienceUrl": zod.union([zod.string().max(createAdminVybeCreationBodyExperienceUrlOneMax),zod.url().regex(createAdminVybeCreationBodyExperienceUrlTwoRegExp)]).optional(),
+  "experienceControls": zod.array(zod.string().min(1).max(createAdminVybeCreationBodyExperienceControlsItemMax)).max(createAdminVybeCreationBodyExperienceControlsMax).optional(),
+  "mediaAssets": zod.array(zod.object({
+  "assetId": zod.string().max(createAdminVybeCreationBodyMediaAssetsItemAssetIdMax).optional(),
+  "url": zod.url().max(createAdminVybeCreationBodyMediaAssetsItemUrlMax).regex(createAdminVybeCreationBodyMediaAssetsItemUrlRegExp),
+  "alt": zod.string().max(createAdminVybeCreationBodyMediaAssetsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(createAdminVybeCreationBodyMediaAssetsItemCaptionMax).optional()
+})).max(createAdminVybeCreationBodyMediaAssetsMax).optional(),
+  "extraData": zod.record(zod.string(), zod.unknown()).optional(),
+  "imageUrl": zod.union([zod.string().max(createAdminVybeCreationBodyImageUrlOneMax),zod.url().regex(createAdminVybeCreationBodyImageUrlTwoRegExp)]).optional(),
+  "imageAlt": zod.string().max(createAdminVybeCreationBodyImageAltMax).optional(),
+  "tags": zod.array(zod.string().min(1).max(createAdminVybeCreationBodyTagsItemMax)).max(createAdminVybeCreationBodyTagsMax).optional(),
+  "status": zod.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional(),
+  "featured": zod.boolean().optional(),
+  "featuredPosition": zod.int().min(createAdminVybeCreationBodyFeaturedPositionMin).max(createAdminVybeCreationBodyFeaturedPositionMax).optional(),
+  "trending": zod.boolean().optional()
+})
+
+export const createAdminVybeCreationResponseOneTitleMax = 160;
+
+export const createAdminVybeCreationResponseOneSlugMax = 180;
+
+
+export const createAdminVybeCreationResponseOneSlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+export const createAdminVybeCreationResponseOneShortDescriptionMax = 280;
+
+export const createAdminVybeCreationResponseOneDescriptionMax = 12000;
+
+export const createAdminVybeCreationResponseOneCategoryMax = 80;
+
+export const createAdminVybeCreationResponseOneModelMax = 160;
+
+export const createAdminVybeCreationResponseOneModelsItemMax = 100;
+
+export const createAdminVybeCreationResponseOneModelsMax = 20;
+
+export const createAdminVybeCreationResponseOnePromptMax = 20000;
+
+export const createAdminVybeCreationResponseOneNegativePromptMax = 10000;
+
+export const createAdminVybeCreationResponseOneStyleMax = 500;
+
+export const createAdminVybeCreationResponseOneAspectRatioMax = 40;
+
+export const createAdminVybeCreationResponseOneSceneMax = 10000;
+
+export const createAdminVybeCreationResponseOneMotionMax = 10000;
+
+export const createAdminVybeCreationResponseOneCameraInstructionsMax = 10000;
+
+export const createAdminVybeCreationResponseOneDurationSecondsMax = 3600;
+
+export const createAdminVybeCreationResponseOneVideoUrlOneMax = 0;
+
+export const createAdminVybeCreationResponseOneVideoUrlTwoRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationResponseOnePosterUrlOneMax = 0;
+
+export const createAdminVybeCreationResponseOnePosterUrlTwoRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationResponseOneVisualReferencesItemAssetIdMax = 200;
+
+export const createAdminVybeCreationResponseOneVisualReferencesItemUrlMax = 2048;
+
+
+export const createAdminVybeCreationResponseOneVisualReferencesItemUrlRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationResponseOneVisualReferencesItemAltMax = 500;
+
+export const createAdminVybeCreationResponseOneVisualReferencesItemCaptionMax = 500;
+
+export const createAdminVybeCreationResponseOneVisualReferencesMax = 30;
+
+export const createAdminVybeCreationResponseOneExampleOutputsItemAssetIdMax = 200;
+
+export const createAdminVybeCreationResponseOneExampleOutputsItemUrlMax = 2048;
+
+
+export const createAdminVybeCreationResponseOneExampleOutputsItemUrlRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationResponseOneExampleOutputsItemAltMax = 500;
+
+export const createAdminVybeCreationResponseOneExampleOutputsItemCaptionMax = 500;
+
+export const createAdminVybeCreationResponseOneExampleOutputsMax = 30;
+
+export const createAdminVybeCreationResponseOneRefinementInstructionsMax = 10000;
+
+export const createAdminVybeCreationResponseOneBuilderInstructionsMax = 20000;
+
+export const createAdminVybeCreationResponseOneToolsItemMax = 100;
+
+export const createAdminVybeCreationResponseOneToolsMax = 30;
+
+export const createAdminVybeCreationResponseOneDemoUrlOneMax = 0;
+
+export const createAdminVybeCreationResponseOneDemoUrlTwoRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationResponseOneVerificationDetailsMax = 10000;
+
+export const createAdminVybeCreationResponseOneExperienceUrlOneMax = 0;
+
+export const createAdminVybeCreationResponseOneExperienceUrlTwoRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationResponseOneExperienceControlsItemMax = 200;
+
+export const createAdminVybeCreationResponseOneExperienceControlsMax = 30;
+
+export const createAdminVybeCreationResponseOneMediaAssetsItemAssetIdMax = 200;
+
+export const createAdminVybeCreationResponseOneMediaAssetsItemUrlMax = 2048;
+
+
+export const createAdminVybeCreationResponseOneMediaAssetsItemUrlRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationResponseOneMediaAssetsItemAltMax = 500;
+
+export const createAdminVybeCreationResponseOneMediaAssetsItemCaptionMax = 500;
+
+export const createAdminVybeCreationResponseOneMediaAssetsMax = 50;
+
+export const createAdminVybeCreationResponseOneImageUrlOneMax = 0;
+
+export const createAdminVybeCreationResponseOneImageUrlTwoRegExp = new RegExp('^https:/');
+export const createAdminVybeCreationResponseOneImageAltMax = 500;
+
+export const createAdminVybeCreationResponseOneTagsItemMax = 50;
+
+export const createAdminVybeCreationResponseOneTagsMax = 30;
+
+export const createAdminVybeCreationResponseOneFeaturedPositionMin = 0;
+export const createAdminVybeCreationResponseOneFeaturedPositionMax = 10000;
+
+
+
+export const CreateAdminVybeCreationResponse = zod.object({
+  "title": zod.string().min(1).max(createAdminVybeCreationResponseOneTitleMax),
+  "slug": zod.string().max(createAdminVybeCreationResponseOneSlugMax).regex(createAdminVybeCreationResponseOneSlugRegExp),
+  "shortDescription": zod.string().min(1).max(createAdminVybeCreationResponseOneShortDescriptionMax),
+  "description": zod.string().min(1).max(createAdminVybeCreationResponseOneDescriptionMax),
+  "category": zod.string().min(1).max(createAdminVybeCreationResponseOneCategoryMax).optional(),
+  "contentType": zod.enum(['image', 'video', 'art', 'design', '3d', 'app', 'game', 'interactive', 'custom']),
+  "model": zod.string().max(createAdminVybeCreationResponseOneModelMax).optional(),
+  "models": zod.array(zod.string().min(1).max(createAdminVybeCreationResponseOneModelsItemMax)).max(createAdminVybeCreationResponseOneModelsMax).optional(),
+  "prompt": zod.string().max(createAdminVybeCreationResponseOnePromptMax).optional(),
+  "negativePrompt": zod.string().max(createAdminVybeCreationResponseOneNegativePromptMax).optional(),
+  "style": zod.string().max(createAdminVybeCreationResponseOneStyleMax).optional(),
+  "aspectRatio": zod.string().max(createAdminVybeCreationResponseOneAspectRatioMax).optional(),
+  "parameters": zod.record(zod.string(), zod.unknown()).optional(),
+  "scene": zod.string().max(createAdminVybeCreationResponseOneSceneMax).optional(),
+  "motion": zod.string().max(createAdminVybeCreationResponseOneMotionMax).optional(),
+  "cameraInstructions": zod.string().max(createAdminVybeCreationResponseOneCameraInstructionsMax).optional(),
+  "durationSeconds": zod.int().min(1).max(createAdminVybeCreationResponseOneDurationSecondsMax).nullish(),
+  "videoUrl": zod.union([zod.string().max(createAdminVybeCreationResponseOneVideoUrlOneMax),zod.url().regex(createAdminVybeCreationResponseOneVideoUrlTwoRegExp)]).optional(),
+  "posterUrl": zod.union([zod.string().max(createAdminVybeCreationResponseOnePosterUrlOneMax),zod.url().regex(createAdminVybeCreationResponseOnePosterUrlTwoRegExp)]).optional(),
+  "visualReferences": zod.array(zod.object({
+  "assetId": zod.string().max(createAdminVybeCreationResponseOneVisualReferencesItemAssetIdMax).optional(),
+  "url": zod.url().max(createAdminVybeCreationResponseOneVisualReferencesItemUrlMax).regex(createAdminVybeCreationResponseOneVisualReferencesItemUrlRegExp),
+  "alt": zod.string().max(createAdminVybeCreationResponseOneVisualReferencesItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(createAdminVybeCreationResponseOneVisualReferencesItemCaptionMax).optional()
+})).max(createAdminVybeCreationResponseOneVisualReferencesMax).optional(),
+  "exampleOutputs": zod.array(zod.object({
+  "assetId": zod.string().max(createAdminVybeCreationResponseOneExampleOutputsItemAssetIdMax).optional(),
+  "url": zod.url().max(createAdminVybeCreationResponseOneExampleOutputsItemUrlMax).regex(createAdminVybeCreationResponseOneExampleOutputsItemUrlRegExp),
+  "alt": zod.string().max(createAdminVybeCreationResponseOneExampleOutputsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(createAdminVybeCreationResponseOneExampleOutputsItemCaptionMax).optional()
+})).max(createAdminVybeCreationResponseOneExampleOutputsMax).optional(),
+  "refinementInstructions": zod.string().max(createAdminVybeCreationResponseOneRefinementInstructionsMax).optional(),
+  "builderInstructions": zod.string().max(createAdminVybeCreationResponseOneBuilderInstructionsMax).optional(),
+  "tools": zod.array(zod.string().min(1).max(createAdminVybeCreationResponseOneToolsItemMax)).max(createAdminVybeCreationResponseOneToolsMax).optional(),
+  "demoUrl": zod.union([zod.string().max(createAdminVybeCreationResponseOneDemoUrlOneMax),zod.url().regex(createAdminVybeCreationResponseOneDemoUrlTwoRegExp)]).optional(),
+  "verificationDetails": zod.string().max(createAdminVybeCreationResponseOneVerificationDetailsMax).optional(),
+  "experienceUrl": zod.union([zod.string().max(createAdminVybeCreationResponseOneExperienceUrlOneMax),zod.url().regex(createAdminVybeCreationResponseOneExperienceUrlTwoRegExp)]).optional(),
+  "experienceControls": zod.array(zod.string().min(1).max(createAdminVybeCreationResponseOneExperienceControlsItemMax)).max(createAdminVybeCreationResponseOneExperienceControlsMax).optional(),
+  "mediaAssets": zod.array(zod.object({
+  "assetId": zod.string().max(createAdminVybeCreationResponseOneMediaAssetsItemAssetIdMax).optional(),
+  "url": zod.url().max(createAdminVybeCreationResponseOneMediaAssetsItemUrlMax).regex(createAdminVybeCreationResponseOneMediaAssetsItemUrlRegExp),
+  "alt": zod.string().max(createAdminVybeCreationResponseOneMediaAssetsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(createAdminVybeCreationResponseOneMediaAssetsItemCaptionMax).optional()
+})).max(createAdminVybeCreationResponseOneMediaAssetsMax).optional(),
+  "extraData": zod.record(zod.string(), zod.unknown()).optional(),
+  "imageUrl": zod.union([zod.string().max(createAdminVybeCreationResponseOneImageUrlOneMax),zod.url().regex(createAdminVybeCreationResponseOneImageUrlTwoRegExp)]).optional(),
+  "imageAlt": zod.string().max(createAdminVybeCreationResponseOneImageAltMax).optional(),
+  "tags": zod.array(zod.string().min(1).max(createAdminVybeCreationResponseOneTagsItemMax)).max(createAdminVybeCreationResponseOneTagsMax).optional(),
+  "status": zod.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional(),
+  "featured": zod.boolean().optional(),
+  "featuredPosition": zod.int().min(createAdminVybeCreationResponseOneFeaturedPositionMin).max(createAdminVybeCreationResponseOneFeaturedPositionMax).optional(),
+  "trending": zod.boolean().optional()
+}).and(zod.object({
+  "id": zod.int(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullish()
+}))
+
+
+/**
+ * @summary Get VYBE studio dashboard counts
+ */
+export const GetAdminVybeSummaryResponse = zod.object({
+  "total": zod.int(),
+  "drafts": zod.int(),
+  "published": zod.int(),
+  "archived": zod.int(),
+  "featured": zod.int(),
+  "categories": zod.int()
+})
+
+
+/**
+ * @summary Get the versioned VYBE CSV field schema
+ */
+export const GetAdminVybeCsvSchemaResponse = zod.object({
+  "version": zod.string(),
+  "maxBytes": zod.int(),
+  "maxRows": zod.int(),
+  "strategies": zod.array(zod.enum(['create-only', 'update-existing', 'upsert'])),
+  "fields": zod.array(zod.object({
+  "name": zod.string(),
+  "type": zod.string(),
+  "required": zod.boolean(),
+  "values": zod.array(zod.string()).optional()
+})),
+  "protectedFields": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Download a VYBE CSV template
+ */
+export const DownloadAdminVybeCsvTemplateResponse = zod.unknown()
+
+
+/**
+ * @summary Validate and preview a VYBE CSV without writing records
+ */
+export const validateAdminVybeCsvImportBodyCsvMax = 5242880;
+
+export const validateAdminVybeCsvImportBodyStrategyDefault = `create-only`;
+export const validateAdminVybeCsvImportBodyPublishImportedDefault = false;
+
+export const ValidateAdminVybeCsvImportBody = zod.object({
+  "csv": zod.string().max(validateAdminVybeCsvImportBodyCsvMax),
+  "mapping": zod.record(zod.string(), zod.string()).optional(),
+  "strategy": zod.enum(['create-only', 'update-existing', 'upsert']).default(validateAdminVybeCsvImportBodyStrategyDefault),
+  "publishImported": zod.boolean().default(validateAdminVybeCsvImportBodyPublishImportedDefault)
+})
+
+export const ValidateAdminVybeCsvImportResponse = zod.object({
+  "schemaVersion": zod.string(),
+  "strategy": zod.enum(['create-only', 'update-existing', 'upsert']),
+  "publishImported": zod.boolean(),
+  "counts": zod.object({
+  "create": zod.int(),
+  "update": zod.int(),
+  "skipped": zod.int(),
+  "invalid": zod.int(),
+  "total": zod.int()
+}),
+  "rows": zod.array(zod.object({
+  "row": zod.int(),
+  "slug": zod.string(),
+  "valid": zod.boolean(),
+  "errors": zod.array(zod.record(zod.string(), zod.unknown())),
+  "warnings": zod.array(zod.string()),
+  "action": zod.enum(['invalid', 'skip', 'update', 'create'])
+}))
+})
+
+
+/**
+ * @summary Commit a validated VYBE CSV import with idempotency protection
+ */
+export const commitAdminVybeCsvImportBodyOneCsvMax = 5242880;
+
+export const commitAdminVybeCsvImportBodyOneStrategyDefault = `create-only`;
+export const commitAdminVybeCsvImportBodyOnePublishImportedDefault = false;
+
+export const CommitAdminVybeCsvImportBody = zod.object({
+  "csv": zod.string().max(commitAdminVybeCsvImportBodyOneCsvMax),
+  "mapping": zod.record(zod.string(), zod.string()).optional(),
+  "strategy": zod.enum(['create-only', 'update-existing', 'upsert']).default(commitAdminVybeCsvImportBodyOneStrategyDefault),
+  "publishImported": zod.boolean().default(commitAdminVybeCsvImportBodyOnePublishImportedDefault)
+}).and(zod.object({
+  "idempotencyKey": zod.uuid()
+}))
+
+export const CommitAdminVybeCsvImportResponse = zod.object({
+  "job": zod.object({
+  "id": zod.int(),
+  "status": zod.string(),
+  "strategy": zod.enum(['create-only', 'update-existing', 'upsert']),
+  "totalRows": zod.int(),
+  "importedRows": zod.int(),
+  "skippedRows": zod.int(),
+  "failedRows": zod.int(),
+  "report": zod.record(zod.string(), zod.unknown()),
+  "adminId": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "report": zod.record(zod.string(), zod.unknown()),
+  "alreadyProcessed": zod.boolean().optional()
+})
+
+
+/**
+ * @summary List recent VYBE CSV import jobs
+ */
+export const listAdminVybeCsvImportJobsQueryLimitDefault = 10;
+export const listAdminVybeCsvImportJobsQueryLimitMax = 50;
+
+
+
+export const ListAdminVybeCsvImportJobsQueryParams = zod.object({
+  "limit": zod.coerce.number().int().min(1).max(listAdminVybeCsvImportJobsQueryLimitMax).default(listAdminVybeCsvImportJobsQueryLimitDefault)
+})
+
+export const ListAdminVybeCsvImportJobsResponse = zod.object({
+  "jobs": zod.array(zod.object({
+  "id": zod.int(),
+  "status": zod.string(),
+  "strategy": zod.enum(['create-only', 'update-existing', 'upsert']),
+  "totalRows": zod.int(),
+  "importedRows": zod.int(),
+  "skippedRows": zod.int(),
+  "failedRows": zod.int(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Get a VYBE CSV import job
+ */
+
+
+
+export const GetAdminVybeCsvImportJobParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const GetAdminVybeCsvImportJobResponse = zod.object({
+  "id": zod.int(),
+  "status": zod.string(),
+  "strategy": zod.enum(['create-only', 'update-existing', 'upsert']),
+  "totalRows": zod.int(),
+  "importedRows": zod.int(),
+  "skippedRows": zod.int(),
+  "failedRows": zod.int(),
+  "report": zod.record(zod.string(), zod.unknown()),
+  "adminId": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Download a VYBE CSV import error report
+ */
+
+
+
+export const DownloadAdminVybeCsvImportErrorReportParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const DownloadAdminVybeCsvImportErrorReportResponse = zod.unknown()
+
+
+/**
+ * @summary Stream matching VYBE creations as CSV
+ */
+export const exportAdminVybeCreationsQueryQMax = 200;
+
+export const exportAdminVybeCreationsQueryCategoryMax = 80;
+
+
+
+export const ExportAdminVybeCreationsQueryParams = zod.object({
+  "q": zod.coerce.string().max(exportAdminVybeCreationsQueryQMax).optional(),
+  "status": zod.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional(),
+  "category": zod.coerce.string().max(exportAdminVybeCreationsQueryCategoryMax).optional(),
+  "contentType": zod.enum(['image', 'video', 'art', 'design', '3d', 'app', 'game', 'interactive', 'custom']).optional(),
+  "ids": zod.coerce.string().optional().describe('Comma-separated selection of up to 500 IDs'),
+  "sort": zod.enum(['title', 'status', 'featured']).optional()
+})
+
+export const ExportAdminVybeCreationsResponse = zod.unknown()
+
+
+/**
+ * @summary Update and publish or unpublish a VYBE creation
+ */
+
+
+
+export const UpdateAdminVybeCreationParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const updateAdminVybeCreationBodyTitleMax = 160;
+
+export const updateAdminVybeCreationBodySlugMax = 180;
+
+
+export const updateAdminVybeCreationBodySlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+export const updateAdminVybeCreationBodyShortDescriptionMax = 280;
+
+export const updateAdminVybeCreationBodyDescriptionMax = 12000;
+
+export const updateAdminVybeCreationBodyCategoryMax = 80;
+
+export const updateAdminVybeCreationBodyModelMax = 160;
+
+export const updateAdminVybeCreationBodyModelsItemMax = 100;
+
+export const updateAdminVybeCreationBodyModelsMax = 20;
+
+export const updateAdminVybeCreationBodyPromptMax = 20000;
+
+export const updateAdminVybeCreationBodyNegativePromptMax = 10000;
+
+export const updateAdminVybeCreationBodyStyleMax = 500;
+
+export const updateAdminVybeCreationBodyAspectRatioMax = 40;
+
+export const updateAdminVybeCreationBodySceneMax = 10000;
+
+export const updateAdminVybeCreationBodyMotionMax = 10000;
+
+export const updateAdminVybeCreationBodyCameraInstructionsMax = 10000;
+
+export const updateAdminVybeCreationBodyDurationSecondsMax = 3600;
+
+export const updateAdminVybeCreationBodyVideoUrlOneMax = 0;
+
+export const updateAdminVybeCreationBodyVideoUrlTwoRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationBodyPosterUrlOneMax = 0;
+
+export const updateAdminVybeCreationBodyPosterUrlTwoRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationBodyVisualReferencesItemAssetIdMax = 200;
+
+export const updateAdminVybeCreationBodyVisualReferencesItemUrlMax = 2048;
+
+
+export const updateAdminVybeCreationBodyVisualReferencesItemUrlRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationBodyVisualReferencesItemAltMax = 500;
+
+export const updateAdminVybeCreationBodyVisualReferencesItemCaptionMax = 500;
+
+export const updateAdminVybeCreationBodyVisualReferencesMax = 30;
+
+export const updateAdminVybeCreationBodyExampleOutputsItemAssetIdMax = 200;
+
+export const updateAdminVybeCreationBodyExampleOutputsItemUrlMax = 2048;
+
+
+export const updateAdminVybeCreationBodyExampleOutputsItemUrlRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationBodyExampleOutputsItemAltMax = 500;
+
+export const updateAdminVybeCreationBodyExampleOutputsItemCaptionMax = 500;
+
+export const updateAdminVybeCreationBodyExampleOutputsMax = 30;
+
+export const updateAdminVybeCreationBodyRefinementInstructionsMax = 10000;
+
+export const updateAdminVybeCreationBodyBuilderInstructionsMax = 20000;
+
+export const updateAdminVybeCreationBodyToolsItemMax = 100;
+
+export const updateAdminVybeCreationBodyToolsMax = 30;
+
+export const updateAdminVybeCreationBodyDemoUrlOneMax = 0;
+
+export const updateAdminVybeCreationBodyDemoUrlTwoRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationBodyVerificationDetailsMax = 10000;
+
+export const updateAdminVybeCreationBodyExperienceUrlOneMax = 0;
+
+export const updateAdminVybeCreationBodyExperienceUrlTwoRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationBodyExperienceControlsItemMax = 200;
+
+export const updateAdminVybeCreationBodyExperienceControlsMax = 30;
+
+export const updateAdminVybeCreationBodyMediaAssetsItemAssetIdMax = 200;
+
+export const updateAdminVybeCreationBodyMediaAssetsItemUrlMax = 2048;
+
+
+export const updateAdminVybeCreationBodyMediaAssetsItemUrlRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationBodyMediaAssetsItemAltMax = 500;
+
+export const updateAdminVybeCreationBodyMediaAssetsItemCaptionMax = 500;
+
+export const updateAdminVybeCreationBodyMediaAssetsMax = 50;
+
+export const updateAdminVybeCreationBodyImageUrlOneMax = 0;
+
+export const updateAdminVybeCreationBodyImageUrlTwoRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationBodyImageAltMax = 500;
+
+export const updateAdminVybeCreationBodyTagsItemMax = 50;
+
+export const updateAdminVybeCreationBodyTagsMax = 30;
+
+export const updateAdminVybeCreationBodyFeaturedPositionMin = 0;
+export const updateAdminVybeCreationBodyFeaturedPositionMax = 10000;
+
+
+
+export const UpdateAdminVybeCreationBody = zod.object({
+  "title": zod.string().min(1).max(updateAdminVybeCreationBodyTitleMax),
+  "slug": zod.string().max(updateAdminVybeCreationBodySlugMax).regex(updateAdminVybeCreationBodySlugRegExp),
+  "shortDescription": zod.string().min(1).max(updateAdminVybeCreationBodyShortDescriptionMax),
+  "description": zod.string().min(1).max(updateAdminVybeCreationBodyDescriptionMax),
+  "category": zod.string().min(1).max(updateAdminVybeCreationBodyCategoryMax).optional(),
+  "contentType": zod.enum(['image', 'video', 'art', 'design', '3d', 'app', 'game', 'interactive', 'custom']),
+  "model": zod.string().max(updateAdminVybeCreationBodyModelMax).optional(),
+  "models": zod.array(zod.string().min(1).max(updateAdminVybeCreationBodyModelsItemMax)).max(updateAdminVybeCreationBodyModelsMax).optional(),
+  "prompt": zod.string().max(updateAdminVybeCreationBodyPromptMax).optional(),
+  "negativePrompt": zod.string().max(updateAdminVybeCreationBodyNegativePromptMax).optional(),
+  "style": zod.string().max(updateAdminVybeCreationBodyStyleMax).optional(),
+  "aspectRatio": zod.string().max(updateAdminVybeCreationBodyAspectRatioMax).optional(),
+  "parameters": zod.record(zod.string(), zod.unknown()).optional(),
+  "scene": zod.string().max(updateAdminVybeCreationBodySceneMax).optional(),
+  "motion": zod.string().max(updateAdminVybeCreationBodyMotionMax).optional(),
+  "cameraInstructions": zod.string().max(updateAdminVybeCreationBodyCameraInstructionsMax).optional(),
+  "durationSeconds": zod.int().min(1).max(updateAdminVybeCreationBodyDurationSecondsMax).nullish(),
+  "videoUrl": zod.union([zod.string().max(updateAdminVybeCreationBodyVideoUrlOneMax),zod.url().regex(updateAdminVybeCreationBodyVideoUrlTwoRegExp)]).optional(),
+  "posterUrl": zod.union([zod.string().max(updateAdminVybeCreationBodyPosterUrlOneMax),zod.url().regex(updateAdminVybeCreationBodyPosterUrlTwoRegExp)]).optional(),
+  "visualReferences": zod.array(zod.object({
+  "assetId": zod.string().max(updateAdminVybeCreationBodyVisualReferencesItemAssetIdMax).optional(),
+  "url": zod.url().max(updateAdminVybeCreationBodyVisualReferencesItemUrlMax).regex(updateAdminVybeCreationBodyVisualReferencesItemUrlRegExp),
+  "alt": zod.string().max(updateAdminVybeCreationBodyVisualReferencesItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(updateAdminVybeCreationBodyVisualReferencesItemCaptionMax).optional()
+})).max(updateAdminVybeCreationBodyVisualReferencesMax).optional(),
+  "exampleOutputs": zod.array(zod.object({
+  "assetId": zod.string().max(updateAdminVybeCreationBodyExampleOutputsItemAssetIdMax).optional(),
+  "url": zod.url().max(updateAdminVybeCreationBodyExampleOutputsItemUrlMax).regex(updateAdminVybeCreationBodyExampleOutputsItemUrlRegExp),
+  "alt": zod.string().max(updateAdminVybeCreationBodyExampleOutputsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(updateAdminVybeCreationBodyExampleOutputsItemCaptionMax).optional()
+})).max(updateAdminVybeCreationBodyExampleOutputsMax).optional(),
+  "refinementInstructions": zod.string().max(updateAdminVybeCreationBodyRefinementInstructionsMax).optional(),
+  "builderInstructions": zod.string().max(updateAdminVybeCreationBodyBuilderInstructionsMax).optional(),
+  "tools": zod.array(zod.string().min(1).max(updateAdminVybeCreationBodyToolsItemMax)).max(updateAdminVybeCreationBodyToolsMax).optional(),
+  "demoUrl": zod.union([zod.string().max(updateAdminVybeCreationBodyDemoUrlOneMax),zod.url().regex(updateAdminVybeCreationBodyDemoUrlTwoRegExp)]).optional(),
+  "verificationDetails": zod.string().max(updateAdminVybeCreationBodyVerificationDetailsMax).optional(),
+  "experienceUrl": zod.union([zod.string().max(updateAdminVybeCreationBodyExperienceUrlOneMax),zod.url().regex(updateAdminVybeCreationBodyExperienceUrlTwoRegExp)]).optional(),
+  "experienceControls": zod.array(zod.string().min(1).max(updateAdminVybeCreationBodyExperienceControlsItemMax)).max(updateAdminVybeCreationBodyExperienceControlsMax).optional(),
+  "mediaAssets": zod.array(zod.object({
+  "assetId": zod.string().max(updateAdminVybeCreationBodyMediaAssetsItemAssetIdMax).optional(),
+  "url": zod.url().max(updateAdminVybeCreationBodyMediaAssetsItemUrlMax).regex(updateAdminVybeCreationBodyMediaAssetsItemUrlRegExp),
+  "alt": zod.string().max(updateAdminVybeCreationBodyMediaAssetsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(updateAdminVybeCreationBodyMediaAssetsItemCaptionMax).optional()
+})).max(updateAdminVybeCreationBodyMediaAssetsMax).optional(),
+  "extraData": zod.record(zod.string(), zod.unknown()).optional(),
+  "imageUrl": zod.union([zod.string().max(updateAdminVybeCreationBodyImageUrlOneMax),zod.url().regex(updateAdminVybeCreationBodyImageUrlTwoRegExp)]).optional(),
+  "imageAlt": zod.string().max(updateAdminVybeCreationBodyImageAltMax).optional(),
+  "tags": zod.array(zod.string().min(1).max(updateAdminVybeCreationBodyTagsItemMax)).max(updateAdminVybeCreationBodyTagsMax).optional(),
+  "status": zod.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional(),
+  "featured": zod.boolean().optional(),
+  "featuredPosition": zod.int().min(updateAdminVybeCreationBodyFeaturedPositionMin).max(updateAdminVybeCreationBodyFeaturedPositionMax).optional(),
+  "trending": zod.boolean().optional()
+})
+
+export const updateAdminVybeCreationResponseOneTitleMax = 160;
+
+export const updateAdminVybeCreationResponseOneSlugMax = 180;
+
+
+export const updateAdminVybeCreationResponseOneSlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+export const updateAdminVybeCreationResponseOneShortDescriptionMax = 280;
+
+export const updateAdminVybeCreationResponseOneDescriptionMax = 12000;
+
+export const updateAdminVybeCreationResponseOneCategoryMax = 80;
+
+export const updateAdminVybeCreationResponseOneModelMax = 160;
+
+export const updateAdminVybeCreationResponseOneModelsItemMax = 100;
+
+export const updateAdminVybeCreationResponseOneModelsMax = 20;
+
+export const updateAdminVybeCreationResponseOnePromptMax = 20000;
+
+export const updateAdminVybeCreationResponseOneNegativePromptMax = 10000;
+
+export const updateAdminVybeCreationResponseOneStyleMax = 500;
+
+export const updateAdminVybeCreationResponseOneAspectRatioMax = 40;
+
+export const updateAdminVybeCreationResponseOneSceneMax = 10000;
+
+export const updateAdminVybeCreationResponseOneMotionMax = 10000;
+
+export const updateAdminVybeCreationResponseOneCameraInstructionsMax = 10000;
+
+export const updateAdminVybeCreationResponseOneDurationSecondsMax = 3600;
+
+export const updateAdminVybeCreationResponseOneVideoUrlOneMax = 0;
+
+export const updateAdminVybeCreationResponseOneVideoUrlTwoRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationResponseOnePosterUrlOneMax = 0;
+
+export const updateAdminVybeCreationResponseOnePosterUrlTwoRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationResponseOneVisualReferencesItemAssetIdMax = 200;
+
+export const updateAdminVybeCreationResponseOneVisualReferencesItemUrlMax = 2048;
+
+
+export const updateAdminVybeCreationResponseOneVisualReferencesItemUrlRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationResponseOneVisualReferencesItemAltMax = 500;
+
+export const updateAdminVybeCreationResponseOneVisualReferencesItemCaptionMax = 500;
+
+export const updateAdminVybeCreationResponseOneVisualReferencesMax = 30;
+
+export const updateAdminVybeCreationResponseOneExampleOutputsItemAssetIdMax = 200;
+
+export const updateAdminVybeCreationResponseOneExampleOutputsItemUrlMax = 2048;
+
+
+export const updateAdminVybeCreationResponseOneExampleOutputsItemUrlRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationResponseOneExampleOutputsItemAltMax = 500;
+
+export const updateAdminVybeCreationResponseOneExampleOutputsItemCaptionMax = 500;
+
+export const updateAdminVybeCreationResponseOneExampleOutputsMax = 30;
+
+export const updateAdminVybeCreationResponseOneRefinementInstructionsMax = 10000;
+
+export const updateAdminVybeCreationResponseOneBuilderInstructionsMax = 20000;
+
+export const updateAdminVybeCreationResponseOneToolsItemMax = 100;
+
+export const updateAdminVybeCreationResponseOneToolsMax = 30;
+
+export const updateAdminVybeCreationResponseOneDemoUrlOneMax = 0;
+
+export const updateAdminVybeCreationResponseOneDemoUrlTwoRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationResponseOneVerificationDetailsMax = 10000;
+
+export const updateAdminVybeCreationResponseOneExperienceUrlOneMax = 0;
+
+export const updateAdminVybeCreationResponseOneExperienceUrlTwoRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationResponseOneExperienceControlsItemMax = 200;
+
+export const updateAdminVybeCreationResponseOneExperienceControlsMax = 30;
+
+export const updateAdminVybeCreationResponseOneMediaAssetsItemAssetIdMax = 200;
+
+export const updateAdminVybeCreationResponseOneMediaAssetsItemUrlMax = 2048;
+
+
+export const updateAdminVybeCreationResponseOneMediaAssetsItemUrlRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationResponseOneMediaAssetsItemAltMax = 500;
+
+export const updateAdminVybeCreationResponseOneMediaAssetsItemCaptionMax = 500;
+
+export const updateAdminVybeCreationResponseOneMediaAssetsMax = 50;
+
+export const updateAdminVybeCreationResponseOneImageUrlOneMax = 0;
+
+export const updateAdminVybeCreationResponseOneImageUrlTwoRegExp = new RegExp('^https:/');
+export const updateAdminVybeCreationResponseOneImageAltMax = 500;
+
+export const updateAdminVybeCreationResponseOneTagsItemMax = 50;
+
+export const updateAdminVybeCreationResponseOneTagsMax = 30;
+
+export const updateAdminVybeCreationResponseOneFeaturedPositionMin = 0;
+export const updateAdminVybeCreationResponseOneFeaturedPositionMax = 10000;
+
+
+
+export const UpdateAdminVybeCreationResponse = zod.object({
+  "title": zod.string().min(1).max(updateAdminVybeCreationResponseOneTitleMax),
+  "slug": zod.string().max(updateAdminVybeCreationResponseOneSlugMax).regex(updateAdminVybeCreationResponseOneSlugRegExp),
+  "shortDescription": zod.string().min(1).max(updateAdminVybeCreationResponseOneShortDescriptionMax),
+  "description": zod.string().min(1).max(updateAdminVybeCreationResponseOneDescriptionMax),
+  "category": zod.string().min(1).max(updateAdminVybeCreationResponseOneCategoryMax).optional(),
+  "contentType": zod.enum(['image', 'video', 'art', 'design', '3d', 'app', 'game', 'interactive', 'custom']),
+  "model": zod.string().max(updateAdminVybeCreationResponseOneModelMax).optional(),
+  "models": zod.array(zod.string().min(1).max(updateAdminVybeCreationResponseOneModelsItemMax)).max(updateAdminVybeCreationResponseOneModelsMax).optional(),
+  "prompt": zod.string().max(updateAdminVybeCreationResponseOnePromptMax).optional(),
+  "negativePrompt": zod.string().max(updateAdminVybeCreationResponseOneNegativePromptMax).optional(),
+  "style": zod.string().max(updateAdminVybeCreationResponseOneStyleMax).optional(),
+  "aspectRatio": zod.string().max(updateAdminVybeCreationResponseOneAspectRatioMax).optional(),
+  "parameters": zod.record(zod.string(), zod.unknown()).optional(),
+  "scene": zod.string().max(updateAdminVybeCreationResponseOneSceneMax).optional(),
+  "motion": zod.string().max(updateAdminVybeCreationResponseOneMotionMax).optional(),
+  "cameraInstructions": zod.string().max(updateAdminVybeCreationResponseOneCameraInstructionsMax).optional(),
+  "durationSeconds": zod.int().min(1).max(updateAdminVybeCreationResponseOneDurationSecondsMax).nullish(),
+  "videoUrl": zod.union([zod.string().max(updateAdminVybeCreationResponseOneVideoUrlOneMax),zod.url().regex(updateAdminVybeCreationResponseOneVideoUrlTwoRegExp)]).optional(),
+  "posterUrl": zod.union([zod.string().max(updateAdminVybeCreationResponseOnePosterUrlOneMax),zod.url().regex(updateAdminVybeCreationResponseOnePosterUrlTwoRegExp)]).optional(),
+  "visualReferences": zod.array(zod.object({
+  "assetId": zod.string().max(updateAdminVybeCreationResponseOneVisualReferencesItemAssetIdMax).optional(),
+  "url": zod.url().max(updateAdminVybeCreationResponseOneVisualReferencesItemUrlMax).regex(updateAdminVybeCreationResponseOneVisualReferencesItemUrlRegExp),
+  "alt": zod.string().max(updateAdminVybeCreationResponseOneVisualReferencesItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(updateAdminVybeCreationResponseOneVisualReferencesItemCaptionMax).optional()
+})).max(updateAdminVybeCreationResponseOneVisualReferencesMax).optional(),
+  "exampleOutputs": zod.array(zod.object({
+  "assetId": zod.string().max(updateAdminVybeCreationResponseOneExampleOutputsItemAssetIdMax).optional(),
+  "url": zod.url().max(updateAdminVybeCreationResponseOneExampleOutputsItemUrlMax).regex(updateAdminVybeCreationResponseOneExampleOutputsItemUrlRegExp),
+  "alt": zod.string().max(updateAdminVybeCreationResponseOneExampleOutputsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(updateAdminVybeCreationResponseOneExampleOutputsItemCaptionMax).optional()
+})).max(updateAdminVybeCreationResponseOneExampleOutputsMax).optional(),
+  "refinementInstructions": zod.string().max(updateAdminVybeCreationResponseOneRefinementInstructionsMax).optional(),
+  "builderInstructions": zod.string().max(updateAdminVybeCreationResponseOneBuilderInstructionsMax).optional(),
+  "tools": zod.array(zod.string().min(1).max(updateAdminVybeCreationResponseOneToolsItemMax)).max(updateAdminVybeCreationResponseOneToolsMax).optional(),
+  "demoUrl": zod.union([zod.string().max(updateAdminVybeCreationResponseOneDemoUrlOneMax),zod.url().regex(updateAdminVybeCreationResponseOneDemoUrlTwoRegExp)]).optional(),
+  "verificationDetails": zod.string().max(updateAdminVybeCreationResponseOneVerificationDetailsMax).optional(),
+  "experienceUrl": zod.union([zod.string().max(updateAdminVybeCreationResponseOneExperienceUrlOneMax),zod.url().regex(updateAdminVybeCreationResponseOneExperienceUrlTwoRegExp)]).optional(),
+  "experienceControls": zod.array(zod.string().min(1).max(updateAdminVybeCreationResponseOneExperienceControlsItemMax)).max(updateAdminVybeCreationResponseOneExperienceControlsMax).optional(),
+  "mediaAssets": zod.array(zod.object({
+  "assetId": zod.string().max(updateAdminVybeCreationResponseOneMediaAssetsItemAssetIdMax).optional(),
+  "url": zod.url().max(updateAdminVybeCreationResponseOneMediaAssetsItemUrlMax).regex(updateAdminVybeCreationResponseOneMediaAssetsItemUrlRegExp),
+  "alt": zod.string().max(updateAdminVybeCreationResponseOneMediaAssetsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(updateAdminVybeCreationResponseOneMediaAssetsItemCaptionMax).optional()
+})).max(updateAdminVybeCreationResponseOneMediaAssetsMax).optional(),
+  "extraData": zod.record(zod.string(), zod.unknown()).optional(),
+  "imageUrl": zod.union([zod.string().max(updateAdminVybeCreationResponseOneImageUrlOneMax),zod.url().regex(updateAdminVybeCreationResponseOneImageUrlTwoRegExp)]).optional(),
+  "imageAlt": zod.string().max(updateAdminVybeCreationResponseOneImageAltMax).optional(),
+  "tags": zod.array(zod.string().min(1).max(updateAdminVybeCreationResponseOneTagsItemMax)).max(updateAdminVybeCreationResponseOneTagsMax).optional(),
+  "status": zod.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional(),
+  "featured": zod.boolean().optional(),
+  "featuredPosition": zod.int().min(updateAdminVybeCreationResponseOneFeaturedPositionMin).max(updateAdminVybeCreationResponseOneFeaturedPositionMax).optional(),
+  "trending": zod.boolean().optional()
+}).and(zod.object({
+  "id": zod.int(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullish()
+}))
+
+
+/**
+ * @summary Delete a VYBE creation without deleting its media assets
+ */
+
+
+
+export const DeleteAdminVybeCreationParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const DeleteAdminVybeCreationResponse = zod.unknown()
+
+
+/**
+ * @summary Create a private draft copy of a VYBE creation
+ */
+
+
+
+export const DuplicateAdminVybeCreationParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const duplicateAdminVybeCreationResponseOneTitleMax = 160;
+
+export const duplicateAdminVybeCreationResponseOneSlugMax = 180;
+
+
+export const duplicateAdminVybeCreationResponseOneSlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+export const duplicateAdminVybeCreationResponseOneShortDescriptionMax = 280;
+
+export const duplicateAdminVybeCreationResponseOneDescriptionMax = 12000;
+
+export const duplicateAdminVybeCreationResponseOneCategoryMax = 80;
+
+export const duplicateAdminVybeCreationResponseOneModelMax = 160;
+
+export const duplicateAdminVybeCreationResponseOneModelsItemMax = 100;
+
+export const duplicateAdminVybeCreationResponseOneModelsMax = 20;
+
+export const duplicateAdminVybeCreationResponseOnePromptMax = 20000;
+
+export const duplicateAdminVybeCreationResponseOneNegativePromptMax = 10000;
+
+export const duplicateAdminVybeCreationResponseOneStyleMax = 500;
+
+export const duplicateAdminVybeCreationResponseOneAspectRatioMax = 40;
+
+export const duplicateAdminVybeCreationResponseOneSceneMax = 10000;
+
+export const duplicateAdminVybeCreationResponseOneMotionMax = 10000;
+
+export const duplicateAdminVybeCreationResponseOneCameraInstructionsMax = 10000;
+
+export const duplicateAdminVybeCreationResponseOneDurationSecondsMax = 3600;
+
+export const duplicateAdminVybeCreationResponseOneVideoUrlOneMax = 0;
+
+export const duplicateAdminVybeCreationResponseOneVideoUrlTwoRegExp = new RegExp('^https:/');
+export const duplicateAdminVybeCreationResponseOnePosterUrlOneMax = 0;
+
+export const duplicateAdminVybeCreationResponseOnePosterUrlTwoRegExp = new RegExp('^https:/');
+export const duplicateAdminVybeCreationResponseOneVisualReferencesItemAssetIdMax = 200;
+
+export const duplicateAdminVybeCreationResponseOneVisualReferencesItemUrlMax = 2048;
+
+
+export const duplicateAdminVybeCreationResponseOneVisualReferencesItemUrlRegExp = new RegExp('^https:/');
+export const duplicateAdminVybeCreationResponseOneVisualReferencesItemAltMax = 500;
+
+export const duplicateAdminVybeCreationResponseOneVisualReferencesItemCaptionMax = 500;
+
+export const duplicateAdminVybeCreationResponseOneVisualReferencesMax = 30;
+
+export const duplicateAdminVybeCreationResponseOneExampleOutputsItemAssetIdMax = 200;
+
+export const duplicateAdminVybeCreationResponseOneExampleOutputsItemUrlMax = 2048;
+
+
+export const duplicateAdminVybeCreationResponseOneExampleOutputsItemUrlRegExp = new RegExp('^https:/');
+export const duplicateAdminVybeCreationResponseOneExampleOutputsItemAltMax = 500;
+
+export const duplicateAdminVybeCreationResponseOneExampleOutputsItemCaptionMax = 500;
+
+export const duplicateAdminVybeCreationResponseOneExampleOutputsMax = 30;
+
+export const duplicateAdminVybeCreationResponseOneRefinementInstructionsMax = 10000;
+
+export const duplicateAdminVybeCreationResponseOneBuilderInstructionsMax = 20000;
+
+export const duplicateAdminVybeCreationResponseOneToolsItemMax = 100;
+
+export const duplicateAdminVybeCreationResponseOneToolsMax = 30;
+
+export const duplicateAdminVybeCreationResponseOneDemoUrlOneMax = 0;
+
+export const duplicateAdminVybeCreationResponseOneDemoUrlTwoRegExp = new RegExp('^https:/');
+export const duplicateAdminVybeCreationResponseOneVerificationDetailsMax = 10000;
+
+export const duplicateAdminVybeCreationResponseOneExperienceUrlOneMax = 0;
+
+export const duplicateAdminVybeCreationResponseOneExperienceUrlTwoRegExp = new RegExp('^https:/');
+export const duplicateAdminVybeCreationResponseOneExperienceControlsItemMax = 200;
+
+export const duplicateAdminVybeCreationResponseOneExperienceControlsMax = 30;
+
+export const duplicateAdminVybeCreationResponseOneMediaAssetsItemAssetIdMax = 200;
+
+export const duplicateAdminVybeCreationResponseOneMediaAssetsItemUrlMax = 2048;
+
+
+export const duplicateAdminVybeCreationResponseOneMediaAssetsItemUrlRegExp = new RegExp('^https:/');
+export const duplicateAdminVybeCreationResponseOneMediaAssetsItemAltMax = 500;
+
+export const duplicateAdminVybeCreationResponseOneMediaAssetsItemCaptionMax = 500;
+
+export const duplicateAdminVybeCreationResponseOneMediaAssetsMax = 50;
+
+export const duplicateAdminVybeCreationResponseOneImageUrlOneMax = 0;
+
+export const duplicateAdminVybeCreationResponseOneImageUrlTwoRegExp = new RegExp('^https:/');
+export const duplicateAdminVybeCreationResponseOneImageAltMax = 500;
+
+export const duplicateAdminVybeCreationResponseOneTagsItemMax = 50;
+
+export const duplicateAdminVybeCreationResponseOneTagsMax = 30;
+
+export const duplicateAdminVybeCreationResponseOneFeaturedPositionMin = 0;
+export const duplicateAdminVybeCreationResponseOneFeaturedPositionMax = 10000;
+
+
+
+export const DuplicateAdminVybeCreationResponse = zod.object({
+  "title": zod.string().min(1).max(duplicateAdminVybeCreationResponseOneTitleMax),
+  "slug": zod.string().max(duplicateAdminVybeCreationResponseOneSlugMax).regex(duplicateAdminVybeCreationResponseOneSlugRegExp),
+  "shortDescription": zod.string().min(1).max(duplicateAdminVybeCreationResponseOneShortDescriptionMax),
+  "description": zod.string().min(1).max(duplicateAdminVybeCreationResponseOneDescriptionMax),
+  "category": zod.string().min(1).max(duplicateAdminVybeCreationResponseOneCategoryMax).optional(),
+  "contentType": zod.enum(['image', 'video', 'art', 'design', '3d', 'app', 'game', 'interactive', 'custom']),
+  "model": zod.string().max(duplicateAdminVybeCreationResponseOneModelMax).optional(),
+  "models": zod.array(zod.string().min(1).max(duplicateAdminVybeCreationResponseOneModelsItemMax)).max(duplicateAdminVybeCreationResponseOneModelsMax).optional(),
+  "prompt": zod.string().max(duplicateAdminVybeCreationResponseOnePromptMax).optional(),
+  "negativePrompt": zod.string().max(duplicateAdminVybeCreationResponseOneNegativePromptMax).optional(),
+  "style": zod.string().max(duplicateAdminVybeCreationResponseOneStyleMax).optional(),
+  "aspectRatio": zod.string().max(duplicateAdminVybeCreationResponseOneAspectRatioMax).optional(),
+  "parameters": zod.record(zod.string(), zod.unknown()).optional(),
+  "scene": zod.string().max(duplicateAdminVybeCreationResponseOneSceneMax).optional(),
+  "motion": zod.string().max(duplicateAdminVybeCreationResponseOneMotionMax).optional(),
+  "cameraInstructions": zod.string().max(duplicateAdminVybeCreationResponseOneCameraInstructionsMax).optional(),
+  "durationSeconds": zod.int().min(1).max(duplicateAdminVybeCreationResponseOneDurationSecondsMax).nullish(),
+  "videoUrl": zod.union([zod.string().max(duplicateAdminVybeCreationResponseOneVideoUrlOneMax),zod.url().regex(duplicateAdminVybeCreationResponseOneVideoUrlTwoRegExp)]).optional(),
+  "posterUrl": zod.union([zod.string().max(duplicateAdminVybeCreationResponseOnePosterUrlOneMax),zod.url().regex(duplicateAdminVybeCreationResponseOnePosterUrlTwoRegExp)]).optional(),
+  "visualReferences": zod.array(zod.object({
+  "assetId": zod.string().max(duplicateAdminVybeCreationResponseOneVisualReferencesItemAssetIdMax).optional(),
+  "url": zod.url().max(duplicateAdminVybeCreationResponseOneVisualReferencesItemUrlMax).regex(duplicateAdminVybeCreationResponseOneVisualReferencesItemUrlRegExp),
+  "alt": zod.string().max(duplicateAdminVybeCreationResponseOneVisualReferencesItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(duplicateAdminVybeCreationResponseOneVisualReferencesItemCaptionMax).optional()
+})).max(duplicateAdminVybeCreationResponseOneVisualReferencesMax).optional(),
+  "exampleOutputs": zod.array(zod.object({
+  "assetId": zod.string().max(duplicateAdminVybeCreationResponseOneExampleOutputsItemAssetIdMax).optional(),
+  "url": zod.url().max(duplicateAdminVybeCreationResponseOneExampleOutputsItemUrlMax).regex(duplicateAdminVybeCreationResponseOneExampleOutputsItemUrlRegExp),
+  "alt": zod.string().max(duplicateAdminVybeCreationResponseOneExampleOutputsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(duplicateAdminVybeCreationResponseOneExampleOutputsItemCaptionMax).optional()
+})).max(duplicateAdminVybeCreationResponseOneExampleOutputsMax).optional(),
+  "refinementInstructions": zod.string().max(duplicateAdminVybeCreationResponseOneRefinementInstructionsMax).optional(),
+  "builderInstructions": zod.string().max(duplicateAdminVybeCreationResponseOneBuilderInstructionsMax).optional(),
+  "tools": zod.array(zod.string().min(1).max(duplicateAdminVybeCreationResponseOneToolsItemMax)).max(duplicateAdminVybeCreationResponseOneToolsMax).optional(),
+  "demoUrl": zod.union([zod.string().max(duplicateAdminVybeCreationResponseOneDemoUrlOneMax),zod.url().regex(duplicateAdminVybeCreationResponseOneDemoUrlTwoRegExp)]).optional(),
+  "verificationDetails": zod.string().max(duplicateAdminVybeCreationResponseOneVerificationDetailsMax).optional(),
+  "experienceUrl": zod.union([zod.string().max(duplicateAdminVybeCreationResponseOneExperienceUrlOneMax),zod.url().regex(duplicateAdminVybeCreationResponseOneExperienceUrlTwoRegExp)]).optional(),
+  "experienceControls": zod.array(zod.string().min(1).max(duplicateAdminVybeCreationResponseOneExperienceControlsItemMax)).max(duplicateAdminVybeCreationResponseOneExperienceControlsMax).optional(),
+  "mediaAssets": zod.array(zod.object({
+  "assetId": zod.string().max(duplicateAdminVybeCreationResponseOneMediaAssetsItemAssetIdMax).optional(),
+  "url": zod.url().max(duplicateAdminVybeCreationResponseOneMediaAssetsItemUrlMax).regex(duplicateAdminVybeCreationResponseOneMediaAssetsItemUrlRegExp),
+  "alt": zod.string().max(duplicateAdminVybeCreationResponseOneMediaAssetsItemAltMax),
+  "type": zod.enum(['image', 'video']),
+  "caption": zod.string().max(duplicateAdminVybeCreationResponseOneMediaAssetsItemCaptionMax).optional()
+})).max(duplicateAdminVybeCreationResponseOneMediaAssetsMax).optional(),
+  "extraData": zod.record(zod.string(), zod.unknown()).optional(),
+  "imageUrl": zod.union([zod.string().max(duplicateAdminVybeCreationResponseOneImageUrlOneMax),zod.url().regex(duplicateAdminVybeCreationResponseOneImageUrlTwoRegExp)]).optional(),
+  "imageAlt": zod.string().max(duplicateAdminVybeCreationResponseOneImageAltMax).optional(),
+  "tags": zod.array(zod.string().min(1).max(duplicateAdminVybeCreationResponseOneTagsItemMax)).max(duplicateAdminVybeCreationResponseOneTagsMax).optional(),
+  "status": zod.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional(),
+  "featured": zod.boolean().optional(),
+  "featuredPosition": zod.int().min(duplicateAdminVybeCreationResponseOneFeaturedPositionMin).max(duplicateAdminVybeCreationResponseOneFeaturedPositionMax).optional(),
+  "trending": zod.boolean().optional()
+}).and(zod.object({
+  "id": zod.int(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "metadata": zod.record(zod.string(), zod.unknown()).nullish()
+}))
 
 
 /**
@@ -395,7 +2095,8 @@ export const GetHomeResponse = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string().optional()
 }).nullish(),
   "trending": zod.array(zod.object({
   "id": zod.number(),
@@ -415,7 +2116,8 @@ export const GetHomeResponse = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string().optional()
 })),
   "popular": zod.array(zod.object({
   "id": zod.number(),
@@ -435,7 +2137,8 @@ export const GetHomeResponse = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string().optional()
 })),
   "categories": zod.array(zod.object({
   "id": zod.number(),
@@ -496,7 +2199,8 @@ export const GetCategoryResponse = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string().optional()
 }))
 })
 
@@ -543,7 +2247,8 @@ export const GetAudienceResponse = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string().optional()
 }))
 })
 
@@ -676,7 +2381,8 @@ export const ListSavedRecipesResponseItem = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string().optional()
 })
 export const ListSavedRecipesResponse = zod.array(ListSavedRecipesResponseItem)
 
@@ -722,7 +2428,8 @@ export const ListHistoryResponseItem = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string().optional()
 })
 export const ListHistoryResponse = zod.array(ListHistoryResponseItem)
 
@@ -730,11 +2437,20 @@ export const ListHistoryResponse = zod.array(ListHistoryResponseItem)
 /**
  * @summary Get dashboard metrics
  */
+export const getAdminSummaryQueryCatalogueDefault = `TASKBAKE`;
+
+export const GetAdminSummaryQueryParams = zod.object({
+  "catalogue": zod.coerce.string().default(getAdminSummaryQueryCatalogueDefault)
+})
+
 export const GetAdminSummaryResponse = zod.object({
   "totalRecipes": zod.number(),
   "publishedRecipes": zod.number(),
   "draftRecipes": zod.number(),
   "testingRecipes": zod.number(),
+  "featuredRecipes": zod.number(),
+  "missingArtworkRecipes": zod.number(),
+  "recipesMissingRequiredContent": zod.number(),
   "views": zod.number(),
   "copies": zod.number(),
   "saves": zod.number(),
@@ -786,8 +2502,167 @@ export const UploadAdminRecipeMediaResponse = zod.object({
 
 
 /**
+ * @summary Get ImageKit upload configuration
+ */
+export const GetAdminImageKitConfigResponse = zod.object({
+  "configured": zod.boolean(),
+  "publicKey": zod.string().optional(),
+  "urlEndpoint": zod.url().optional(),
+  "maxFileSizeBytes": zod.int().optional()
+})
+
+
+/**
+ * @summary Generate secure ImageKit Upload File V1 authentication
+ */
+export const GetAdminImageKitUploadAuthResponse = zod.object({
+  "token": zod.string(),
+  "expire": zod.int(),
+  "signature": zod.string(),
+  "publicKey": zod.string(),
+  "urlEndpoint": zod.url()
+})
+
+
+/**
+ * @summary Search and paginate ImageKit assets
+ */
+export const listAdminImageKitAssetsQueryQMax = 200;
+
+export const listAdminImageKitAssetsQueryPageDefault = 1;
+
+export const listAdminImageKitAssetsQueryPageSizeDefault = 24;
+export const listAdminImageKitAssetsQueryPageSizeMax = 50;
+
+
+
+export const ListAdminImageKitAssetsQueryParams = zod.object({
+  "q": zod.coerce.string().max(listAdminImageKitAssetsQueryQMax).optional(),
+  "fileType": zod.enum(['image', 'non-image']).optional(),
+  "page": zod.coerce.number().int().min(1).default(listAdminImageKitAssetsQueryPageDefault),
+  "pageSize": zod.coerce.number().int().min(1).max(listAdminImageKitAssetsQueryPageSizeMax).default(listAdminImageKitAssetsQueryPageSizeDefault)
+})
+
+export const ListAdminImageKitAssetsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "fileId": zod.string(),
+  "filePath": zod.string(),
+  "url": zod.url(),
+  "fileName": zod.string(),
+  "fileType": zod.string(),
+  "size": zod.int(),
+  "alt": zod.string(),
+  "tags": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})),
+  "page": zod.int(),
+  "pageSize": zod.int(),
+  "total": zod.int()
+})
+
+
+/**
+ * @summary Verify and save ImageKit asset metadata
+ */
+export const registerAdminImageKitAssetBodyFileIdMax = 200;
+
+export const registerAdminImageKitAssetBodyFilePathMax = 500;
+
+export const registerAdminImageKitAssetBodyUrlMax = 2048;
+
+export const registerAdminImageKitAssetBodyNameMax = 255;
+
+
+export const registerAdminImageKitAssetBodyAltMax = 500;
+
+export const registerAdminImageKitAssetBodyTagsItemMax = 50;
+
+export const registerAdminImageKitAssetBodyTagsMax = 20;
+
+
+
+export const RegisterAdminImageKitAssetBody = zod.object({
+  "fileId": zod.string().max(registerAdminImageKitAssetBodyFileIdMax),
+  "filePath": zod.string().max(registerAdminImageKitAssetBodyFilePathMax),
+  "url": zod.url().max(registerAdminImageKitAssetBodyUrlMax),
+  "name": zod.string().max(registerAdminImageKitAssetBodyNameMax),
+  "fileType": zod.enum(['image', 'non-image']),
+  "size": zod.int().min(1),
+  "alt": zod.string().max(registerAdminImageKitAssetBodyAltMax),
+  "tags": zod.array(zod.string().max(registerAdminImageKitAssetBodyTagsItemMax)).max(registerAdminImageKitAssetBodyTagsMax)
+})
+
+export const RegisterAdminImageKitAssetResponse = zod.object({
+  "fileId": zod.string(),
+  "filePath": zod.string(),
+  "url": zod.url(),
+  "fileName": zod.string(),
+  "fileType": zod.string(),
+  "size": zod.int(),
+  "alt": zod.string(),
+  "tags": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update ImageKit asset alt text and tags
+ */
+export const updateAdminImageKitAssetPathFileIdMax = 200;
+
+
+
+export const UpdateAdminImageKitAssetParams = zod.object({
+  "fileId": zod.coerce.string().max(updateAdminImageKitAssetPathFileIdMax)
+})
+
+export const updateAdminImageKitAssetBodyAltMax = 500;
+
+export const updateAdminImageKitAssetBodyTagsItemMax = 50;
+
+export const updateAdminImageKitAssetBodyTagsMax = 20;
+
+
+
+export const UpdateAdminImageKitAssetBody = zod.object({
+  "alt": zod.string().max(updateAdminImageKitAssetBodyAltMax).optional(),
+  "tags": zod.array(zod.string().max(updateAdminImageKitAssetBodyTagsItemMax)).max(updateAdminImageKitAssetBodyTagsMax).optional()
+})
+
+export const UpdateAdminImageKitAssetResponse = zod.object({
+  "fileId": zod.string(),
+  "filePath": zod.string(),
+  "url": zod.url(),
+  "fileName": zod.string(),
+  "fileType": zod.string(),
+  "size": zod.int(),
+  "alt": zod.string(),
+  "tags": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete an unreferenced ImageKit asset
+ */
+export const deleteAdminImageKitAssetPathFileIdMax = 200;
+
+
+
+export const DeleteAdminImageKitAssetParams = zod.object({
+  "fileId": zod.coerce.string().max(deleteAdminImageKitAssetPathFileIdMax)
+})
+
+export const DeleteAdminImageKitAssetResponse = zod.unknown()
+
+
+/**
  * @summary List recipes for admin
  */
+export const listAdminRecipesQueryCatalogueDefault = `TASKBAKE`;
 export const listAdminRecipesQueryPageDefault = 1;
 
 
@@ -796,6 +2671,7 @@ export const ListAdminRecipesQueryParams = zod.object({
   "q": zod.coerce.string().optional(),
   "status": zod.coerce.string().optional(),
   "category": zod.coerce.string().optional(),
+  "catalogue": zod.coerce.string().default(listAdminRecipesQueryCatalogueDefault),
   "page": zod.coerce.number().int().min(1).default(listAdminRecipesQueryPageDefault)
 })
 
@@ -818,9 +2694,14 @@ export const ListAdminRecipesResponse = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string()
 }).and(zod.object({
-  "status": zod.string()
+  "status": zod.string(),
+  "updatedAt": zod.coerce.date(),
+  "contentType": zod.string(),
+  "imageUrl": zod.url().optional(),
+  "catalogue": zod.string()
 }))),
   "page": zod.number(),
   "pageSize": zod.number(),
@@ -842,12 +2723,17 @@ export const createAdminRecipeBodyProblemMin = 10;
 
 export const createAdminRecipeBodyPromptMin = 20;
 
+export const createAdminRecipeBodyCatalogueDefault = `TASKBAKE`;
 export const createAdminRecipeBodyGuidePromptTypeDefault = `text`;
 export const createAdminRecipeBodyGuideImagesJsonItemUrlMax = 2048;
 
 export const createAdminRecipeBodyGuideImagesJsonItemAltMax = 500;
 
 export const createAdminRecipeBodyGuideImagesJsonItemCaptionMax = 500;
+
+export const createAdminRecipeBodyGuideImagesJsonItemFileIdMax = 200;
+
+export const createAdminRecipeBodyGuideImagesJsonItemFilePathMax = 500;
 
 export const createAdminRecipeBodyGuideImagesJsonMax = 20;
 
@@ -906,6 +2792,10 @@ export const createAdminRecipeBodyGuideCustomContentImagesItemAltMax = 500;
 
 export const createAdminRecipeBodyGuideCustomContentImagesItemCaptionMax = 500;
 
+export const createAdminRecipeBodyGuideCustomContentImagesItemFileIdMax = 200;
+
+export const createAdminRecipeBodyGuideCustomContentImagesItemFilePathMax = 500;
+
 export const createAdminRecipeBodyGuideCustomContentImagesMax = 20;
 
 export const createAdminRecipeBodyLayoutConfigOneBlocksItemIdMax = 100;
@@ -953,6 +2843,7 @@ export const CreateAdminRecipeBody = zod.object({
   "verificationNotes": zod.string(),
   "tags": zod.array(zod.string()),
   "status": zod.string(),
+  "catalogue": zod.string().default(createAdminRecipeBodyCatalogueDefault),
   "featured": zod.boolean(),
   "trending": zod.boolean(),
   "recipeOfDay": zod.boolean(),
@@ -966,7 +2857,9 @@ export const CreateAdminRecipeBody = zod.object({
   "imagesJson": zod.array(zod.object({
   "url": zod.url().max(createAdminRecipeBodyGuideImagesJsonItemUrlMax),
   "alt": zod.string().min(1).max(createAdminRecipeBodyGuideImagesJsonItemAltMax),
-  "caption": zod.string().max(createAdminRecipeBodyGuideImagesJsonItemCaptionMax).optional()
+  "caption": zod.string().max(createAdminRecipeBodyGuideImagesJsonItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(createAdminRecipeBodyGuideImagesJsonItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(createAdminRecipeBodyGuideImagesJsonItemFilePathMax).optional()
 })).max(createAdminRecipeBodyGuideImagesJsonMax).optional(),
   "promptStudio": zod.object({
   "style": zod.string().max(createAdminRecipeBodyGuidePromptStudioStyleMax).optional(),
@@ -1040,7 +2933,9 @@ export const CreateAdminRecipeBody = zod.object({
   "images": zod.array(zod.object({
   "url": zod.url().max(createAdminRecipeBodyGuideCustomContentImagesItemUrlMax),
   "alt": zod.string().min(1).max(createAdminRecipeBodyGuideCustomContentImagesItemAltMax),
-  "caption": zod.string().max(createAdminRecipeBodyGuideCustomContentImagesItemCaptionMax).optional()
+  "caption": zod.string().max(createAdminRecipeBodyGuideCustomContentImagesItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(createAdminRecipeBodyGuideCustomContentImagesItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(createAdminRecipeBodyGuideCustomContentImagesItemFilePathMax).optional()
 })).max(createAdminRecipeBodyGuideCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
@@ -1099,6 +2994,10 @@ export const createAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax = 500;
 
 export const createAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax = 500;
 
+export const createAdminRecipeResponseTwoGuideOneImagesJsonItemFileIdMax = 200;
+
+export const createAdminRecipeResponseTwoGuideOneImagesJsonItemFilePathMax = 500;
+
 export const createAdminRecipeResponseTwoGuideOneImagesJsonMax = 20;
 
 export const createAdminRecipeResponseTwoGuideOnePromptStudioStyleMax = 200;
@@ -1156,6 +3055,10 @@ export const createAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax =
 
 export const createAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax = 500;
 
+export const createAdminRecipeResponseTwoGuideOneCustomContentImagesItemFileIdMax = 200;
+
+export const createAdminRecipeResponseTwoGuideOneCustomContentImagesItemFilePathMax = 500;
+
 export const createAdminRecipeResponseTwoGuideOneCustomContentImagesMax = 20;
 
 export const createAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax = 100;
@@ -1200,7 +3103,8 @@ export const CreateAdminRecipeResponse = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string()
 }).and(zod.object({
   "problem": zod.string(),
   "subcategory": zod.string(),
@@ -1213,6 +3117,7 @@ export const CreateAdminRecipeResponse = zod.object({
   "refinementPrompts": zod.array(zod.string()),
   "verificationNotes": zod.string(),
   "status": zod.string(),
+  "catalogue": zod.string(),
   "version": zod.string(),
   "testedAt": zod.coerce.date().nullish(),
   "testedWith": zod.array(zod.string()),
@@ -1225,7 +3130,9 @@ export const CreateAdminRecipeResponse = zod.object({
   "imagesJson": zod.array(zod.object({
   "url": zod.url().max(createAdminRecipeResponseTwoGuideOneImagesJsonItemUrlMax),
   "alt": zod.string().min(1).max(createAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax),
-  "caption": zod.string().max(createAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax).optional()
+  "caption": zod.string().max(createAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(createAdminRecipeResponseTwoGuideOneImagesJsonItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(createAdminRecipeResponseTwoGuideOneImagesJsonItemFilePathMax).optional()
 })).max(createAdminRecipeResponseTwoGuideOneImagesJsonMax).optional(),
   "promptStudio": zod.object({
   "style": zod.string().max(createAdminRecipeResponseTwoGuideOnePromptStudioStyleMax).optional(),
@@ -1299,7 +3206,9 @@ export const CreateAdminRecipeResponse = zod.object({
   "images": zod.array(zod.object({
   "url": zod.url().max(createAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax),
   "alt": zod.string().min(1).max(createAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
-  "caption": zod.string().max(createAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional()
+  "caption": zod.string().max(createAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(createAdminRecipeResponseTwoGuideOneCustomContentImagesItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(createAdminRecipeResponseTwoGuideOneCustomContentImagesItemFilePathMax).optional()
 })).max(createAdminRecipeResponseTwoGuideOneCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
@@ -1356,13 +3265,14 @@ export const CreateAdminRecipeResponse = zod.object({
  * Applies a publication status or category change to up to 500 selected recipes in one transaction.
  * @summary Publish or recategorize selected recipes
  */
-
+export const bulkUpdateAdminRecipesBodyCatalogueDefault = `TASKBAKE`;
 export const bulkUpdateAdminRecipesBodyIdsMax = 500;
 
 
 
 
 export const BulkUpdateAdminRecipesBody = zod.object({
+  "catalogue": zod.string().default(bulkUpdateAdminRecipesBodyCatalogueDefault),
   "ids": zod.array(zod.int().min(1)).min(1).max(bulkUpdateAdminRecipesBodyIdsMax),
   "status": zod.enum(['PUBLISHED']).optional(),
   "categoryId": zod.int().min(1).optional()
@@ -1374,9 +3284,34 @@ export const BulkUpdateAdminRecipesResponse = zod.object({
 
 
 /**
+ * Deletes up to 500 selected recipes and their related activity records in one transaction.
+ * @summary Delete selected admin recipes
+ */
+export const bulkDeleteAdminRecipesBodyCatalogueDefault = `TASKBAKE`;
+export const bulkDeleteAdminRecipesBodyIdsMax = 500;
+
+
+
+export const BulkDeleteAdminRecipesBody = zod.object({
+  "catalogue": zod.string().default(bulkDeleteAdminRecipesBodyCatalogueDefault),
+  "ids": zod.array(zod.int().min(1)).min(1).max(bulkDeleteAdminRecipesBodyIdsMax)
+})
+
+export const BulkDeleteAdminRecipesResponse = zod.object({
+  "deletedCount": zod.int()
+})
+
+
+/**
  * Previews or imports up to 500 recipe rows. Set preview to true to validate without writing; any invalid row prevents the full batch from committing. CSV schema version 2 supports JSON-encoded dynamic inputs, workflow steps, output structures, and custom layout configuration. Existing slugs are create-only unless csv_action explicitly requests an update.
  * @summary Import recipes from a CSV spreadsheet
  */
+export const importAdminRecipesCsvQueryCatalogueDefault = `TASKBAKE`;
+
+export const ImportAdminRecipesCsvQueryParams = zod.object({
+  "catalogue": zod.coerce.string().default(importAdminRecipesCsvQueryCatalogueDefault)
+})
+
 export const importAdminRecipesCsvBodyCsvMax = 5242880;
 
 
@@ -1404,6 +3339,12 @@ export const ImportAdminRecipesCsvResponse = zod.object({
 /**
  * @summary Export recipes using CSV schema version 2
  */
+export const exportAdminRecipesCsvQueryCatalogueDefault = `TASKBAKE`;
+
+export const ExportAdminRecipesCsvQueryParams = zod.object({
+  "catalogue": zod.coerce.string().default(exportAdminRecipesCsvQueryCatalogueDefault)
+})
+
 export const ExportAdminRecipesCsvResponse = zod.unknown()
 
 
@@ -1538,6 +3479,287 @@ export const UpdateAdminAudienceResponse = zod.object({
 
 
 /**
+ * @summary Get an admin recipe, including unpublished content
+ */
+export const GetAdminRecipeParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const getAdminRecipeResponseTwoGuideOnePromptTypeDefault = `text`;
+export const getAdminRecipeResponseTwoGuideOneImagesJsonItemUrlMax = 2048;
+
+export const getAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax = 500;
+
+export const getAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax = 500;
+
+export const getAdminRecipeResponseTwoGuideOneImagesJsonItemFileIdMax = 200;
+
+export const getAdminRecipeResponseTwoGuideOneImagesJsonItemFilePathMax = 500;
+
+export const getAdminRecipeResponseTwoGuideOneImagesJsonMax = 20;
+
+export const getAdminRecipeResponseTwoGuideOnePromptStudioStyleMax = 200;
+
+export const getAdminRecipeResponseTwoGuideOnePromptStudioModelMax = 200;
+
+export const getAdminRecipeResponseTwoGuideOnePromptStudioAspectRatioMax = 50;
+
+export const getAdminRecipeResponseTwoGuideOnePromptStudioGameGenreMax = 100;
+
+export const getAdminRecipeResponseTwoGuideOnePromptStudioGamePlatformMax = 100;
+
+export const getAdminRecipeResponseTwoGuideOnePromptStudioGameEngineMax = 100;
+
+export const getAdminRecipeResponseTwoGuideOnePromptStudioWebsiteFrameworkMax = 100;
+
+export const getAdminRecipeResponseTwoGuideOnePromptStudioWebsiteStyleMax = 100;
+
+export const getAdminRecipeResponseTwoGuideOnePromptStudioPreviewUrlMax = 2048;
+
+export const getAdminRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax = 1000;
+
+export const getAdminRecipeResponseTwoGuideOnePromptVariablesItemDefaultValueMax = 10000;
+
+export const getAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsItemMax = 500;
+
+export const getAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsMax = 100;
+
+export const getAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMin = 0;
+export const getAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMax = 10000;
+
+export const getAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMaxLengthMax = 10000;
+
+export const getAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationPatternMax = 500;
+
+export const getAdminRecipeResponseTwoGuideOneOutputConfigDescriptionMax = 2000;
+
+export const getAdminRecipeResponseTwoGuideOneOutputConfigFieldsItemMax = 200;
+
+export const getAdminRecipeResponseTwoGuideOneOutputConfigFieldsMax = 50;
+
+export const getAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingItemMax = 2000;
+
+export const getAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingMax = 100;
+
+export const getAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistItemMax = 2000;
+
+export const getAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistMax = 100;
+
+export const getAdminRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax = 20000;
+
+export const getAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax = 2048;
+
+export const getAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax = 500;
+
+export const getAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax = 500;
+
+export const getAdminRecipeResponseTwoGuideOneCustomContentImagesItemFileIdMax = 200;
+
+export const getAdminRecipeResponseTwoGuideOneCustomContentImagesItemFilePathMax = 500;
+
+export const getAdminRecipeResponseTwoGuideOneCustomContentImagesMax = 20;
+
+export const getAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax = 100;
+
+export const getAdminRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax = 200;
+
+export const getAdminRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax = 500;
+
+export const getAdminRecipeResponseTwoLayoutConfigOneBlocksItemTitleMax = 300;
+
+export const getAdminRecipeResponseTwoLayoutConfigOneBlocksItemDescriptionMax = 4000;
+
+export const getAdminRecipeResponseTwoLayoutConfigOneBlocksItemContentMax = 20000;
+
+export const getAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax = 2048;
+
+export const getAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax = 500;
+
+export const getAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax = 500;
+
+export const getAdminRecipeResponseTwoLayoutConfigOneBlocksItemFieldRefMax = 100;
+
+export const getAdminRecipeResponseTwoLayoutConfigOneBlocksMax = 50;
+
+
+
+export const GetAdminRecipeResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "slug": zod.string(),
+  "shortDescription": zod.string(),
+  "category": zod.string(),
+  "categorySlug": zod.string(),
+  "audience": zod.string(),
+  "audienceSlug": zod.string(),
+  "difficulty": zod.string(),
+  "estimatedTime": zod.string(),
+  "language": zod.string(),
+  "aiTools": zod.array(zod.string()),
+  "tags": zod.array(zod.string()),
+  "featured": zod.boolean(),
+  "trending": zod.boolean(),
+  "viewCount": zod.number(),
+  "copyCount": zod.number(),
+  "saveCount": zod.number(),
+  "catalogue": zod.string()
+}).and(zod.object({
+  "problem": zod.string(),
+  "subcategory": zod.string(),
+  "aiTools": zod.array(zod.string()),
+  "requiredInputs": zod.array(zod.string()),
+  "steps": zod.array(zod.string()),
+  "prompt": zod.string(),
+  "exampleInput": zod.string(),
+  "exampleOutput": zod.string(),
+  "refinementPrompts": zod.array(zod.string()),
+  "verificationNotes": zod.string(),
+  "status": zod.string(),
+  "catalogue": zod.string(),
+  "version": zod.string(),
+  "testedAt": zod.coerce.date().nullish(),
+  "testedWith": zod.array(zod.string()),
+  "seoTitle": zod.string(),
+  "seoDescription": zod.string(),
+  "updatedAt": zod.coerce.date().optional(),
+  "publishedAt": zod.coerce.date().nullish(),
+  "guide": zod.union([zod.object({
+  "promptType": zod.enum(['text', 'image', 'game', 'website']).default(getAdminRecipeResponseTwoGuideOnePromptTypeDefault),
+  "imagesJson": zod.array(zod.object({
+  "url": zod.url().max(getAdminRecipeResponseTwoGuideOneImagesJsonItemUrlMax),
+  "alt": zod.string().min(1).max(getAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax),
+  "caption": zod.string().max(getAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(getAdminRecipeResponseTwoGuideOneImagesJsonItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(getAdminRecipeResponseTwoGuideOneImagesJsonItemFilePathMax).optional()
+})).max(getAdminRecipeResponseTwoGuideOneImagesJsonMax).optional(),
+  "promptStudio": zod.object({
+  "style": zod.string().max(getAdminRecipeResponseTwoGuideOnePromptStudioStyleMax).optional(),
+  "model": zod.string().max(getAdminRecipeResponseTwoGuideOnePromptStudioModelMax).optional(),
+  "aspectRatio": zod.string().max(getAdminRecipeResponseTwoGuideOnePromptStudioAspectRatioMax).optional(),
+  "gameGenre": zod.string().max(getAdminRecipeResponseTwoGuideOnePromptStudioGameGenreMax).optional(),
+  "gamePlatform": zod.string().max(getAdminRecipeResponseTwoGuideOnePromptStudioGamePlatformMax).optional(),
+  "gameEngine": zod.string().max(getAdminRecipeResponseTwoGuideOnePromptStudioGameEngineMax).optional(),
+  "websiteFramework": zod.string().max(getAdminRecipeResponseTwoGuideOnePromptStudioWebsiteFrameworkMax).optional(),
+  "websiteStyle": zod.string().max(getAdminRecipeResponseTwoGuideOnePromptStudioWebsiteStyleMax).optional(),
+  "previewUrl": zod.url().max(getAdminRecipeResponseTwoGuideOnePromptStudioPreviewUrlMax).optional()
+}).optional(),
+  "snapshot": zod.object({
+  "bestFor": zod.string().optional(),
+  "worksBestWhen": zod.string().optional(),
+  "timeToResult": zod.string().optional(),
+  "output": zod.string().optional(),
+  "bestWith": zod.array(zod.string()).optional(),
+  "skillLevel": zod.string().optional()
+}).optional(),
+  "useCases": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string()
+})).optional(),
+  "whenNotToUse": zod.array(zod.string()).optional(),
+  "inputs": zod.object({
+  "required": zod.array(zod.string()).optional(),
+  "optional": zod.array(zod.string()).optional()
+}).optional(),
+  "situations": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "promptModifier": zod.string()
+})).optional(),
+  "tools": zod.array(zod.object({
+  "name": zod.string(),
+  "support": zod.enum(['compatible', 'good', 'excellent']),
+  "notes": zod.string().optional()
+})).optional(),
+  "promptVariables": zod.array(zod.object({
+  "name": zod.string(),
+  "label": zod.string(),
+  "placeholder": zod.string().optional(),
+  "required": zod.boolean().optional(),
+  "type": zod.enum(['text', 'textarea', 'number', 'url', 'date', 'select', 'dropdown', 'checkbox', 'file']).optional(),
+  "helpText": zod.string().max(getAdminRecipeResponseTwoGuideOnePromptVariablesItemHelpTextMax).optional(),
+  "defaultValue": zod.string().max(getAdminRecipeResponseTwoGuideOnePromptVariablesItemDefaultValueMax).optional(),
+  "options": zod.array(zod.string().max(getAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsItemMax)).max(getAdminRecipeResponseTwoGuideOnePromptVariablesItemOptionsMax).optional(),
+  "validation": zod.object({
+  "minLength": zod.int().min(getAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMin).max(getAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMinLengthMax).optional(),
+  "maxLength": zod.int().min(1).max(getAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationMaxLengthMax).optional(),
+  "minimum": zod.number().optional(),
+  "maximum": zod.number().optional(),
+  "pattern": zod.string().max(getAdminRecipeResponseTwoGuideOnePromptVariablesItemValidationPatternMax).optional()
+}).optional()
+})).optional(),
+  "outputConfig": zod.object({
+  "version": zod.literal(1),
+  "format": zod.enum(['text', 'list', 'table', 'json', 'steps']),
+  "description": zod.string().max(getAdminRecipeResponseTwoGuideOneOutputConfigDescriptionMax).optional(),
+  "fields": zod.array(zod.string().max(getAdminRecipeResponseTwoGuideOneOutputConfigFieldsItemMax)).max(getAdminRecipeResponseTwoGuideOneOutputConfigFieldsMax).optional()
+}).optional(),
+  "expectedOutput": zod.object({
+  "description": zod.string().optional(),
+  "characteristics": zod.array(zod.string()).optional()
+}).optional(),
+  "customContent": zod.object({
+  "troubleshooting": zod.array(zod.string().max(getAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingItemMax)).max(getAdminRecipeResponseTwoGuideOneCustomContentTroubleshootingMax).optional(),
+  "verificationChecklist": zod.array(zod.string().max(getAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistItemMax)).max(getAdminRecipeResponseTwoGuideOneCustomContentVerificationChecklistMax).optional(),
+  "workflowDiagram": zod.string().max(getAdminRecipeResponseTwoGuideOneCustomContentWorkflowDiagramMax).optional(),
+  "images": zod.array(zod.object({
+  "url": zod.url().max(getAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax),
+  "alt": zod.string().min(1).max(getAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
+  "caption": zod.string().max(getAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(getAdminRecipeResponseTwoGuideOneCustomContentImagesItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(getAdminRecipeResponseTwoGuideOneCustomContentImagesItemFilePathMax).optional()
+})).max(getAdminRecipeResponseTwoGuideOneCustomContentImagesMax).optional()
+}).optional(),
+  "examples": zod.array(zod.object({
+  "scenario": zod.string(),
+  "input": zod.string(),
+  "output": zod.string(),
+  "whyItWorks": zod.array(zod.string()).optional()
+})).optional(),
+  "bestFor": zod.object({
+  "people": zod.array(zod.string()).optional(),
+  "tasks": zod.array(zod.string()).optional(),
+  "channels": zod.array(zod.string()).optional()
+}).optional(),
+  "timeToResult": zod.string().optional(),
+  "effort": zod.string().optional(),
+  "typicalIterations": zod.string().optional(),
+  "commonMistakes": zod.array(zod.string()).optional(),
+  "betterApproach": zod.string().optional(),
+  "proTips": zod.array(zod.string()).optional(),
+  "safetyNotes": zod.array(zod.string()).optional(),
+  "quality": zod.object({
+  "status": zod.enum(['untested', 'in_testing', 'tested']).optional(),
+  "lastTested": zod.coerce.date().nullish(),
+  "version": zod.string().optional(),
+  "testedWith": zod.array(zod.string()).optional()
+}).optional()
+}),zod.null()]).optional(),
+  "layoutMode": zod.enum(['normal', 'custom']),
+  "layoutConfig": zod.union([zod.object({
+  "version": zod.literal(1),
+  "blocks": zod.array(zod.object({
+  "id": zod.string().min(1).max(getAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax),
+  "type": zod.enum(['hero', 'overview', 'richText', 'field', 'inputs', 'workflow', 'prompt', 'example', 'output', 'outcome', 'image', 'images', 'diagram', 'refinements', 'troubleshooting', 'callout', 'tools', 'useCases', 'mistakes', 'verification', 'related']),
+  "visible": zod.boolean(),
+  "heading": zod.string().max(getAdminRecipeResponseTwoLayoutConfigOneBlocksItemHeadingMax).optional(),
+  "subtitle": zod.string().max(getAdminRecipeResponseTwoLayoutConfigOneBlocksItemSubtitleMax).optional(),
+  "align": zod.enum(['left', 'center']).optional(),
+  "width": zod.enum(['standard', 'wide']).optional(),
+  "background": zod.enum(['plain', 'tint', 'dark']).optional(),
+  "title": zod.string().max(getAdminRecipeResponseTwoLayoutConfigOneBlocksItemTitleMax).optional(),
+  "description": zod.string().max(getAdminRecipeResponseTwoLayoutConfigOneBlocksItemDescriptionMax).optional(),
+  "content": zod.string().max(getAdminRecipeResponseTwoLayoutConfigOneBlocksItemContentMax).optional(),
+  "imageUrl": zod.string().max(getAdminRecipeResponseTwoLayoutConfigOneBlocksItemImageUrlMax).optional(),
+  "alt": zod.string().max(getAdminRecipeResponseTwoLayoutConfigOneBlocksItemAltMax).optional(),
+  "caption": zod.string().max(getAdminRecipeResponseTwoLayoutConfigOneBlocksItemCaptionMax).optional(),
+  "variant": zod.enum(['tip', 'warning', 'info']).optional(),
+  "fieldRef": zod.string().max(getAdminRecipeResponseTwoLayoutConfigOneBlocksItemFieldRefMax).optional()
+})).max(getAdminRecipeResponseTwoLayoutConfigOneBlocksMax)
+}),zod.null()])
+}))
+
+
+/**
  * @summary Update an admin recipe
  */
 export const UpdateAdminRecipeParams = zod.object({
@@ -1554,12 +3776,17 @@ export const updateAdminRecipeBodyOneProblemMin = 10;
 
 export const updateAdminRecipeBodyOnePromptMin = 20;
 
+export const updateAdminRecipeBodyOneCatalogueDefault = `TASKBAKE`;
 export const updateAdminRecipeBodyOneGuidePromptTypeDefault = `text`;
 export const updateAdminRecipeBodyOneGuideImagesJsonItemUrlMax = 2048;
 
 export const updateAdminRecipeBodyOneGuideImagesJsonItemAltMax = 500;
 
 export const updateAdminRecipeBodyOneGuideImagesJsonItemCaptionMax = 500;
+
+export const updateAdminRecipeBodyOneGuideImagesJsonItemFileIdMax = 200;
+
+export const updateAdminRecipeBodyOneGuideImagesJsonItemFilePathMax = 500;
 
 export const updateAdminRecipeBodyOneGuideImagesJsonMax = 20;
 
@@ -1618,6 +3845,10 @@ export const updateAdminRecipeBodyOneGuideCustomContentImagesItemAltMax = 500;
 
 export const updateAdminRecipeBodyOneGuideCustomContentImagesItemCaptionMax = 500;
 
+export const updateAdminRecipeBodyOneGuideCustomContentImagesItemFileIdMax = 200;
+
+export const updateAdminRecipeBodyOneGuideCustomContentImagesItemFilePathMax = 500;
+
 export const updateAdminRecipeBodyOneGuideCustomContentImagesMax = 20;
 
 export const updateAdminRecipeBodyOneLayoutConfigOneBlocksItemIdMax = 100;
@@ -1665,6 +3896,7 @@ export const UpdateAdminRecipeBody = zod.object({
   "verificationNotes": zod.string(),
   "tags": zod.array(zod.string()),
   "status": zod.string(),
+  "catalogue": zod.string().default(updateAdminRecipeBodyOneCatalogueDefault),
   "featured": zod.boolean(),
   "trending": zod.boolean(),
   "recipeOfDay": zod.boolean(),
@@ -1678,7 +3910,9 @@ export const UpdateAdminRecipeBody = zod.object({
   "imagesJson": zod.array(zod.object({
   "url": zod.url().max(updateAdminRecipeBodyOneGuideImagesJsonItemUrlMax),
   "alt": zod.string().min(1).max(updateAdminRecipeBodyOneGuideImagesJsonItemAltMax),
-  "caption": zod.string().max(updateAdminRecipeBodyOneGuideImagesJsonItemCaptionMax).optional()
+  "caption": zod.string().max(updateAdminRecipeBodyOneGuideImagesJsonItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(updateAdminRecipeBodyOneGuideImagesJsonItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(updateAdminRecipeBodyOneGuideImagesJsonItemFilePathMax).optional()
 })).max(updateAdminRecipeBodyOneGuideImagesJsonMax).optional(),
   "promptStudio": zod.object({
   "style": zod.string().max(updateAdminRecipeBodyOneGuidePromptStudioStyleMax).optional(),
@@ -1752,7 +3986,9 @@ export const UpdateAdminRecipeBody = zod.object({
   "images": zod.array(zod.object({
   "url": zod.url().max(updateAdminRecipeBodyOneGuideCustomContentImagesItemUrlMax),
   "alt": zod.string().min(1).max(updateAdminRecipeBodyOneGuideCustomContentImagesItemAltMax),
-  "caption": zod.string().max(updateAdminRecipeBodyOneGuideCustomContentImagesItemCaptionMax).optional()
+  "caption": zod.string().max(updateAdminRecipeBodyOneGuideCustomContentImagesItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(updateAdminRecipeBodyOneGuideCustomContentImagesItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(updateAdminRecipeBodyOneGuideCustomContentImagesItemFilePathMax).optional()
 })).max(updateAdminRecipeBodyOneGuideCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
@@ -1811,6 +4047,10 @@ export const updateAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax = 500;
 
 export const updateAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax = 500;
 
+export const updateAdminRecipeResponseTwoGuideOneImagesJsonItemFileIdMax = 200;
+
+export const updateAdminRecipeResponseTwoGuideOneImagesJsonItemFilePathMax = 500;
+
 export const updateAdminRecipeResponseTwoGuideOneImagesJsonMax = 20;
 
 export const updateAdminRecipeResponseTwoGuideOnePromptStudioStyleMax = 200;
@@ -1868,6 +4108,10 @@ export const updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax =
 
 export const updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax = 500;
 
+export const updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemFileIdMax = 200;
+
+export const updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemFilePathMax = 500;
+
 export const updateAdminRecipeResponseTwoGuideOneCustomContentImagesMax = 20;
 
 export const updateAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax = 100;
@@ -1912,7 +4156,8 @@ export const UpdateAdminRecipeResponse = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string()
 }).and(zod.object({
   "problem": zod.string(),
   "subcategory": zod.string(),
@@ -1925,6 +4170,7 @@ export const UpdateAdminRecipeResponse = zod.object({
   "refinementPrompts": zod.array(zod.string()),
   "verificationNotes": zod.string(),
   "status": zod.string(),
+  "catalogue": zod.string(),
   "version": zod.string(),
   "testedAt": zod.coerce.date().nullish(),
   "testedWith": zod.array(zod.string()),
@@ -1937,7 +4183,9 @@ export const UpdateAdminRecipeResponse = zod.object({
   "imagesJson": zod.array(zod.object({
   "url": zod.url().max(updateAdminRecipeResponseTwoGuideOneImagesJsonItemUrlMax),
   "alt": zod.string().min(1).max(updateAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax),
-  "caption": zod.string().max(updateAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax).optional()
+  "caption": zod.string().max(updateAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(updateAdminRecipeResponseTwoGuideOneImagesJsonItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(updateAdminRecipeResponseTwoGuideOneImagesJsonItemFilePathMax).optional()
 })).max(updateAdminRecipeResponseTwoGuideOneImagesJsonMax).optional(),
   "promptStudio": zod.object({
   "style": zod.string().max(updateAdminRecipeResponseTwoGuideOnePromptStudioStyleMax).optional(),
@@ -2011,7 +4259,9 @@ export const UpdateAdminRecipeResponse = zod.object({
   "images": zod.array(zod.object({
   "url": zod.url().max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax),
   "alt": zod.string().min(1).max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
-  "caption": zod.string().max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional()
+  "caption": zod.string().max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesItemFilePathMax).optional()
 })).max(updateAdminRecipeResponseTwoGuideOneCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
@@ -2088,6 +4338,10 @@ export const duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax = 500;
 
 export const duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax = 500;
 
+export const duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemFileIdMax = 200;
+
+export const duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemFilePathMax = 500;
+
 export const duplicateAdminRecipeResponseTwoGuideOneImagesJsonMax = 20;
 
 export const duplicateAdminRecipeResponseTwoGuideOnePromptStudioStyleMax = 200;
@@ -2145,6 +4399,10 @@ export const duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMa
 
 export const duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax = 500;
 
+export const duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemFileIdMax = 200;
+
+export const duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemFilePathMax = 500;
+
 export const duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesMax = 20;
 
 export const duplicateAdminRecipeResponseTwoLayoutConfigOneBlocksItemIdMax = 100;
@@ -2189,7 +4447,8 @@ export const DuplicateAdminRecipeResponse = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string()
 }).and(zod.object({
   "problem": zod.string(),
   "subcategory": zod.string(),
@@ -2202,6 +4461,7 @@ export const DuplicateAdminRecipeResponse = zod.object({
   "refinementPrompts": zod.array(zod.string()),
   "verificationNotes": zod.string(),
   "status": zod.string(),
+  "catalogue": zod.string(),
   "version": zod.string(),
   "testedAt": zod.coerce.date().nullish(),
   "testedWith": zod.array(zod.string()),
@@ -2214,7 +4474,9 @@ export const DuplicateAdminRecipeResponse = zod.object({
   "imagesJson": zod.array(zod.object({
   "url": zod.url().max(duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemUrlMax),
   "alt": zod.string().min(1).max(duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemAltMax),
-  "caption": zod.string().max(duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax).optional()
+  "caption": zod.string().max(duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(duplicateAdminRecipeResponseTwoGuideOneImagesJsonItemFilePathMax).optional()
 })).max(duplicateAdminRecipeResponseTwoGuideOneImagesJsonMax).optional(),
   "promptStudio": zod.object({
   "style": zod.string().max(duplicateAdminRecipeResponseTwoGuideOnePromptStudioStyleMax).optional(),
@@ -2288,7 +4550,9 @@ export const DuplicateAdminRecipeResponse = zod.object({
   "images": zod.array(zod.object({
   "url": zod.url().max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemUrlMax),
   "alt": zod.string().min(1).max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemAltMax),
-  "caption": zod.string().max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional()
+  "caption": zod.string().max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesItemFilePathMax).optional()
 })).max(duplicateAdminRecipeResponseTwoGuideOneCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
@@ -2364,12 +4628,17 @@ export const generateDraftRecipeResponseProblemMin = 10;
 
 export const generateDraftRecipeResponsePromptMin = 20;
 
+export const generateDraftRecipeResponseCatalogueDefault = `TASKBAKE`;
 export const generateDraftRecipeResponseGuidePromptTypeDefault = `text`;
 export const generateDraftRecipeResponseGuideImagesJsonItemUrlMax = 2048;
 
 export const generateDraftRecipeResponseGuideImagesJsonItemAltMax = 500;
 
 export const generateDraftRecipeResponseGuideImagesJsonItemCaptionMax = 500;
+
+export const generateDraftRecipeResponseGuideImagesJsonItemFileIdMax = 200;
+
+export const generateDraftRecipeResponseGuideImagesJsonItemFilePathMax = 500;
 
 export const generateDraftRecipeResponseGuideImagesJsonMax = 20;
 
@@ -2428,6 +4697,10 @@ export const generateDraftRecipeResponseGuideCustomContentImagesItemAltMax = 500
 
 export const generateDraftRecipeResponseGuideCustomContentImagesItemCaptionMax = 500;
 
+export const generateDraftRecipeResponseGuideCustomContentImagesItemFileIdMax = 200;
+
+export const generateDraftRecipeResponseGuideCustomContentImagesItemFilePathMax = 500;
+
 export const generateDraftRecipeResponseGuideCustomContentImagesMax = 20;
 
 export const generateDraftRecipeResponseLayoutConfigOneBlocksItemIdMax = 100;
@@ -2475,6 +4748,7 @@ export const GenerateDraftRecipeResponse = zod.object({
   "verificationNotes": zod.string(),
   "tags": zod.array(zod.string()),
   "status": zod.string(),
+  "catalogue": zod.string().default(generateDraftRecipeResponseCatalogueDefault),
   "featured": zod.boolean(),
   "trending": zod.boolean(),
   "recipeOfDay": zod.boolean(),
@@ -2488,7 +4762,9 @@ export const GenerateDraftRecipeResponse = zod.object({
   "imagesJson": zod.array(zod.object({
   "url": zod.url().max(generateDraftRecipeResponseGuideImagesJsonItemUrlMax),
   "alt": zod.string().min(1).max(generateDraftRecipeResponseGuideImagesJsonItemAltMax),
-  "caption": zod.string().max(generateDraftRecipeResponseGuideImagesJsonItemCaptionMax).optional()
+  "caption": zod.string().max(generateDraftRecipeResponseGuideImagesJsonItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(generateDraftRecipeResponseGuideImagesJsonItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(generateDraftRecipeResponseGuideImagesJsonItemFilePathMax).optional()
 })).max(generateDraftRecipeResponseGuideImagesJsonMax).optional(),
   "promptStudio": zod.object({
   "style": zod.string().max(generateDraftRecipeResponseGuidePromptStudioStyleMax).optional(),
@@ -2562,7 +4838,9 @@ export const GenerateDraftRecipeResponse = zod.object({
   "images": zod.array(zod.object({
   "url": zod.url().max(generateDraftRecipeResponseGuideCustomContentImagesItemUrlMax),
   "alt": zod.string().min(1).max(generateDraftRecipeResponseGuideCustomContentImagesItemAltMax),
-  "caption": zod.string().max(generateDraftRecipeResponseGuideCustomContentImagesItemCaptionMax).optional()
+  "caption": zod.string().max(generateDraftRecipeResponseGuideCustomContentImagesItemCaptionMax).optional(),
+  "fileId": zod.string().min(1).max(generateDraftRecipeResponseGuideCustomContentImagesItemFileIdMax).optional(),
+  "filePath": zod.string().min(1).max(generateDraftRecipeResponseGuideCustomContentImagesItemFilePathMax).optional()
 })).max(generateDraftRecipeResponseGuideCustomContentImagesMax).optional()
 }).optional(),
   "examples": zod.array(zod.object({
@@ -2685,7 +4963,8 @@ export const GetAdminAnalyticsResponse = zod.object({
   "trending": zod.boolean(),
   "viewCount": zod.number(),
   "copyCount": zod.number(),
-  "saveCount": zod.number()
+  "saveCount": zod.number(),
+  "catalogue": zod.string().optional()
 }),
   "reason": zod.string()
 }))

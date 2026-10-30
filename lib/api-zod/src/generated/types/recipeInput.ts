@@ -35,6 +35,7 @@ export interface RecipeInput {
   verificationNotes: string;
   tags: string[];
   status: string;
+  catalogue?: string;
   featured: boolean;
   trending: boolean;
   recipeOfDay: boolean;

@@ -1,25 +1,25 @@
 .prompt-showcase {
-  --showcase-accent: #a94b37;
+  --showcase-accent: var(--brand-dark);
   display: grid;
   gap: 1.25rem;
   width: min(100% - 2rem, 1180px);
   margin: 0 auto 2rem;
   padding: clamp(1rem, 3vw, 2rem);
   overflow: hidden;
-  border: 1px solid #e3d9cb;
+  border: 1px solid var(--brand);
   border-radius: 1.25rem;
   background:
     radial-gradient(ellipse at top right, color-mix(in srgb, var(--showcase-accent) 12%, transparent), transparent 45%),
-    #fffdf8;
-  box-shadow: 0 18px 50px rgb(39 34 53 / 7%);
+    var(--brand-tint);
+  box-shadow: 0 18px 50px rgb(var(--cool-rgb) / 0.07);
 }
 
 .prompt-showcase--game {
-  --showcase-accent: #586f98;
+  --showcase-accent: var(--brand-dark);
 }
 
 .prompt-showcase--website {
-  --showcase-accent: #4f7d70;
+  --showcase-accent: var(--brand-dark);
 }
 
 .prompt-showcase__heading,
@@ -49,14 +49,14 @@
 
 .prompt-showcase__heading h2 {
   margin: 0.4rem 0;
-  color: #272235;
+  color: var(--muted);
   font-size: clamp(1.35rem, 3vw, 2rem);
 }
 
 .prompt-showcase__heading p {
   max-width: 68ch;
   margin: 0;
-  color: #625f59;
+  color: var(--brand-dark);
 }
 
 .prompt-showcase__type {
@@ -64,7 +64,7 @@
   padding: 0.55rem 0.75rem;
   border: 1px solid color-mix(in srgb, var(--showcase-accent) 30%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--showcase-accent) 8%, white);
+  background: color-mix(in srgb, var(--showcase-accent) 8%, var(--brand-tint));
   letter-spacing: 0;
   text-transform: none;
 }
@@ -82,7 +82,7 @@
   margin: 0;
   overflow: hidden;
   border-radius: 0.8rem;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--showcase-accent) 25%, white), #f1ede5);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--showcase-accent) 25%, var(--brand-tint)), var(--brand-tint));
 }
 
 .prompt-showcase__image--feature {
@@ -105,8 +105,8 @@
   bottom: 0;
   left: 0;
   padding: 1.75rem 0.85rem 0.75rem;
-  color: white;
-  background: linear-gradient(transparent, rgb(0 0 0 / 68%));
+  color: var(--bg);
+  background: linear-gradient(transparent, rgb(var(--ink-rgb) / 0.68));
   font-size: 0.85rem;
 }
 
@@ -117,9 +117,9 @@
   place-content: center;
   justify-items: center;
   gap: 0.5rem;
-  border: 1px dashed #cfc5b7;
+  border: 1px dashed var(--brand);
   border-radius: 0.8rem;
-  color: #6c655c;
+  color: var(--brand-dark);
 }
 
 .prompt-showcase__footer {
@@ -137,17 +137,17 @@
   min-width: 105px;
   padding: 0.65rem 0.8rem;
   border-radius: 0.65rem;
-  background: #f3eee5;
+  background: var(--brand-tint);
 }
 
 .prompt-showcase__metadata dt {
-  color: #766f7d;
+  color: var(--muted);
   font-size: 0.72rem;
 }
 
 .prompt-showcase__metadata dd {
   margin: 0.15rem 0 0;
-  color: #272235;
+  color: var(--muted);
   font-size: 0.9rem;
   font-weight: 700;
 }

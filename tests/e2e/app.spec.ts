@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { mockApi, recipeCard } from './fixtures';
+import { mockApi, recipe, recipeCard } from './fixtures';
 
 test('mobile bottom navigation opens Why TaskBakeAI instead of a cart', async ({ page }) => {
   await mockApi(page);
@@ -36,7 +36,7 @@ test('mobile bottom navigation opens Why TaskBakeAI instead of a cart', async ({
 test('TaskBakeAI shows the supplied mark on mobile and wordmark on desktop', async ({ page }) => {
   const wordmarkRequests: string[] = [];
   page.on('request', (request) => {
-    if (/taskbakeai-wordmark\.(?:webp|png)$/.test(new URL(request.url()).pathname)) {
+    if (/taskbakeai-wordmark(?:-light)?\.(?:webp|png)$/.test(new URL(request.url()).pathname)) {
       wordmarkRequests.push(request.url());
     }
   });
@@ -69,7 +69,9 @@ test('homepage renders its primary heading before home API data arrives', async 
 
   await expect(page.getByRole('heading', { name: 'Practical AI workflows you can actually use.' })).toBeVisible();
   await expect(page.getByTestId('status-loading')).toHaveCount(0);
-  await expect(page.getByTestId('status-loading-grid')).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'Popular this week.' }).getByTestId('status-loading-grid'),
+  ).toBeVisible();
 });
 
 test('homepage previews a real recipe and puts popular workflows directly below the hero', async ({ page }) => {
@@ -82,6 +84,13 @@ test('homepage previews a real recipe and puts popular workflows directly below 
   await expect(preview.getByRole('heading', { name: recipeCard.title })).toBeVisible();
   await expect(preview).toContainText('Published recipe');
   await expect(preview).toContainText('ChatGPT');
+  const motionToggle = page.locator('.hero-motion-toggle');
+  await motionToggle.click();
+  await expect(motionToggle).toHaveAttribute('aria-pressed', 'true');
+  const secondPreview = preview.getByRole('button', { name: /Show preview 2:/ });
+  await secondPreview.click();
+  await expect(preview.getByRole('heading', { name: 'Turn meeting notes into clear action items' })).toBeVisible();
+  await preview.getByRole('button', { name: /Show preview 1:/ }).click();
   await expect(preview.getByRole('link', { name: 'Open this recipe' })).toHaveAttribute(
     'href',
     `/recipes/${recipeCard.slug}`,
@@ -134,6 +143,16 @@ test('root ARD manifest is valid JSON with the required discovery fields', async
 
 });
 
+test('mobile homepage keeps the hero visible without horizontal overflow', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  await expect(page.locator('.home-hero')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Practical AI workflows you can actually use.' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
 test('mobile homepage keeps the trending card height stable while data loads', async ({ page }) => {
   await mockApi(page, { homeResponseDelayMs: 1500 });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -152,7 +171,7 @@ test('mobile homepage keeps the trending card height stable while data loads', a
 });
 
 test('mobile homepage reserves space for category and featured recipe loading', async ({ page }) => {
-  await mockApi(page, { homeResponseDelayMs: 1500 });
+  await mockApi(page, { homeResponseDelayMs: 3000 });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
     const layoutShifts: Array<{ value: number; sources: string[] }> = [];
@@ -174,6 +193,9 @@ test('mobile homepage reserves space for category and featured recipe loading', 
       }
     }).observe({ type: 'layout-shift', buffered: true });
   });
+  const homeResponse = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === '/api/home' && response.ok(),
+  );
   await page.goto('/');
 
   await expect(page.locator('.flipkart-category-scroll-container--loading')).toBeVisible();
@@ -185,6 +207,7 @@ test('mobile homepage reserves space for category and featured recipe loading', 
     bannerCard: document.querySelector('.flipkart-banner-loading-card')?.getBoundingClientRect().height ?? 0,
     bannerDots: document.querySelector('.flipkart-banner-loading-dots')?.getBoundingClientRect().height ?? 0,
   }));
+  await homeResponse;
   await expect(page.locator('.flipkart-category-scroll-container--loading')).toHaveCount(0);
   await expect(page.locator('.flipkart-banner-section--loading')).toHaveCount(0);
   const loadedHeights = await page.evaluate(() => ({
@@ -605,7 +628,7 @@ test('recipe input presentation keeps backend order and supports resetting value
   await expect(copyButton).toBeDisabled();
 });
 
-test('legacy custom-layout recipes infer editable prompt fields without inventing required status', async ({ page }) => {
+test('legacy custom-layout recipes infer optional prompt fields without inventing required status', async ({ page }) => {
   await mockApi(page, { legacyCustomLayoutRecipe: true });
   await page.goto('/recipes/brief-to-project-plan');
 
@@ -613,32 +636,49 @@ test('legacy custom-layout recipes infer editable prompt fields without inventin
   await expect(input).toBeVisible();
   await expect(input).not.toHaveAttribute('required', '');
   await expect(page.locator('.optional-mark')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Copy prompt' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Bake it' })).toBeEnabled();
   await input.fill('Senior product designer');
   await expect(page.locator('.layout-prompt pre')).toContainText('Build a job-search plan for Senior product designer.');
 });
 
-test('custom-layout recipe renders an actionable workflow, personalized prompt, and optional sections', async ({ page }) => {
+test('custom recipe renders its oven experience, ingredients, pipeline, and live prompt', async ({ page }) => {
   await mockApi(page, { customLayoutRecipe: true });
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/recipes/brief-to-project-plan');
   await expect(page.getByRole('heading', { name: 'Turn a brief into a project plan' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Execution Steps & Workflow Guide' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Expected outcome' })).toBeVisible();
-  const sectionHeadings = await page.locator('.layout-block-heading h2').allTextContents();
-  expect(sectionHeadings.slice(0, 2)).toEqual([
-    'Prompt Studio & Interactive Inputs',
-    'Execution Steps & Workflow Guide',
-  ]);
-  await expect(page.locator('.layout-prompt-toolbar')).toContainText('Prompt preview');
-  await expect(page.getByText('Example input', { exact: true })).toHaveCount(0);
-  await expect(page.getByText('Screenshots / images', { exact: true })).toHaveCount(0);
-  await expect(page.locator('.layout-diagram')).toBeVisible();
-  await page.getByLabel('Target role').fill('Senior product designer');
+  await expect(page.getByRole('heading', { name: 'Gather your ingredients.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your prompt is cooking.' })).toBeVisible();
+  await expect(page.locator('.custom-pipeline-stage')).toHaveCount(5);
+  await page.locator('.custom-pipeline-stage').first().getByRole('button').click();
+  await expect(page.locator('.custom-pipeline-detail').first()).toBeVisible();
+  const troubleshooting = page.locator('.custom-troubleshoot-list');
+  const troubleshootingToggle = troubleshooting.getByRole('button').first();
+  await expect(troubleshootingToggle).toHaveAttribute('aria-expanded', 'false');
+  await troubleshootingToggle.click();
+  await expect(troubleshootingToggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(troubleshooting).toContainText('Add a location to narrow the role list.');
+  const safetyChecks = page.getByRole('checkbox');
+  await expect(safetyChecks).toHaveCount(6);
+  for (let index = 0; index < 6; index += 1) {
+    await safetyChecks.nth(index).check();
+  }
+  await expect(page.locator('.custom-safety-state')).toContainText('6/6 checked');
+  await expect(page.locator('.custom-safety-state')).toContainText('Safe to apply');
+  const targetRole = page.getByLabel('Target role');
+  await expect(targetRole).toHaveAttribute('aria-invalid', 'false');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Copy prompt' })).toBeDisabled();
+  await page.getByRole('tab', { name: 'ChatGPT' }).click();
+  await targetRole.fill('Senior product designer');
   await expect(page.locator('.layout-prompt pre')).toContainText('Build a job-search plan for Senior product designer.');
-  const copyButton = page.getByRole('button', { name: 'Copy prompt' });
+  await expect(page.locator('.layout-prompt pre')).toContainText('ChatGPT guidance');
+  const copyButton = page.getByRole('button', { name: 'Bake it' });
   await copyButton.click();
+  await expect(page.getByRole('navigation', { name: 'Recipe progress' }).getByRole('link', { name: /Copy the prompt/ })).toHaveClass(/is-done/);
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('Build a job-search plan for Senior product designer.');
+  await expect(page.locator('.custom-copy-toast')).toContainText('prompt copied');
+  await page.getByText('See a finished bake').click();
+  await expect(page.getByText('Illustrative preview · not live data')).toBeVisible();
   await page.setViewportSize({ width: 375, height: 812 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
@@ -878,7 +918,7 @@ test('admin Prompt Studio uploads visual references and saves their CDN URLs', a
   await promptType.selectOption('image');
   await expect(page.getByText('Image model')).toBeVisible();
   await page.getByTestId('button-prompt-add-image').click();
-  await page.getByRole('button', { name: 'Choose image' }).click();
+  await page.locator('.prompt-studio__image').nth(0).getByRole('button', { name: 'Choose image', exact: true }).click();
   await page.locator('.prompt-studio__image').nth(0).locator('input[type="file"]').setInputFiles({
     name: 'reference.jpg',
     mimeType: 'image/jpeg',
@@ -976,13 +1016,13 @@ test('admin bulk edits selected recipes by category and publication status', asy
   await page.getByTestId('select-bulk-recipe-category').selectOption('2');
   await page.getByTestId('button-bulk-change-category').click();
   await expect(page.getByRole('status')).toContainText('2 recipes updated');
-  expect(api.bulkUpdateRequests[0]).toEqual({ ids: [1, 2], categoryId: 2 });
+  expect(api.bulkUpdateRequests[0]).toEqual({ ids: [1, 2], categoryId: 2, catalogue: 'TASKBAKE' });
 
   await page.getByTestId('checkbox-select-all-recipes').check();
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByTestId('button-bulk-publish').click();
   await expect(page.getByRole('status')).toContainText('2 recipes updated');
-  expect(api.bulkUpdateRequests[1]).toEqual({ ids: [1, 2], status: 'PUBLISHED' });
+  expect(api.bulkUpdateRequests[1]).toEqual({ ids: [1, 2], status: 'PUBLISHED', catalogue: 'TASKBAKE' });
 });
 
 test('admin filters recipes by category', async ({ page }) => {
@@ -1235,4 +1275,102 @@ test('unknown routes provide a working path back to the recipe library', async (
   ).toBeVisible();
   await page.getByTestId('link-404-library').click();
   await expect(page).toHaveURL(/\/recipes$/);
+});
+
+test('admin ImageKit media library uploads, edits, and blocks deletion when referenced', async ({ page }) => {
+  await mockApi(page, { adminAuthenticated: true });
+  const originalAsset = {
+    fileId: 'image_file_1',
+    filePath: '/recipes/scene.webp',
+    url: 'https://ik.imagekit.io/example/recipes/scene.webp',
+    fileName: 'scene.webp',
+    fileType: 'image',
+    size: 2048,
+    alt: 'Night scene',
+    tags: ['art'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  const assets = [originalAsset];
+  let savedPatch: unknown;
+  await page.route('**/api/admin/imagekit/**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (request.method() === 'GET' && url.pathname.endsWith('/config')) {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ configured: true, publicKey: 'public_example', urlEndpoint: 'https://ik.imagekit.io/example', maxFileSizeBytes: 20 * 1024 * 1024 }) });
+    } else if (request.method() === 'GET' && url.pathname.endsWith('/assets')) {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: assets, page: 1, pageSize: 24, total: assets.length }) });
+    } else if (request.method() === 'GET' && url.pathname.endsWith('/auth')) {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ token: 'upload-token', expire: 2000000000, signature: 'signature', publicKey: 'public_example', urlEndpoint: 'https://ik.imagekit.io/example' }) });
+    } else if (request.method() === 'POST' && url.pathname.endsWith('/assets')) {
+      const body = request.postDataJSON() as typeof originalAsset;
+      assets.unshift(body);
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(body) });
+    } else if (request.method() === 'PATCH') {
+      savedPatch = request.postDataJSON();
+      const body = savedPatch as { alt: string; tags: string[] };
+      const updated = { ...originalAsset, ...body };
+      assets[0] = updated;
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(updated) });
+    } else if (request.method() === 'DELETE') {
+      await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: 'This image is still referenced by recipes.' }) });
+    } else {
+      await route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Unmocked ImageKit request' }) });
+    }
+  });
+  await page.route('https://upload.imagekit.io/api/v1/files/upload', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ fileId: 'image_file_2', filePath: '/recipes/new.jpg', url: 'https://ik.imagekit.io/example/recipes/new.jpg', name: 'new.jpg', size: 1024, fileType: 'image' }),
+    });
+  });
+
+  const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
+  await page.goto(`${adminPath}/imagekit`);
+  await expect(page.getByRole('heading', { name: 'ImageKit Media Library' })).toBeVisible();
+  await expect(page.getByText('scene.webp', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Upload media' }).click();
+  await page.locator('.imagekit-visually-hidden').setInputFiles({ name: 'new.jpg', mimeType: 'image/jpeg', buffer: Buffer.from([0xff, 0xd8, 0xff, 0x00]) });
+  await expect(page.getByText('Image uploaded and added to the library.')).toBeVisible();
+  await expect(page.getByText('new.jpg', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Edit details' }).last().click();
+  await page.getByLabel('Alt text').last().fill('A new night scene');
+  await page.getByLabel('Tags, comma separated').last().fill('art, night');
+  await page.getByRole('button', { name: 'Save' }).last().click();
+  expect(savedPatch).toEqual({ alt: 'A new night scene', tags: ['art', 'night'] });
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Delete' }).last().click();
+  await expect(page.getByRole('alert')).toContainText('still referenced by recipes');
+});
+
+test('unauthenticated admins cannot open the ImageKit media manager', async ({ page }) => {
+  const api = await mockApi(page);
+  const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
+  await page.goto(`${adminPath}/imagekit`);
+  await expect(page.getByRole('heading', { name: 'Admin Authorization' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'ImageKit Media Library' })).toHaveCount(0);
+  expect(api.adminRequests).toEqual([]);
+});
+
+test('ImageKit media manager explains missing configuration and disables uploads', async ({ page }) => {
+  await mockApi(page, { adminAuthenticated: true });
+  await page.route('**/api/admin/imagekit/**', async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(pathname.endsWith('/config')
+        ? { configured: false }
+        : { items: [], page: 1, pageSize: 24, total: 0 }),
+    });
+  });
+  const adminPath = process.env.VITE_ADMIN_PATH || '/__admin_path_not_configured__';
+  await page.goto(`${adminPath}/imagekit`);
+  await expect(page.getByText('ImageKit is not connected yet.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Upload media' })).toBeDisabled();
+  await expect(page.getByRole('link', { name: 'Open ImageKit dashboard' })).toHaveAttribute('href', 'https://imagekit.io/dashboard');
 });

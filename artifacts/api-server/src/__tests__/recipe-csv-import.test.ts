@@ -225,6 +225,7 @@ test("round-trips dynamic inputs, guide data, output config, and custom layout t
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     publishedAt: null,
+    catalogue: "TASKBAKE",
   } satisfies Recipe;
 
   const csv = buildRecipeCsvExport([{

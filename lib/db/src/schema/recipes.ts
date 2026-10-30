@@ -1,4 +1,5 @@
 import { createInsertSchema } from "drizzle-zod";
+import { desc } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -57,6 +58,7 @@ export const recipesTable = pgTable(
     guide: jsonb("guide"),
     tags: text("tags").array().notNull().default([]),
     status: text("status").notNull().default("DRAFT"),
+    catalogue: text("catalogue").notNull().default("TASKBAKE"),
     featured: boolean("featured").notNull().default(false),
     trending: boolean("trending").notNull().default(false),
     recipeOfDay: boolean("recipe_of_day").notNull().default(false),
@@ -81,6 +83,106 @@ export const recipesTable = pgTable(
     index("recipes_category_idx").on(table.categoryId),
     index("recipes_audience_idx").on(table.audienceId),
     index("recipes_status_idx").on(table.status),
+    index("recipes_catalogue_status_updated_idx").on(table.catalogue, table.status, table.updatedAt),
+  ],
+);
+
+export const imagekitMediaAssetsTable = pgTable(
+  "imagekit_media_assets",
+  {
+    fileId: text("file_id").primaryKey(),
+    filePath: text("file_path").notNull().unique(),
+    url: text("url").notNull(),
+    fileName: text("file_name").notNull(),
+    fileType: text("file_type").notNull(),
+    size: integer("size").notNull(),
+    alt: text("alt").notNull().default(""),
+    tags: text("tags").array().notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("imagekit_media_assets_created_idx").on(table.createdAt),
+    index("imagekit_media_assets_tags_idx").using("gin", table.tags),
+  ],
+);
+
+export const vybeCreationsTable = pgTable(
+  "vybe_creations",
+  {
+    id: serial("id").primaryKey(),
+    title: text("title").notNull(),
+    slug: text("slug").notNull().unique(),
+    shortDescription: text("short_description").notNull(),
+    description: text("description").notNull(),
+    category: text("category").notNull().default("Images"),
+    contentType: text("content_type").notNull().default("image"),
+    model: text("model").notNull().default(""),
+    models: text("models").array().notNull().default([]),
+    prompt: text("prompt").notNull().default(""),
+    negativePrompt: text("negative_prompt").notNull().default(""),
+    style: text("style").notNull().default(""),
+    aspectRatio: text("aspect_ratio").notNull().default(""),
+    parameters: jsonb("parameters").notNull().default({}),
+    scene: text("scene").notNull().default(""),
+    motion: text("motion").notNull().default(""),
+    cameraInstructions: text("camera_instructions").notNull().default(""),
+    durationSeconds: integer("duration_seconds"),
+    videoUrl: text("video_url").notNull().default(""),
+    posterUrl: text("poster_url").notNull().default(""),
+    visualReferences: jsonb("visual_references").notNull().default([]),
+    exampleOutputs: jsonb("example_outputs").notNull().default([]),
+    refinementInstructions: text("refinement_instructions").notNull().default(""),
+    builderInstructions: text("builder_instructions").notNull().default(""),
+    tools: text("tools").array().notNull().default([]),
+    demoUrl: text("demo_url").notNull().default(""),
+    verificationDetails: text("verification_details").notNull().default(""),
+    experienceUrl: text("experience_url").notNull().default(""),
+    experienceControls: jsonb("experience_controls").notNull().default([]),
+    mediaAssets: jsonb("media_assets").notNull().default([]),
+    extraData: jsonb("extra_data").notNull().default({}),
+    imageUrl: text("image_url").notNull().default(""),
+    imageAlt: text("image_alt").notNull().default(""),
+    tags: text("tags").array().notNull().default([]),
+    status: text("status").notNull().default("DRAFT"),
+    featured: boolean("featured").notNull().default(false),
+    featuredPosition: integer("featured_position").notNull().default(0),
+    trending: boolean("trending").notNull().default(false),
+    metadata: jsonb("metadata").default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("vybe_creations_status_idx").on(table.status),
+    index("vybe_creations_category_idx").on(table.category),
+    index("vybe_creations_type_idx").on(table.contentType),
+    index("vybe_creations_featured_idx").on(table.featured),
+    index("vybe_creations_published_idx").on(table.publishedAt),
+    index("vybe_creations_public_order_idx").on(table.status, table.publishedAt),
+    index("vybe_creations_featured_order_idx").on(table.featured, table.featuredPosition),
+  ],
+);
+
+export const vybeCsvImportJobsTable = pgTable(
+  "vybe_csv_import_jobs",
+  {
+    id: serial("id").primaryKey(),
+    idempotencyKey: text("idempotency_key").notNull().unique(),
+    status: text("status").notNull(),
+    strategy: text("strategy").notNull(),
+    totalRows: integer("total_rows").notNull().default(0),
+    importedRows: integer("imported_rows").notNull().default(0),
+    skippedRows: integer("skipped_rows").notNull().default(0),
+    failedRows: integer("failed_rows").notNull().default(0),
+    report: jsonb("report").notNull().default({}),
+    adminId: text("admin_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("vybe_csv_import_jobs_created_idx").on(desc(table.createdAt)),
+    index("vybe_csv_import_jobs_status_idx").on(table.status),
   ],
 );
 
@@ -182,6 +284,12 @@ export const insertRecipeSchema = createInsertSchema(recipesTable).omit({
   negativeFeedbackCount: true,
   publishedAt: true,
 });
+export const insertVybeCreationSchema = createInsertSchema(vybeCreationsTable).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  publishedAt: true,
+});
 export const insertEventSchema = createInsertSchema(eventsTable).omit({ id: true, createdAt: true });
 export const insertFeedbackSchema = createInsertSchema(feedbackTable).omit({ id: true, createdAt: true });
 export const insertSuggestionSchema = createInsertSchema(suggestionsTable).omit({ id: true, createdAt: true });
@@ -192,7 +300,9 @@ export const insertHistorySchema = createInsertSchema(historyTable).omit({ id: t
 export type Category = typeof categoriesTable.$inferSelect;
 export type Audience = typeof audiencesTable.$inferSelect;
 export type Recipe = typeof recipesTable.$inferSelect;
+export type VybeCreation = typeof vybeCreationsTable.$inferSelect;
 export type Event = typeof eventsTable.$inferSelect;
 export type Submission = typeof submissionsTable.$inferSelect;
 export type Feedback = typeof feedbackTable.$inferSelect;
 export type InsertRecipe = z.infer<typeof insertRecipeSchema>;
+export type InsertVybeCreation = z.infer<typeof insertVybeCreationSchema>;

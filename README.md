@@ -126,6 +126,60 @@ this only obscures the URL; it is not a security boundary. Keep the existing
 admin authentication and IP restrictions enabled. The old `/admin` UI route
 is not an admin entry point.
 
+The admin route is intentionally not listed in the public site navigation.
+For local development, open the route configured by `VITE_ADMIN_PATH` after
+starting the app with `pnpm run dev`; configure the matching `ADMIN_PATH` on
+the API server. Production requires the same matching values in the frontend
+build and API hosting environment.
+
+## ImageKit setup
+
+The admin Media Library supports uploading and managing recipe images with
+ImageKit. ImageKit uploads are optional and remain disabled until an ImageKit
+account is configured. Add `IMAGEKIT_PUBLIC_KEY`, `IMAGEKIT_PRIVATE_KEY`, and
+`IMAGEKIT_URL_ENDPOINT` to the backend `.env` (or hosting secrets), then restart
+the API server. The private key must stay server-side and must never use a
+`VITE_` prefix. See [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md) for
+the supported formats, size limit, and database migration instructions.
+Apply `lib/db/migrations/0004_imagekit_media_assets.sql` to the existing
+PostgreSQL database before using the media gallery or registering ImageKit
+uploads. Until applied, the media API returns an actionable migration error.
+
+## VYBE creative marketplace
+
+VYBE is a separate creative catalogue for image/video prompts, visual art,
+3D, app/game builders, and implemented interactive experiences. It does not
+use or change normal TaskBakeAI recipe records. The public experience is
+private by default: leave `VYBE_ENABLED=false` on the API and
+`VITE_VYBE_ENABLED=false` in the frontend build. The API flag is enforced on
+every public VYBE endpoint; the Vite flag only controls public navigation and
+rendering. Admins can still manage and preview drafts in Admin → VYBE Studio.
+In local development with the launch flag off, `/vybe` is an admin-authenticated
+preview and remains `noindex,nofollow`; its catalogue requests use protected
+admin APIs. Production continues to require `VYBE_ENABLED=true` and
+`VITE_VYBE_ENABLED=true`.
+
+Apply `lib/db/migrations/0006_vybe_creations.sql` and then
+`lib/db/migrations/0007_vybe_content.sql` to an existing PostgreSQL database
+before using VYBE Studio. To launch, configure both flags as `true` and
+redeploy the API and frontend. Only records in `PUBLISHED` status are returned
+by public endpoints. Interactive records require a playable HTTPS URL and
+verification details; no built-in games or engagement counts are fabricated.
+
+The VYBE Studio CSV tools derive their versioned template from the editable
+VYBE schema. Imports support column mapping, dry-run validation, create-only,
+update-existing, and upsert strategies, durable job reports, and streamed
+exports. Imports remain drafts by default; enabling the explicit published
+status option is required to preserve published records. Apply
+`lib/db/migrations/0008_vybe_csv_import_jobs.sql` before using import history
+and commit endpoints. CSV files are limited to 5 MB and 500 rows.
+
+The recipe `catalogue` field defaults to `TASKBAKE` and scopes admin listing,
+summary, CSV import/export, and bulk updates. Apply
+`lib/db/migrations/0005_recipe_catalogue.sql` after `0004` to add this support
+to an existing PostgreSQL database. These migrations are prepared only and
+have not been applied to production.
+
 ## CSV taxonomy imports
 
 Apply the migration before running `deploy.ps1`; the script also verifies that

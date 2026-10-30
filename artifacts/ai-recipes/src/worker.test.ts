@@ -80,8 +80,21 @@ test('preloads homepage data from the root HTML response', async () => {
   const response = await worker.fetch(new Request('https://site.test/'), env);
   const html = await response.text();
   assert.match(html, /<link rel="preload" href="\/api\/home" as="fetch" crossorigin="anonymous" \/>/);
+  assert.equal(response.headers.get('Content-Type'), 'text/html; charset=utf-8');
   assert.equal(response.headers.get('Content-Length'), null);
   assert.equal(response.headers.get('ETag'), null);
+});
+
+test('serves SPA fallback HTML with UTF-8 content type', async () => {
+  const response = await worker.fetch(new Request('https://site.test/recipes/example'), {
+    ASSETS: {
+      fetch: async (request: Request) => new URL(request.url).pathname === '/index.html'
+        ? new Response('<!DOCTYPE html>', { status: 200, headers: { 'Content-Type': 'text/html' } })
+        : new Response(null, { status: 404 }),
+    },
+  });
+
+  assert.equal(response.headers.get('Content-Type'), 'text/html; charset=utf-8');
 });
 
 test('serves ARD well-known manifest paths from the JSON catalog asset', async () => {

@@ -95,7 +95,7 @@ const popularRecipes: RecipeCard[] = [
   },
 ];
 
-const recipe = {
+export const recipe = {
   ...recipeCard,
   problem: 'A rough project brief is hard to turn into clear next steps.',
   subcategory: 'Planning',
@@ -108,6 +108,7 @@ const recipe = {
   refinementPrompts: ['Make the milestones more specific.'],
   verificationNotes: 'Confirm owners and dates with the project team.',
   status: 'published',
+  catalogue: 'TASKBAKE',
   version: '1',
   testedAt: '2025-01-01T00:00:00.000Z',
   testedWith: ['ChatGPT'],
@@ -354,6 +355,57 @@ export async function mockApi(
       return;
     }
 
+    if (request.method() === 'GET' && pathname === '/api/admin/summary') {
+      const totalRecipes = options.adminBulkEdit
+        ? Math.max(2, options.adminRecipeCount ?? 2)
+        : state.recipeSaveRequests.length;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          totalRecipes,
+          publishedRecipes: 0,
+          draftRecipes: totalRecipes,
+          testingRecipes: 0,
+          featuredRecipes: 0,
+          missingArtworkRecipes: totalRecipes,
+          recipesMissingRequiredContent: 0,
+          views: 0,
+          copies: 0,
+          saves: 0,
+          shares: 0,
+          positiveFeedback: 0,
+          negativeFeedback: 0,
+          pendingSubmissions: 0,
+        }),
+      });
+      return;
+    }
+
+    if (request.method() === 'GET' && /^\/api\/admin\/recipes\/\d+$/.test(pathname)) {
+      const id = Number(pathname.split('/').at(-1));
+      const saved = state.recipeSaveRequests[0];
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ...recipe,
+          ...saved,
+          id,
+          catalogue: 'TASKBAKE',
+          status: saved?.status ?? 'DRAFT',
+          category: category.name,
+          categorySlug: category.slug,
+          audience: audience.name,
+          audienceSlug: audience.slug,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          publishedAt: null,
+        }),
+      });
+      return;
+    }
+
     if (request.method() === 'GET' && pathname === '/api/admin/recipes') {
       state.adminRecipeListRequests.push(url);
       const saved = state.recipeSaveRequests[0];
@@ -387,10 +439,14 @@ export async function mockApi(
             positiveFeedbackCount: 0,
             negativeFeedbackCount: 0,
           }] : [];
+      const scopedItems = allItems.map((item) => ({
+        ...item,
+        catalogue: 'TASKBAKE',
+      }));
       const search = url.searchParams.get('q')?.toLowerCase();
       const categorySlug = url.searchParams.get('category');
       const status = url.searchParams.get('status');
-      const filteredItems = allItems.filter((item) =>
+      const filteredItems = scopedItems.filter((item) =>
         (!search || item.title.toLowerCase().includes(search))
         && (!categorySlug || item.categorySlug === categorySlug)
         && (!status || item.status === status),
@@ -403,7 +459,11 @@ export async function mockApi(
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          items,
+          items: items.map((item) => ({
+            ...item,
+            contentType: typeof item.contentType === 'string' ? item.contentType : 'text',
+            updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : new Date().toISOString(),
+          })),
           total: filteredItems.length,
           page,
           pageSize,
@@ -549,6 +609,7 @@ export async function mockApi(
               { id: 'outcome', type: 'outcome', visible: true },
               { id: 'prompt', type: 'prompt', visible: true },
               { id: 'refinements', type: 'refinements', visible: true },
+              { id: 'example', type: 'example', visible: true },
               { id: 'verification', type: 'verification', visible: true },
               { id: 'troubleshooting', type: 'troubleshooting', visible: true },
               { id: 'diagram', type: 'diagram', visible: true },

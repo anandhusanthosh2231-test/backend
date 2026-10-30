@@ -145,6 +145,7 @@ export default {
       if (/\/assets\/[^/]+-[A-Za-z0-9_-]{8,}\.[^/]+$/.test(url.pathname)) {
         headers.set('Cache-Control', 'public, max-age=31536000, immutable');
       } else if (headers.get('Content-Type')?.includes('text/html')) {
+        headers.set('Content-Type', 'text/html; charset=utf-8');
         headers.set('Cache-Control', 'no-cache, must-revalidate');
         if (request.method === 'GET' && url.pathname === '/') {
           const html = await assetResponse.text();
@@ -169,6 +170,7 @@ export default {
 
     const indexResponse = await env.ASSETS.fetch(new Request(new URL('/index.html', request.url)));
     const headers = new Headers(indexResponse.headers);
+    headers.set('Content-Type', 'text/html; charset=utf-8');
     headers.set('Cache-Control', 'no-cache, must-revalidate');
     return new Response(indexResponse.body, {
       status: indexResponse.status,

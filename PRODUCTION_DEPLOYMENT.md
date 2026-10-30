@@ -181,6 +181,65 @@ R2_MAX_FILE_SIZE_BYTES=8388608
 
 Never add R2 credentials to `VITE_` variables or the Cloudflare frontend. Without the R2 settings, recipes and custom layouts remain editable; the image picker reports that storage is unavailable, and existing public image URLs can still be entered manually.
 
+## ImageKit media library
+
+The admin Media Library uses ImageKit Upload File API V1 for direct
+browser-to-ImageKit uploads. Set these variables on the backend service only:
+
+```env
+IMAGEKIT_PUBLIC_KEY=...
+IMAGEKIT_PRIVATE_KEY=...
+IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_imagekit_id
+IMAGEKIT_MAX_FILE_SIZE_BYTES=20971520
+```
+
+`IMAGEKIT_PRIVATE_KEY` is used only by the API to sign short-lived upload credentials and verify/delete files. Never expose it through a `VITE_` variable or commit it. The public key and URL endpoint are returned to authenticated admins by the API when configured. Supported uploads are JPEG, PNG, WebP, and AVIF images plus MP4, WebM, and MOV video, with a default 20 MB limit (maximum configurable limit: 50 MB).
+
+Before using the media gallery or registering assets, apply
+`lib/db/migrations/0004_imagekit_media_assets.sql` to the existing PostgreSQL
+database (or use the development-only Drizzle push workflow). This migration
+adds only an ImageKit asset metadata table; it does not create another recipe
+catalogue or store image binaries. If the migration is missing, media endpoints
+return an actionable `503` instead of a generic internal server error. Asset
+deletion is rejected while recipe or VYBE content refers to the asset URL or
+file ID. ImageKit remains optional; the existing R2 picker and manually entered
+URLs are unchanged.
+
+## VYBE marketplace
+
+VYBE content is stored in its own `vybe_creations` table. Apply
+`lib/db/migrations/0006_vybe_creations.sql` followed by
+`lib/db/migrations/0007_vybe_content.sql` before opening Admin → VYBE Studio.
+Public discovery is disabled unless both of these are explicitly enabled:
+
+```env
+# API host — enforced by public VYBE API routes
+VYBE_ENABLED=false
+
+# Frontend build — controls the public navigation and VYBE experience
+VITE_VYBE_ENABLED=false
+```
+
+Admins continue to manage drafts while both flags are off. Launch by setting
+both values to `true` and redeploying the API and frontend. The public API only
+returns `PUBLISHED` creations, and draft/admin data is never included in the
+public endpoints. In local development with launch flags off, `/vybe` is
+available only through the authenticated admin preview and remains
+`noindex,nofollow`. Do not configure the private ImageKit key in the frontend.
+
+VYBE Studio's schema-driven CSV tools support column mapping, dry-run
+validation, create-only/update-existing/upsert strategies, durable import
+reports, and filtered exports. CSV imports are draft-only unless the admin
+explicitly opts to preserve published status. Apply
+`lib/db/migrations/0008_vybe_csv_import_jobs.sql` before using import commits
+and job history. Files are limited to 5 MB and 500 rows.
+
+The recipe `catalogue` field defaults to `TASKBAKE` and scopes admin listing,
+summary, CSV import/export, and bulk updates. Apply
+`lib/db/migrations/0005_recipe_catalogue.sql` after `0004` to add this support
+to an existing PostgreSQL database. Neither migration has been applied to the
+production database.
+
 ---
 
 ## Best next move

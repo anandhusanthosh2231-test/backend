@@ -2,9 +2,9 @@
   display: grid;
   gap: 1rem;
   padding: clamp(1rem, 2vw, 1.5rem);
-  border: 1px solid #ded6c9;
+  border: 1px solid var(--brand);
   border-radius: 1rem;
-  background: #fffdf8;
+  background: var(--brand-tint);
 }
 
 .prompt-studio__heading,
@@ -28,7 +28,7 @@
 .prompt-studio__help,
 .prompt-studio__empty {
   margin: 0;
-  color: #625f59;
+  color: var(--brand-dark);
   font-size: 0.9rem;
 }
 
@@ -65,7 +65,7 @@
   gap: 0.85rem;
   margin: 0;
   padding: 1rem;
-  border: 1px solid #e2dbd0;
+  border: 1px solid var(--brand);
   border-radius: 0.75rem;
 }
 
@@ -79,9 +79,9 @@
   width: min(100%, 420px);
   gap: 0.4rem;
   overflow: hidden;
-  border: 1px solid #e2dbd0;
+  border: 1px solid var(--brand);
   border-radius: 0.65rem;
-  background: #f1ede5;
+  background: var(--brand);
 }
 
 .prompt-studio__preview img {
@@ -93,7 +93,7 @@
 
 .prompt-studio__preview span {
   padding: 0 0.75rem 0.65rem;
-  color: #625f59;
+  color: var(--brand-dark);
   font-size: 0.85rem;
 }
 
@@ -104,7 +104,7 @@
   gap: 0.4rem;
   border: 0;
   background: transparent;
-  color: #963c33;
+  color: var(--muted);
   cursor: pointer;
   font: inherit;
 }

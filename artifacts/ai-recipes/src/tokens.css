@@ -1,0 +1,1244 @@
+:root {
+  --bg: #FBF9F6;
+  --surface: #FFFFFF;
+  --sand: #F3EEE6;
+  --border: #E7DFD3;
+  --ink: #16130F;
+  --muted: #5E574E;
+  --brand: #C98B4B;
+  --brand-dark: #9A5B2E;
+  --brand-tint: #FCEFD9;
+  --cool: #1D5C63;
+  --cool-tint: #E4F1F1;
+  --grad: linear-gradient(135deg, #E8BC84, #B97C45);
+  --radius: 14px;
+  --shadow: 0 8px 30px rgba(22, 19, 15, .06);
+
+  --ink-rgb: 22 19 15;
+  --surface-rgb: 255 255 255;
+  --brand-rgb: 201 139 75;
+  --cool-rgb: 29 92 99;
+  --muted-rgb: 94 87 78;
+  --error: #991B1B;
+  --error-tint: #FEE2E2;
+  --success: var(--cool);
+  --success-tint: var(--cool-tint);
+  --success-text: var(--cool);
+  --success-bg: var(--cool-tint);
+  --error-text: var(--error);
+  --error-bg: var(--error-tint);
+  --focus-ring: var(--brand-dark);
+
+  --page-bg: var(--bg);
+  --surface-subtle: var(--sand);
+  --surface-hover: var(--sand);
+  --text-primary: var(--ink);
+  --text-secondary: var(--muted);
+  --text-muted: var(--muted);
+  --border-strong: var(--muted);
+  --control-border: var(--border);
+  --dark-surface: var(--ink);
+  --dark-surface-raised: var(--muted);
+  --dark-editor: var(--ink);
+  --dark-text: var(--bg);
+  --dark-text-secondary: var(--sand);
+
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --card-border: var(--border);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --popover-border: var(--border);
+  --primary: var(--ink);
+  --primary-foreground: var(--surface);
+  --secondary: var(--sand);
+  --secondary-foreground: var(--ink);
+  --muted-surface: var(--sand);
+  --muted-foreground: var(--muted);
+  --accent: var(--brand);
+  --accent-foreground: var(--ink);
+  --destructive: var(--error);
+  --destructive-foreground: var(--surface);
+  --input: var(--border);
+  --ring: var(--brand-dark);
+  --chart-1: var(--brand-dark);
+  --chart-2: var(--cool);
+  --chart-3: var(--error);
+  --chart-4: var(--brand);
+  --chart-5: var(--muted);
+  --primary-border: var(--ink);
+  --secondary-border: var(--border);
+  --muted-border: var(--border);
+  --accent-border: var(--brand);
+  --destructive-border: var(--error);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--ink);
+  --sidebar-border: var(--border);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--ink);
+  --sidebar-primary-border: var(--brand);
+  --sidebar-accent: var(--sand);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-accent-border: var(--border);
+  --sidebar-ring: var(--brand-dark);
+  --app-font-sans: "Inter", sans-serif;
+  --app-font-serif: "Plus Jakarta Sans", sans-serif;
+  --app-font-mono: "Space Mono", monospace;
+  --font-heading: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "Space Mono", monospace;
+  --radius-card: var(--radius);
+  --radius-sm: 10px;
+  --shadow-soft: var(--shadow);
+  --shadow-soft-hover: 0 12px 34px rgba(22, 19, 15, .1);
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  color: var(--ink);
+  background: var(--bg);
+  font-family: var(--font-body);
+}
+
+a {
+  color: var(--brand-dark);
+}
+
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-dark);
+  outline-offset: 3px;
+}
+
+input,
+textarea,
+select {
+  border-color: var(--border);
+  background-color: var(--surface);
+  color: var(--ink);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgb(var(--brand-rgb) / .25);
+}
+
+.button:disabled,
+button:disabled:not(.custom-primary-button),
+input:disabled,
+textarea:disabled,
+select:disabled {
+  border-color: var(--border);
+  background-color: var(--sand);
+  color: var(--muted);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.custom-primary-button:disabled,
+.custom-ingredient-footer button:disabled,
+.prompt-inputs-reset:disabled,
+.vybe-pagination button:disabled,
+.vybe-csv__primary:disabled,
+.imagekit-asset__actions button:disabled,
+.imagekit-pagination button:disabled,
+.imagekit-picker__pages button:disabled {
+  border-color: var(--border);
+  background: var(--sand);
+  color: var(--muted);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  transition-duration: 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+.site-header {
+  border-bottom-color: var(--border);
+  background: rgb(var(--surface-rgb) / .94);
+  color: var(--ink);
+}
+
+.brand-dot,
+.kicker-mark {
+  background: var(--brand);
+}
+
+.recipe-card.category-career .category-pill,
+.recipe-card.category-content .category-pill,
+.recipe-card.category-productivity .category-pill,
+.recipe-card.category-personal .category-pill {
+  background: var(--cool-tint);
+  color: var(--cool);
+}
+
+.recipe-card.category-business .category-pill {
+  background: var(--brand-tint);
+  color: var(--brand-dark);
+}
+
+.recipe-card.category-education .category-pill {
+  background: var(--cool-tint);
+  color: var(--cool);
+}
+
+.categories-band {
+  background: var(--sand);
+}
+
+.feature-card-skeleton {
+  background: var(--sand);
+}
+
+.step-count,
+.recipe-card.category-education .category-pill,
+.custom-trending-row span,
+.admin-mode-pill.passkey,
+.badge-pill.passed,
+.checklist-item.done,
+.published-card .kpi-icon-wrap,
+.rating-card .kpi-icon-wrap,
+.flipkart-category-count-badge {
+  border-color: var(--cool-tint);
+  background: var(--cool-tint);
+  color: var(--cool);
+}
+
+.flipkart-category-icon-bubble.is-all {
+  background: var(--brand-tint);
+  color: var(--brand-dark);
+}
+
+.flipkart-category-item.is-active .flipkart-category-icon-bubble {
+  background: var(--brand-tint);
+  color: var(--brand-dark);
+}
+
+.flipkart-banner-loading-card,
+.hero-recipe-preview--loading span,
+.custom-pantry-track {
+  background: var(--sand);
+}
+
+.flipkart-banner-dot.is-active::before,
+.why-example-tab-indicator {
+  background: var(--brand);
+}
+
+.optional-mark,
+.custom-ingredients .optional-mark,
+.custom-badge-optional {
+  background: var(--sand);
+  color: var(--muted);
+}
+
+.prompt-label button:hover,
+.prompt-copy-button:hover {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--ink);
+}
+
+.proof-avatars i:last-child {
+  background: var(--brand-tint);
+  color: var(--ink);
+}
+
+.creator-cta {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.creator-cta :where(h1, h2, h3, p, a, li, span, small) {
+  color: var(--bg);
+}
+
+.creator-cta p,
+.creator-cta .creator-steps {
+  color: var(--sand);
+}
+
+.creator-cta .kicker,
+.creator-cta .creator-steps b {
+  color: var(--brand-tint);
+}
+
+.creator-steps {
+  border-color: var(--dark-surface-raised);
+}
+
+.why-recipe-card {
+  border-color: var(--border-strong);
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.why-recipe-card .why-panel-header h3,
+.why-recipe-card .why-panel-index,
+.why-recipe-card .why-copy-button,
+.why-recipe-card .why-panel-footer,
+.why-recipe-card .why-panel-footer--recipe > span:last-child,
+.why-recipe-card .why-prompt-meta,
+.why-recipe-card .why-detail-label,
+.why-recipe-card .why-output-label > span:first-child,
+.why-recipe-card .why-prompt-section p,
+.why-recipe-card .why-prompt-section li,
+.why-recipe-card .why-prompt-section ul li span,
+.why-recipe-card .why-prompt-content,
+.why-recipe-card .why-prompt-label {
+  color: var(--bg);
+}
+
+.why-recipe-card .why-prompt-section:first-child > p {
+  border-color: var(--brand);
+  background: var(--dark-surface-raised);
+  color: var(--brand-tint);
+}
+
+.why-recipe-card .why-prompt-section code {
+  border-color: var(--brand);
+  background: var(--dark-surface-raised);
+  color: var(--brand-tint);
+}
+
+.why-recipe-card .why-copy-button {
+  border-color: var(--brand);
+}
+
+.why-recipe-card .why-copy-button:hover {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--ink);
+}
+
+.why-example-tab.is-active .why-tab-index,
+.why-example-tab.is-active > svg,
+.why-recipe-card .why-panel-footer--recipe svg,
+.why-recipe-card .why-prompt-label i,
+.why-recipe-card .why-prompt-section ol li::before {
+  color: var(--brand-tint);
+}
+
+.why-recipe-card .why-prompt-section ol li {
+  border-color: var(--dark-surface-raised);
+}
+
+.why-output-preview {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+}
+
+.admin-side-action-btn {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.admin-side-action-btn:hover {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--ink);
+}
+
+.completeness-fill,
+.custom-pantry-track > span,
+.custom-progress-bar > span {
+  background: var(--grad);
+}
+
+.recipe-mobile-copy .button:disabled {
+  border-color: var(--border);
+  background: var(--sand);
+  color: var(--muted);
+}
+
+.custom-mobile-copy-bar {
+  border-color: var(--border-strong);
+  background: rgb(var(--ink-rgb) / .94);
+}
+
+.recipe-mobile-copy {
+  border-color: var(--border-strong);
+  background: var(--ink);
+}
+
+.custom-mobile-copy-bar button:disabled {
+  background: var(--dark-surface-raised);
+  color: var(--surface);
+}
+
+.custom-flames svg {
+  color: var(--brand-dark);
+}
+
+.site-header.site-header--home,
+.site-header.site-header--home.is-scrolled {
+  border-bottom-color: var(--border);
+  background: rgb(var(--surface-rgb) / .9);
+  color: var(--ink);
+  box-shadow: 0 8px 26px rgb(var(--ink-rgb) / .06);
+}
+
+.site-header--home .main-nav a,
+.site-header--home .text-button {
+  color: var(--muted);
+}
+
+.site-header--home .main-nav a:hover,
+.site-header--home .main-nav a.active,
+.site-header--home .text-button:hover {
+  color: var(--ink);
+}
+
+.site-header--home .header-create-link {
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+.site-header--home .header-create-link:hover {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+  color: var(--ink);
+}
+
+.site-header--home .button-small {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.site-header--home .button-small:hover {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--ink);
+}
+
+.flipkart-mobile-header,
+.flipkart-mobile-header--home {
+  border-bottom-color: var(--border);
+  background: rgb(var(--surface-rgb) / .96);
+  color: var(--ink);
+}
+
+.flipkart-mobile-header :where(a, button, svg),
+.flipkart-mobile-header--home :where(a, button, svg) {
+  color: var(--ink);
+}
+
+.home-hero {
+  background:
+    radial-gradient(ellipse at 74% 24%, rgb(var(--brand-rgb) / .11), transparent 34rem),
+    radial-gradient(ellipse at 18% 82%, rgb(var(--brand-rgb) / .07), transparent 30rem),
+    var(--bg);
+  color: var(--ink);
+}
+
+.home-hero::after {
+  background: linear-gradient(180deg, transparent, var(--bg));
+}
+
+.hero-atmosphere::after {
+  background: radial-gradient(circle, rgb(var(--brand-rgb) / .2), transparent 68%);
+}
+
+.hero-copy h1,
+.hero-recipe-preview h2,
+.hero-ghost-card strong {
+  color: var(--ink);
+}
+
+.home-hero .hero-copy h1 {
+  color: var(--ink);
+}
+
+.home-hero .hero-copy > p,
+.home-hero .hero-proof {
+  color: var(--muted);
+}
+
+.home-hero .hero-copy h1 em {
+  background: var(--grad);
+  background-clip: text;
+  color: transparent;
+  -webkit-background-clip: text;
+}
+
+.hero-copy > p,
+.hero-recipe-preview__description,
+.hero-recipe-preview__flow p {
+  color: var(--muted);
+}
+
+.hero-copy h1 em {
+  background: var(--grad);
+  background-clip: text;
+  color: transparent;
+  -webkit-background-clip: text;
+}
+
+.hero-kicker,
+.hero-recipe-preview__topline,
+.hero-recipe-preview__meta,
+.hero-recipe-preview__footer {
+  color: var(--brand-dark);
+}
+
+.home-hero .hero-cta-row .button-dark {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.home-hero .hero-cta-row .button-dark:hover {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--ink);
+}
+
+.home-hero .hero-cta-row .button-outline {
+  border-color: var(--border-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.home-hero .hero-cta-row .button-outline:hover {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+  color: var(--ink);
+}
+
+.hero-search,
+.hero-search:focus-within {
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.hero-search input {
+  color: var(--ink);
+}
+
+.hero-search > svg,
+.hero-search button,
+.home-hero .hero-example-chip svg {
+  color: var(--brand-dark);
+}
+
+.hero-search button {
+  background: var(--brand-tint);
+}
+
+.hero-search button:hover,
+.home-hero .hero-example-chip:hover {
+  background: var(--sand);
+}
+
+.home-hero .hero-example-chip {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.hero-recipe-preview,
+.hero-ghost-card {
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+
+.hero-recipe-preview__status,
+.hero-recipe-preview__meta span + span,
+.hero-recipe-preview__description,
+.hero-recipe-preview__flow p,
+.hero-ghost-card span {
+  color: var(--muted);
+}
+
+.hero-recipe-preview__flow {
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+.hero-recipe-preview__meta span:first-child,
+.hero-recipe-preview__tool {
+  border-color: var(--border);
+  background: var(--sand);
+  color: var(--brand-dark);
+}
+
+.hero-recipe-preview__link {
+  color: var(--brand-dark);
+}
+
+.custom-recipe-experience {
+  color: var(--ink);
+}
+
+.custom-oven-hero {
+  border-color: var(--border);
+  background: linear-gradient(135deg, var(--surface), var(--sand));
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+
+.custom-oven-copy h1,
+.custom-bake-heading h2,
+.custom-oven-time strong,
+.custom-oven-detail strong,
+.custom-pantry-copy strong,
+.custom-ingredients .prompt-input-label,
+.custom-ingredient-label label,
+.custom-segment-field legend,
+.custom-recipe-experience .custom-related-card {
+  color: var(--ink);
+}
+
+.custom-oven-card,
+.custom-pantry,
+.custom-ingredients .prompt-inputs,
+.custom-sample-details,
+.custom-workflow-stage,
+.custom-safety-card,
+.custom-troubleshoot-item,
+.custom-related-card {
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+
+.custom-oven-status,
+.custom-bake-kicker,
+.custom-oven-copy > .custom-bake-kicker,
+.custom-bake-heading h2 em,
+.custom-oven-card .custom-oven-time small {
+  color: var(--brand-dark);
+}
+
+.custom-ingredients .prompt-variable-form input,
+.custom-ingredients .prompt-variable-form textarea,
+.custom-ingredients .prompt-variable-form select,
+.custom-text-input,
+.custom-chipbox,
+.custom-notion-input {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.custom-ingredients .prompt-variable-form input::placeholder,
+.custom-ingredients .prompt-variable-form textarea::placeholder,
+.custom-text-input::placeholder {
+  color: var(--muted);
+}
+
+.custom-ingredients .required-mark,
+.custom-badge-required {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+  color: var(--brand-dark);
+}
+
+.custom-primary-button,
+.custom-mobile-copy-bar button:not(:disabled) {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.custom-primary-button:hover:not(:disabled),
+.custom-mobile-copy-bar button:not(:disabled):hover {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--ink);
+}
+
+.custom-prompt-code,
+.custom-recipe-experience .custom-prompt-code pre,
+.custom-mobile-copy-bar {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.custom-prompt-toolbar {
+  border-color: rgb(var(--surface-rgb) / .16);
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.custom-prompt-code pre,
+.custom-prompt-line::before,
+.custom-prompt-code .custom-prompt-label {
+  color: var(--bg);
+}
+
+.custom-prompt-value {
+  color: var(--brand-tint);
+}
+
+.custom-pipeline-stage,
+.custom-refinement-pills button,
+.custom-sample-details,
+.custom-safety-list label,
+.custom-troubleshoot-item {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.custom-progress-rail a.is-active,
+.custom-progress-rail a.is-done {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+  color: var(--brand-dark);
+}
+
+.custom-recipe-experience .custom-progress-title,
+.custom-recipe-experience .custom-progress-rail a {
+  color: var(--muted);
+}
+
+.vybe-page,
+.vybe-detail,
+.vybe-closed,
+.vybe-studio {
+  background-color: var(--bg);
+  color: var(--ink);
+}
+
+.vybe-hero-search,
+.vybe-hero-search:focus-within,
+.vybe-hero-search input,
+.vybe-search,
+.vybe-filter,
+.vybe-tag-filter {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.vybe-hero h1,
+.vybe-section-heading h2,
+.vybe-detail h1,
+.vybe-detail h2,
+.vybe-studio h1,
+.vybe-studio h2 {
+  color: var(--ink);
+}
+
+.vybe-hero__content > p,
+.vybe-section-note,
+.vybe-detail__description {
+  color: var(--muted);
+}
+
+.vybe-card__art {
+  background: linear-gradient(135deg, var(--sand), var(--cool-tint));
+}
+
+.vybe-studio {
+  color-scheme: light;
+}
+
+.vybe-studio__records,
+.vybe-studio__editor,
+.vybe-stat,
+.vybe-record,
+.vybe-studio__type-fields,
+.vybe-studio__media {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.vybe-studio__header h1,
+.vybe-studio__section-title h2,
+.vybe-stat > strong,
+.vybe-record__title strong {
+  color: var(--ink);
+}
+
+.vybe-studio__new,
+.vybe-studio__media-head button,
+.vybe-studio__tool,
+.vybe-studio__pagination button,
+.vybe-studio__save-actions button.is-secondary {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.vybe-studio__new,
+.vybe-studio__save-actions button:not(.is-secondary) {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.vybe-studio__new:hover,
+.vybe-studio__save-actions button:not(.is-secondary):hover {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--ink);
+}
+
+.vybe-studio__filters select option,
+.vybe-studio__field select option {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.vybe-studio__type-fields {
+  background: var(--sand);
+}
+
+.vybe-studio__tool:disabled,
+.vybe-studio__pagination button:disabled,
+.vybe-studio__save-actions button:disabled {
+  border-color: var(--border);
+  background: var(--sand);
+  color: var(--muted);
+  opacity: 1;
+}
+
+.why-panel-header--plain {
+  border-color: var(--border);
+  background: var(--sand);
+}
+
+.why-panel-tag {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+  color: var(--brand-dark);
+}
+
+.why-review-note,
+.why-result-preview {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+.vybe-studio input,
+.vybe-studio textarea,
+.vybe-studio select,
+.vybe-studio__filters select,
+.vybe-studio__search {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.vybe-studio__field,
+.vybe-studio__field input,
+.vybe-studio__field textarea,
+.vybe-studio__field select {
+  color: var(--ink);
+}
+
+.prompt-showcase {
+  border-color: var(--border);
+  background: var(--ink);
+  box-shadow: var(--shadow);
+  color: var(--bg);
+}
+
+.prompt-showcase__heading h2,
+.prompt-showcase__metadata dd {
+  color: var(--bg);
+}
+
+.prompt-showcase__heading p,
+.prompt-showcase__metadata dt {
+  color: var(--sand);
+}
+
+.site-footer {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.site-footer :where(h1, h2, h3, p, a, small, span, li) {
+  color: var(--bg);
+}
+
+.site-footer a:hover {
+  color: var(--brand);
+}
+
+.auth-aside {
+  background: var(--sand);
+  color: var(--ink);
+}
+
+.auth-aside :where(h1, h2, p, .kicker) {
+  color: var(--ink);
+}
+
+.recipe-hero,
+.problem-section,
+.example-box.output,
+.verification-box {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.problem-section {
+  background: var(--brand-tint);
+}
+
+.example-box.output,
+.verification-box {
+  background: var(--cool-tint);
+}
+
+.workflow-card,
+.recipe-card,
+.category-card,
+.editor-layout-option,
+.layout-block-editor,
+.aside-card,
+.workflow-form,
+.vybe-studio__records,
+.vybe-studio__editor {
+  border-color: var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+
+.recipe-card:hover,
+.category-card:hover,
+.workflow-card:hover,
+.custom-related-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand);
+}
+
+.hero-preview-connector,
+.custom-pantry-track > span,
+.custom-progress-bar > span {
+  background: var(--grad);
+}
+
+.button-dark,
+.button-small,
+.button-primary,
+.submit-button {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.button-dark:hover,
+.button-small:hover,
+.button-primary:hover,
+.submit-button:hover {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--ink);
+}
+
+.button-outline,
+.button-save,
+.custom-ghost-button {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.button-outline:hover,
+.button-save:hover,
+.custom-ghost-button:hover {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+  color: var(--ink);
+}
+
+.kicker,
+.eyebrow,
+.main-nav a,
+.text-button {
+  color: var(--brand-dark);
+}
+
+.hero-kicker,
+.vybe-eyebrow,
+.vybe-label {
+  color: var(--brand-dark);
+}
+
+.main-nav a,
+.text-button {
+  color: var(--muted);
+}
+
+.main-nav a:hover,
+.text-button:hover {
+  color: var(--ink);
+}
+
+.avatar-chip {
+  background: var(--cool);
+  color: var(--surface);
+}
+
+.why-plain-card {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.why-plain-card :where(h1, h2, h3, p, span, li, strong) {
+  color: var(--ink);
+}
+
+.editor-layout-option,
+.layout-block-editor,
+.layout-diagram-loading,
+.layout-diagram-error {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.editor-layout-option span,
+.layout-related-grid a span,
+.layout-steps p,
+.layout-list span {
+  color: var(--muted);
+}
+
+.layout-add-row select,
+.layout-block-fields input,
+.layout-block-fields textarea,
+.layout-block-fields select {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.layout-bg-dark,
+.layout-prompt pre {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.layout-bg-dark :where(h1, h2, h3, p, span, li, strong),
+.layout-prompt pre :where(code, span) {
+  color: var(--bg);
+}
+
+.layout-block {
+  color: var(--ink);
+}
+
+.imagekit-library__header p,
+.imagekit-library__toolbar,
+.imagekit-progress,
+.imagekit-empty,
+.imagekit-loading,
+.imagekit-pagination,
+.imagekit-picker__pages {
+  color: var(--muted);
+}
+
+.imagekit-search,
+.imagekit-asset,
+.imagekit-picker__panel,
+.imagekit-picker__grid button {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.imagekit-search input,
+.imagekit-search button,
+.imagekit-picker__top button,
+.imagekit-asset__body,
+.imagekit-asset__edit label,
+.imagekit-asset__path,
+.imagekit-asset__url,
+.imagekit-asset__alt,
+.imagekit-asset__actions button,
+.imagekit-picker__top,
+.imagekit-picker__grid span,
+.imagekit-picker__empty {
+  color: var(--muted);
+}
+
+.imagekit-asset__preview {
+  background: var(--sand);
+}
+
+.imagekit-asset__preview > button {
+  border-color: var(--surface);
+  color: var(--surface);
+}
+
+.imagekit-not-configured code {
+  background: var(--brand-tint);
+  color: var(--brand-dark);
+}
+
+.imagekit-asset__tags span {
+  background: var(--cool-tint);
+  color: var(--cool);
+}
+
+.imagekit-pagination button,
+.imagekit-picker__pages button {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.vybe-prompt-block {
+  border-color: var(--border-strong);
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.vybe-prompt-block__top {
+  border-color: var(--dark-surface-raised);
+  color: var(--brand-tint);
+}
+
+.vybe-prompt-block__top button,
+.vybe-prompt-block pre,
+.vybe-prompt-block > .vybe-outbound {
+  color: var(--bg);
+}
+
+.vybe-prompt-block .vybe-label {
+  color: var(--brand-tint);
+}
+
+.layout-bg-dark .kicker,
+.layout-bg-dark .layout-block-heading .kicker {
+  color: var(--brand-tint);
+}
+
+.vybe-card__top,
+.vybe-card__play,
+.vybe-card__reveal {
+  color: var(--bg);
+}
+
+.vybe-card__placeholder,
+.vybe-card__placeholder span {
+  color: var(--muted);
+}
+
+.vybe-hero-search button,
+.vybe-hero__action,
+.vybe-primary-action {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.vybe-hero-search button:hover,
+.vybe-hero__action:hover,
+.vybe-primary-action:hover {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--ink);
+}
+
+.vybe-select option {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.admin-sidebar {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.admin-label {
+  color: var(--brand-tint);
+}
+
+.admin-sidebar a:not(.brand-mark) {
+  color: var(--bg);
+}
+
+.admin-sidebar a:not(.brand-mark):hover,
+.admin-sidebar a:not(.brand-mark).active {
+  background: var(--brand-tint);
+  color: var(--ink);
+}
+
+.admin-side-bottom {
+  border-color: var(--dark-surface-raised);
+}
+
+.admin-topbar {
+  color: var(--muted);
+}
+
+.status-badge,
+.status-badge.draft,
+.status-badge.pending {
+  background: var(--cool-tint);
+  color: var(--cool);
+}
+
+.accent-card {
+  border-color: var(--brand);
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.accent-card :where(h1, h3),
+.accent-card h2 {
+  color: var(--bg);
+}
+
+.accent-card .kicker {
+  color: var(--brand-tint);
+}
+
+.accent-card p {
+  color: var(--sand);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-atmosphere::before,
+  .hero-atmosphere::after,
+  .hero-ember,
+  .hero-recipe-preview__flow i,
+  .vybe-orb-core {
+    animation: none !important;
+  }
+}

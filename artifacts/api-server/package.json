@@ -7,7 +7,7 @@
     "dev": "node ./build.mjs && node --env-file=../../.env --env-file=../../.env.local --eval \"process.env.NODE_ENV='development'; import('./dist/index.mjs');\"",
     "build": "node ./build.mjs",
     "start": "node --env-file=../../.env --env-file=../../.env.local --enable-source-maps ./dist/index.mjs",
-    "test": "node --test --experimental-strip-types --experimental-specifier-resolution=node ./src/__tests__/oauth-admin.test.ts ./src/__tests__/recipe-csv-import.test.ts ./src/__tests__/recipe-inputs.test.ts ./src/__tests__/recipe-layout.test.ts ./src/__tests__/recipe-media.test.ts",
+    "test": "node --test --experimental-strip-types --experimental-specifier-resolution=node ./src/__tests__/oauth-admin.test.ts ./src/__tests__/recipe-csv-import.test.ts ./src/__tests__/recipe-inputs.test.ts ./src/__tests__/recipe-layout.test.ts ./src/__tests__/recipe-media.test.ts ./src/__tests__/imagekit.test.ts ./src/__tests__/vybe.test.ts ./src/__tests__/vybe-csv.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

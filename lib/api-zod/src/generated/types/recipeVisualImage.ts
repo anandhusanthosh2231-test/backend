@@ -16,4 +16,14 @@ export interface RecipeVisualImage {
   alt: string;
   /** @maxLength 500 */
   caption?: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  fileId?: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  filePath?: string;
 }

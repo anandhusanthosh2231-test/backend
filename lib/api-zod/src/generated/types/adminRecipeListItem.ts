@@ -9,4 +9,8 @@ import type { RecipeCard } from './recipeCard';
 
 export type AdminRecipeListItem = RecipeCard & {
   status: string;
+  updatedAt: Date;
+  contentType: string;
+  imageUrl?: string;
+  catalogue: string;
 };

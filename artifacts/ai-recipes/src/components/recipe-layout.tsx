@@ -6,6 +6,7 @@ import { RecipePromptInputs } from '@/components/recipe-prompt-inputs';
 import { MediaPicker } from '@/components/admin/MediaPicker';
 import { getRecipePromptFields, getRecipePromptInputErrors, resolveRecipePrompt } from '@/lib/recipe-prompt';
 import { blockKinds, blockLabels, createDefaultRecipeLayout, newId, prioritizePromptWorkflow } from '@/lib/recipe-layout-utils';
+import { CustomRecipeExperience } from '@/components/custom-recipe-experience';
 
 export { createDefaultRecipeLayout, isValidRecipeLayout } from '@/lib/recipe-layout-utils';
 
@@ -163,7 +164,15 @@ export function RecipeLayoutRenderer({
   promptInputErrors: providedPromptInputErrors,
   resolvedPrompt: providedResolvedPrompt,
   onPromptValueChange,
+  onCopyPrompt,
+  copied = false,
+  copyAttempted = false,
+  copyError = false,
+  onShare,
+  saveAction,
+  onRefinementSelect,
   editorPreview = false,
+  recipeBasePath = '/recipes',
 }: {
   recipe: RecipeLayoutData;
   config: RecipeLayoutConfig;
@@ -172,12 +181,20 @@ export function RecipeLayoutRenderer({
   promptInputErrors?: Record<string, string>;
   resolvedPrompt?: string;
   onPromptValueChange?: (name: string, value: string) => void;
+  onCopyPrompt?: (prompt?: string) => void;
+  copied?: boolean;
+  copyAttempted?: boolean;
+  copyError?: boolean;
+  onShare?: () => void;
+  saveAction?: React.ReactNode;
+  onRefinementSelect?: (prompt: string, index: number) => void;
   editorPreview?: boolean;
+  recipeBasePath?: string;
 }) {
   const guide = recipe.guide;
   const promptVariables = getRecipePromptFields(recipe.prompt, guide?.promptVariables ?? []);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [copyError, setCopyError] = useState(false);
+  const [localCopyError, setLocalCopyError] = useState(false);
   const [localPromptValues, setLocalPromptValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(promptVariables.map((field) => [field.name, field.defaultValue ?? ''])),
   );
@@ -192,9 +209,9 @@ export function RecipeLayoutRenderer({
     try {
       await navigator.clipboard.writeText(text);
       setCopiedId(id);
-      setCopyError(false);
+      setLocalCopyError(false);
       window.setTimeout(() => setCopiedId(null), 1800);
-    } catch { setCopiedId(null); setCopyError(true); }
+    } catch { setCopiedId(null); setLocalCopyError(true); }
   };
   const recipeField = (reference: string | undefined): unknown => {
     if (!reference) return '';
@@ -203,6 +220,26 @@ export function RecipeLayoutRenderer({
     if (reference === 'guide.safetyNotes') return guide?.safetyNotes ?? [];
     return recipe[reference as keyof RecipeLayoutData] ?? '';
   };
+
+  if (!editorPreview) {
+    return <CustomRecipeExperience
+      key={`${recipe.title}:${recipe.prompt}`}
+      recipe={recipe}
+      config={config}
+      related={related}
+      promptValues={promptValues}
+      promptInputErrors={promptInputErrors}
+      resolvedPrompt={resolvedPrompt}
+      onPromptValueChange={updatePromptValue}
+      onCopyPrompt={onCopyPrompt ?? ((text) => void copyPrompt('main', text))}
+      copied={copied || copiedId === 'main'}
+      copyAttempted={copyAttempted}
+      copyError={copyError || localCopyError}
+      onShare={onShare}
+      saveAction={saveAction}
+      onRefinementSelect={onRefinementSelect}
+    />;
+  }
 
   const visibleBlocks = config.blocks.filter((block) => block.visible);
   const renderBlocks = editorPreview ? visibleBlocks : prioritizePromptWorkflow(visibleBlocks);
@@ -246,7 +283,7 @@ export function RecipeLayoutRenderer({
             <button type="button" className="button button-dark" disabled={Object.keys(promptInputErrors).length > 0} onClick={() => void copyPrompt(block.id)}><Copy size={15} />{copiedId === block.id ? 'Copied' : 'Copy prompt'}</button>
           </div>
           <pre>{resolvedPrompt}</pre>
-          {copyError && <p className="form-error" role="alert">Clipboard access failed. Select and copy the prompt text above.</p>}
+          {localCopyError && <p className="form-error" role="alert">Clipboard access failed. Select and copy the prompt text above.</p>}
         </div>;
         break;
       case 'example':
@@ -305,7 +342,7 @@ export function RecipeLayoutRenderer({
             : null;
         break;
       case 'related':
-        content = related.length ? <div className="layout-related-grid">{related.map((item) => <a key={item.id} href={`/recipes/${item.slug}`}><strong>{item.title}</strong><span>{item.shortDescription}</span></a>)}</div> : null;
+        content = related.length ? <div className="layout-related-grid">{related.map((item) => <a key={item.id} href={`${recipeBasePath}/${item.slug}`}><strong>{item.title}</strong><span>{item.shortDescription}</span></a>)}</div> : null;
         break;
     }
     if (content === null || content === undefined) return null;

@@ -47,7 +47,10 @@ app.use(cors());
 const defaultJsonParser = express.json();
 const csvImportJsonParser = express.json({ limit: "5mb" });
 app.use((req, res, next) => {
-  const parser = req.path === "/api/admin/recipes/import-csv" ? csvImportJsonParser : defaultJsonParser;
+  const isCsvImport = req.path === "/api/admin/recipes/import-csv"
+    || req.path === "/api/admin/vybe/import/validate"
+    || req.path === "/api/admin/vybe/import/commit";
+  const parser = isCsvImport ? csvImportJsonParser : defaultJsonParser;
   parser(req, res, next);
 });
 app.use(express.urlencoded({ extended: true }));
@@ -66,9 +69,16 @@ const frontendIndexPath = path.join(frontendDistPath, "index.html");
 const hasFrontendBuild = fs.existsSync(frontendIndexPath);
 
 if (hasFrontendBuild) {
-  app.use(express.static(frontendDistPath));
+  app.use(express.static(frontendDistPath, {
+    setHeaders: (res, filePath) => {
+      if (path.extname(filePath).toLowerCase() === ".html") {
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+      }
+    },
+  }));
 
   app.get(/.*/, (req, res) => {
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.sendFile(frontendIndexPath);
   });
 } else {

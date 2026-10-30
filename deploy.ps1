@@ -14,6 +14,7 @@ $adminCategoriesCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/categori
 $categoryDeleteCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/categories/not-a-number'
 $adminAudiencesCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/audiences'
 $bulkUpdateCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/recipes/bulk-update'
+$bulkDeleteCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/recipes/bulk-delete'
 $csvImportCheckUrl = 'https://backend-xkwn.onrender.com/api/admin/recipes/import-csv'
 
 function Get-HttpStatus {
@@ -105,8 +106,9 @@ try {
     $categoryDeleteStatus = Get-HttpStatus -Url $categoryDeleteCheckUrl -Delete
     $adminAudiencesRouteStatus = Get-HttpStatus -Url $adminAudiencesCheckUrl -PostJson
     $bulkUpdateRouteStatus = Get-HttpStatus -Url $bulkUpdateCheckUrl -PostJson
+    $bulkDeleteRouteStatus = Get-HttpStatus -Url $bulkDeleteCheckUrl -PostJson
     $csvImportRouteStatus = Get-HttpStatus -Url $csvImportCheckUrl -PostJson
-    if ($healthStatus -eq '200' -and $mediaStatus -eq '401' -and $audiencesStatus -eq '200' -and $categoryRouteStatus -eq '401' -and $categoryDeleteStatus -eq '401' -and $adminAudiencesRouteStatus -eq '401' -and $bulkUpdateRouteStatus -eq '401' -and $csvImportRouteStatus -eq '401') {
+    if ($healthStatus -eq '200' -and $mediaStatus -eq '401' -and $audiencesStatus -eq '200' -and $categoryRouteStatus -eq '401' -and $categoryDeleteStatus -eq '401' -and $adminAudiencesRouteStatus -eq '401' -and $bulkUpdateRouteStatus -eq '401' -and $bulkDeleteRouteStatus -eq '401' -and $csvImportRouteStatus -eq '401') {
       $renderReady = $true
       break
     }

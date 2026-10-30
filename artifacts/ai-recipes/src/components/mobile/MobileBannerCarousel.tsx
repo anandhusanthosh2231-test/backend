@@ -11,8 +11,7 @@ interface BannerItem {
   subtitle: string;
   linkText: string;
   href: string;
-  accentBg: string;
-  textColor?: string;
+  theme: 'ink' | 'caramel' | 'forest';
 }
 
 interface MobileBannerCarouselProps {
@@ -31,48 +30,44 @@ export function MobileBannerCarousel({ recipeOfDay, loading = false }: MobileBan
           {
             id: 'featured-today',
             badge: 'RECIPE OF THE DAY',
-            badgeIcon: <Flame size={14} className="text-[#e25c38]" />,
+            badgeIcon: <Flame size={14} className="text-brand-dark" />,
             title: recipeOfDay.title,
             subtitle: recipeOfDay.shortDescription || 'One practical workflow tested for real work.',
             linkText: 'Run Recipe',
             href: `/recipes/${recipeOfDay.slug}`,
-            accentBg: 'linear-gradient(135deg, #272235 0%, #171420 100%)',
-            textColor: '#fffdf7',
+            theme: 'ink' as const,
           },
         ]
       : []),
     {
       id: 'indian-first',
       badge: 'INDIAN-FIRST FIELD GUIDE',
-      badgeIcon: <ShieldCheck size={14} className="text-[#388e3c]" />,
+      badgeIcon: <ShieldCheck size={14} className="text-cool" />,
       title: 'Less prompt theatre. More useful work.',
       subtitle: 'Copy-paste instructions tested for Indian businesses, students & freelancers.',
       linkText: 'Browse Shelf',
       href: '/recipes',
-      accentBg: 'linear-gradient(135deg, #874239 0%, #5a2720 100%)',
-      textColor: '#fffdf7',
+      theme: 'caramel' as const,
     },
     {
       id: 'categories-spotlight',
       badge: 'POPULAR WORKFLOWS',
-      badgeIcon: <Sparkles size={14} className="text-[#f6c944]" />,
+      badgeIcon: <Sparkles size={14} className="text-brand" />,
       title: 'Coding, Writing & Market Research',
       subtitle: 'Pick the problem, get step-by-step prompts and verified outputs.',
       linkText: 'Explore Categories',
       href: '/categories',
-      accentBg: 'linear-gradient(135deg, #2d4a3e 0%, #1b3027 100%)',
-      textColor: '#fffdf7',
+      theme: 'forest' as const,
     },
     {
       id: 'submit-workflow',
       badge: 'CONTRIBUTE',
-      badgeIcon: <Check size={14} className="text-[#3a7bd5]" />,
+      badgeIcon: <Check size={14} className="text-cool" />,
       title: 'Have a prompt that saves hours?',
       subtitle: 'Share your proven workflow with the community. We test and publish it.',
       linkText: 'Share Workflow',
       href: '/submit',
-      accentBg: 'linear-gradient(135deg, #2f3e66 0%, #1e2844 100%)',
-      textColor: '#fffdf7',
+      theme: 'ink' as const,
     },
   ];
 
@@ -159,8 +154,7 @@ export function MobileBannerCarousel({ recipeOfDay, loading = false }: MobileBan
           <Link
             key={banner.id}
             href={banner.href}
-            className="flipkart-banner-card"
-            style={{ background: banner.accentBg, color: banner.textColor }}
+            className={`flipkart-banner-card flipkart-banner-card--${banner.theme}`}
             data-testid={`mobile-banner-${banner.id}`}
             data-slide-index={index}
             aria-label={banner.title}

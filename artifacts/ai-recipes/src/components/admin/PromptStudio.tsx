@@ -1,6 +1,7 @@
 import type { RecipeGuide, RecipeGuidePromptType, RecipePromptStudio, RecipeVisualImage } from '@workspace/api-client-react';
 import { ImagePlus, Plus, Trash2 } from 'lucide-react';
 import { MediaPicker } from '@/components/admin/MediaPicker';
+import { ImageKitPicker } from '@/components/admin/ImageKitMediaLibrary';
 import './prompt-studio.css';
 
 const promptTypes: Array<{ value: RecipeGuidePromptType; label: string; help: string }> = [
@@ -84,7 +85,7 @@ export function PromptStudio({
           )}
 
           <div className="prompt-studio__images-heading">
-            <div><h3><ImagePlus size={17} /> Visual references</h3><p>Upload images to Cloudflare storage or use an existing public image URL. The recipe saves the image URL.</p></div>
+            <div><h3><ImagePlus size={17} /> Visual references</h3><p>Choose an ImageKit asset, upload to Cloudflare storage, or use a public image URL.</p></div>
             <button type="button" className="button button-outline" disabled={images.length >= 20} onClick={() => onChange({ imagesJson: [...images, { url: '', alt: '', caption: '' }] })} data-testid="button-prompt-add-image">
               <Plus size={15} /> Add image
             </button>
@@ -99,7 +100,7 @@ export function PromptStudio({
                   <input
                     type="url"
                     value={image.url}
-                    onChange={(event) => updateImage(index, { url: event.target.value })}
+                    onChange={(event) => updateImage(index, { url: event.target.value, fileId: undefined, filePath: undefined })}
                     placeholder="https://your-image-cdn.example/image.webp"
                     data-testid={`input-prompt-image-url-${index}`}
                   />
@@ -108,7 +109,16 @@ export function PromptStudio({
                   recipeId={recipeId}
                   purpose="sections"
                   value={image.url}
-                  onSelect={(url) => updateImage(index, { url })}
+                  onSelect={(url) => updateImage(index, { url, fileId: undefined, filePath: undefined })}
+                />
+                <ImageKitPicker
+                  value={image.url}
+                  onSelect={(asset) => updateImage(index, {
+                    url: asset.url,
+                    fileId: asset.fileId,
+                    filePath: asset.filePath,
+                    alt: asset.alt || image.alt,
+                  })}
                 />
                 <div className="prompt-studio__image-fields">
                   <label>Alt text
@@ -125,6 +135,7 @@ export function PromptStudio({
                   </div>
                 )}
                 {image.url && !isHttpUrl(image.url) && <p className="form-error" role="alert">Enter a valid HTTP or HTTPS image URL to preview and save it.</p>}
+                {image.url && isHttpUrl(image.url) && !image.alt.trim() && <p className="form-error" role="alert">Add alt text before saving this image.</p>}
                 <button type="button" className="prompt-studio__remove" onClick={() => onChange({ imagesJson: images.filter((_, imageIndex) => imageIndex !== index) })} aria-label={`Remove image ${index + 1}`}>
                   <Trash2 size={15} /> Remove image
                 </button>

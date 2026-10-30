@@ -26,22 +26,39 @@ import type {
   AdminSummary,
   AnalyticsResponse,
   Audience,
+  BulkDeleteAdminRecipesBody,
+  BulkDeleteAdminRecipesResponse,
   BulkUpdateAdminRecipesBody,
   BulkUpdateAdminRecipesResponse,
   Category,
   CollectionResponse,
   ErrorResponse,
   EventInput,
+  ExportAdminRecipesCsvParams,
+  ExportAdminVybeCreationsParams,
   FeedbackInput,
   GenerateDraftInput,
+  GetAdminSummaryParams,
   GetRelatedRecipesParams,
   HealthStatus,
   HomeResponse,
+  ImageKitAsset,
+  ImageKitAssetInput,
+  ImageKitAssetListResponse,
+  ImageKitAssetUpdate,
+  ImageKitConfigResponse,
+  ImageKitUploadAuth,
   ImportAdminRecipesBody,
+  ImportAdminRecipesCsvParams,
   ImportAdminRecipesResponse,
+  ListAdminImageKitAssetsParams,
   ListAdminRecipeMediaParams,
   ListAdminRecipesParams,
+  ListAdminVybeCreationsParams,
+  ListAdminVybeCsvImportJobs200,
+  ListAdminVybeCsvImportJobsParams,
   ListRecipesParams,
+  ListVybeCreationsParams,
   MessageResponse,
   Profile,
   Recipe,
@@ -54,7 +71,18 @@ import type {
   SubmissionStatusUpdate,
   SuggestionInput,
   TaxonomyInput,
-  UploadAdminRecipeMediaParams
+  UploadAdminRecipeMediaParams,
+  VybeAdminListResponse,
+  VybeCreation,
+  VybeCreationInput,
+  VybeCsvImportBody,
+  VybeCsvImportCommitBody,
+  VybeCsvImportJob,
+  VybeCsvImportJobResponse,
+  VybeCsvSchema,
+  VybeCsvValidationResponse,
+  VybeListResponse,
+  VybeSummary
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -411,6 +439,1232 @@ export function useGetRelatedRecipes<TData = Awaited<ReturnType<typeof getRelate
 
 
 
+
+export const getListVybeCreationsUrl = (params?: ListVybeCreationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vybe?${stringifiedParams}` : `/api/vybe`
+}
+
+/**
+ * Returns published creations only and is available only when VYBE_ENABLED is true.
+ * @summary Search published VYBE creations
+ */
+export const listVybeCreations = async (params?: ListVybeCreationsParams, options?: Parameters<typeof customFetch>[1]): Promise<VybeListResponse> => {
+
+  return customFetch<VybeListResponse>(getListVybeCreationsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListVybeCreationsQueryKey = (params?: ListVybeCreationsParams,) => {
+    return [
+    `/api/vybe`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListVybeCreationsQueryOptions = <TData = Awaited<ReturnType<typeof listVybeCreations>>, TError = ErrorType<void>>(params?: ListVybeCreationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVybeCreations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListVybeCreationsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVybeCreations>>> = ({ signal }) => listVybeCreations(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listVybeCreations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListVybeCreationsQueryResult = NonNullable<Awaited<ReturnType<typeof listVybeCreations>>>
+export type ListVybeCreationsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Search published VYBE creations
+ */
+
+export function useListVybeCreations<TData = Awaited<ReturnType<typeof listVybeCreations>>, TError = ErrorType<void>>(
+ params?: ListVybeCreationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVybeCreations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListVybeCreationsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetVybeCreationUrl = (slug: string,) => {
+
+
+
+
+  return `/api/vybe/${slug}`
+}
+
+/**
+ * @summary Get a published VYBE creation
+ */
+export const getVybeCreation = async (slug: string, options?: Parameters<typeof customFetch>[1]): Promise<VybeCreation> => {
+
+  return customFetch<VybeCreation>(getGetVybeCreationUrl(slug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVybeCreationQueryKey = (slug: string,) => {
+    return [
+    `/api/vybe/${slug}`
+    ] as const;
+    }
+
+
+export const getGetVybeCreationQueryOptions = <TData = Awaited<ReturnType<typeof getVybeCreation>>, TError = ErrorType<void>>(slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVybeCreation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVybeCreationQueryKey(slug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVybeCreation>>> = ({ signal }) => getVybeCreation(slug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: slug !== null && slug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVybeCreation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVybeCreationQueryResult = NonNullable<Awaited<ReturnType<typeof getVybeCreation>>>
+export type GetVybeCreationQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a published VYBE creation
+ */
+
+export function useGetVybeCreation<TData = Awaited<ReturnType<typeof getVybeCreation>>, TError = ErrorType<void>>(
+ slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVybeCreation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetVybeCreationQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAdminVybeCreationsUrl = (params?: ListAdminVybeCreationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/vybe?${stringifiedParams}` : `/api/admin/vybe`
+}
+
+/**
+ * @summary Search and paginate VYBE creations for admins
+ */
+export const listAdminVybeCreations = async (params?: ListAdminVybeCreationsParams, options?: Parameters<typeof customFetch>[1]): Promise<VybeAdminListResponse> => {
+
+  return customFetch<VybeAdminListResponse>(getListAdminVybeCreationsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminVybeCreationsQueryKey = (params?: ListAdminVybeCreationsParams,) => {
+    return [
+    `/api/admin/vybe`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminVybeCreationsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminVybeCreations>>, TError = ErrorType<void>>(params?: ListAdminVybeCreationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVybeCreations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminVybeCreationsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminVybeCreations>>> = ({ signal }) => listAdminVybeCreations(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminVybeCreations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminVybeCreationsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminVybeCreations>>>
+export type ListAdminVybeCreationsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Search and paginate VYBE creations for admins
+ */
+
+export function useListAdminVybeCreations<TData = Awaited<ReturnType<typeof listAdminVybeCreations>>, TError = ErrorType<void>>(
+ params?: ListAdminVybeCreationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVybeCreations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminVybeCreationsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAdminVybeCreationUrl = () => {
+
+
+
+
+  return `/api/admin/vybe`
+}
+
+/**
+ * @summary Create a VYBE creation
+ */
+export const createAdminVybeCreation = async (vybeCreationInput: VybeCreationInput, options?: Parameters<typeof customFetch>[1]): Promise<VybeCreation> => {
+
+  return customFetch<VybeCreation>(getCreateAdminVybeCreationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vybeCreationInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminVybeCreationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminVybeCreation>>, TError,{data: BodyType<VybeCreationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminVybeCreation>>, TError,{data: BodyType<VybeCreationInput>}, TContext> => {
+
+const mutationKey = ['createAdminVybeCreation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminVybeCreation>>, {data: BodyType<VybeCreationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminVybeCreation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminVybeCreationMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminVybeCreation>>>
+    export type CreateAdminVybeCreationMutationBody = BodyType<VybeCreationInput>
+    export type CreateAdminVybeCreationMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a VYBE creation
+ */
+export const useCreateAdminVybeCreation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminVybeCreation>>, TError,{data: BodyType<VybeCreationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminVybeCreation>>,
+        TError,
+        {data: BodyType<VybeCreationInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminVybeCreationMutationOptions(options));
+    }
+
+export const getGetAdminVybeSummaryUrl = () => {
+
+
+
+
+  return `/api/admin/vybe/summary`
+}
+
+/**
+ * @summary Get VYBE studio dashboard counts
+ */
+export const getAdminVybeSummary = async ( options?: Parameters<typeof customFetch>[1]): Promise<VybeSummary> => {
+
+  return customFetch<VybeSummary>(getGetAdminVybeSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminVybeSummaryQueryKey = () => {
+    return [
+    `/api/admin/vybe/summary`
+    ] as const;
+    }
+
+
+export const getGetAdminVybeSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getAdminVybeSummary>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminVybeSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminVybeSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminVybeSummary>>> = ({ signal }) => getAdminVybeSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminVybeSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminVybeSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminVybeSummary>>>
+export type GetAdminVybeSummaryQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get VYBE studio dashboard counts
+ */
+
+export function useGetAdminVybeSummary<TData = Awaited<ReturnType<typeof getAdminVybeSummary>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminVybeSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminVybeSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminVybeCsvSchemaUrl = () => {
+
+
+
+
+  return `/api/admin/vybe/schema`
+}
+
+/**
+ * @summary Get the versioned VYBE CSV field schema
+ */
+export const getAdminVybeCsvSchema = async ( options?: Parameters<typeof customFetch>[1]): Promise<VybeCsvSchema> => {
+
+  return customFetch<VybeCsvSchema>(getGetAdminVybeCsvSchemaUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminVybeCsvSchemaQueryKey = () => {
+    return [
+    `/api/admin/vybe/schema`
+    ] as const;
+    }
+
+
+export const getGetAdminVybeCsvSchemaQueryOptions = <TData = Awaited<ReturnType<typeof getAdminVybeCsvSchema>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminVybeCsvSchema>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminVybeCsvSchemaQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminVybeCsvSchema>>> = ({ signal }) => getAdminVybeCsvSchema({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminVybeCsvSchema>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminVybeCsvSchemaQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminVybeCsvSchema>>>
+export type GetAdminVybeCsvSchemaQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the versioned VYBE CSV field schema
+ */
+
+export function useGetAdminVybeCsvSchema<TData = Awaited<ReturnType<typeof getAdminVybeCsvSchema>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminVybeCsvSchema>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminVybeCsvSchemaQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDownloadAdminVybeCsvTemplateUrl = () => {
+
+
+
+
+  return `/api/admin/vybe/import/template`
+}
+
+/**
+ * @summary Download a VYBE CSV template
+ */
+export const downloadAdminVybeCsvTemplate = async ( options?: Parameters<typeof customFetch>[1]): Promise<string> => {
+
+  return customFetch<string>(getDownloadAdminVybeCsvTemplateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadAdminVybeCsvTemplateQueryKey = () => {
+    return [
+    `/api/admin/vybe/import/template`
+    ] as const;
+    }
+
+
+export const getDownloadAdminVybeCsvTemplateQueryOptions = <TData = Awaited<ReturnType<typeof downloadAdminVybeCsvTemplate>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadAdminVybeCsvTemplate>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadAdminVybeCsvTemplateQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadAdminVybeCsvTemplate>>> = ({ signal }) => downloadAdminVybeCsvTemplate({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadAdminVybeCsvTemplate>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadAdminVybeCsvTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof downloadAdminVybeCsvTemplate>>>
+export type DownloadAdminVybeCsvTemplateQueryError = ErrorType<void>
+
+
+/**
+ * @summary Download a VYBE CSV template
+ */
+
+export function useDownloadAdminVybeCsvTemplate<TData = Awaited<ReturnType<typeof downloadAdminVybeCsvTemplate>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadAdminVybeCsvTemplate>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadAdminVybeCsvTemplateQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getValidateAdminVybeCsvImportUrl = () => {
+
+
+
+
+  return `/api/admin/vybe/import/validate`
+}
+
+/**
+ * @summary Validate and preview a VYBE CSV without writing records
+ */
+export const validateAdminVybeCsvImport = async (vybeCsvImportBody: VybeCsvImportBody, options?: Parameters<typeof customFetch>[1]): Promise<VybeCsvValidationResponse> => {
+
+  return customFetch<VybeCsvValidationResponse>(getValidateAdminVybeCsvImportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vybeCsvImportBody)
+  }
+);}
+
+
+
+
+
+export const getValidateAdminVybeCsvImportMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof validateAdminVybeCsvImport>>, TError,{data: BodyType<VybeCsvImportBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof validateAdminVybeCsvImport>>, TError,{data: BodyType<VybeCsvImportBody>}, TContext> => {
+
+const mutationKey = ['validateAdminVybeCsvImport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof validateAdminVybeCsvImport>>, {data: BodyType<VybeCsvImportBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  validateAdminVybeCsvImport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ValidateAdminVybeCsvImportMutationResult = NonNullable<Awaited<ReturnType<typeof validateAdminVybeCsvImport>>>
+    export type ValidateAdminVybeCsvImportMutationBody = BodyType<VybeCsvImportBody>
+    export type ValidateAdminVybeCsvImportMutationError = ErrorType<void>
+
+    /**
+ * @summary Validate and preview a VYBE CSV without writing records
+ */
+export const useValidateAdminVybeCsvImport = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof validateAdminVybeCsvImport>>, TError,{data: BodyType<VybeCsvImportBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof validateAdminVybeCsvImport>>,
+        TError,
+        {data: BodyType<VybeCsvImportBody>},
+        TContext
+      > => {
+      return useMutation(getValidateAdminVybeCsvImportMutationOptions(options));
+    }
+
+export const getCommitAdminVybeCsvImportUrl = () => {
+
+
+
+
+  return `/api/admin/vybe/import/commit`
+}
+
+/**
+ * @summary Commit a validated VYBE CSV import with idempotency protection
+ */
+export const commitAdminVybeCsvImport = async (vybeCsvImportCommitBody: VybeCsvImportCommitBody, options?: Parameters<typeof customFetch>[1]): Promise<VybeCsvImportJobResponse> => {
+
+  return customFetch<VybeCsvImportJobResponse>(getCommitAdminVybeCsvImportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vybeCsvImportCommitBody)
+  }
+);}
+
+
+
+
+
+export const getCommitAdminVybeCsvImportMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof commitAdminVybeCsvImport>>, TError,{data: BodyType<VybeCsvImportCommitBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof commitAdminVybeCsvImport>>, TError,{data: BodyType<VybeCsvImportCommitBody>}, TContext> => {
+
+const mutationKey = ['commitAdminVybeCsvImport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof commitAdminVybeCsvImport>>, {data: BodyType<VybeCsvImportCommitBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  commitAdminVybeCsvImport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CommitAdminVybeCsvImportMutationResult = NonNullable<Awaited<ReturnType<typeof commitAdminVybeCsvImport>>>
+    export type CommitAdminVybeCsvImportMutationBody = BodyType<VybeCsvImportCommitBody>
+    export type CommitAdminVybeCsvImportMutationError = ErrorType<void>
+
+    /**
+ * @summary Commit a validated VYBE CSV import with idempotency protection
+ */
+export const useCommitAdminVybeCsvImport = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof commitAdminVybeCsvImport>>, TError,{data: BodyType<VybeCsvImportCommitBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof commitAdminVybeCsvImport>>,
+        TError,
+        {data: BodyType<VybeCsvImportCommitBody>},
+        TContext
+      > => {
+      return useMutation(getCommitAdminVybeCsvImportMutationOptions(options));
+    }
+
+export const getListAdminVybeCsvImportJobsUrl = (params?: ListAdminVybeCsvImportJobsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/vybe/import/jobs?${stringifiedParams}` : `/api/admin/vybe/import/jobs`
+}
+
+/**
+ * @summary List recent VYBE CSV import jobs
+ */
+export const listAdminVybeCsvImportJobs = async (params?: ListAdminVybeCsvImportJobsParams, options?: Parameters<typeof customFetch>[1]): Promise<ListAdminVybeCsvImportJobs200> => {
+
+  return customFetch<ListAdminVybeCsvImportJobs200>(getListAdminVybeCsvImportJobsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminVybeCsvImportJobsQueryKey = (params?: ListAdminVybeCsvImportJobsParams,) => {
+    return [
+    `/api/admin/vybe/import/jobs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminVybeCsvImportJobsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminVybeCsvImportJobs>>, TError = ErrorType<void>>(params?: ListAdminVybeCsvImportJobsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVybeCsvImportJobs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminVybeCsvImportJobsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminVybeCsvImportJobs>>> = ({ signal }) => listAdminVybeCsvImportJobs(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminVybeCsvImportJobs>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminVybeCsvImportJobsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminVybeCsvImportJobs>>>
+export type ListAdminVybeCsvImportJobsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List recent VYBE CSV import jobs
+ */
+
+export function useListAdminVybeCsvImportJobs<TData = Awaited<ReturnType<typeof listAdminVybeCsvImportJobs>>, TError = ErrorType<void>>(
+ params?: ListAdminVybeCsvImportJobsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVybeCsvImportJobs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminVybeCsvImportJobsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminVybeCsvImportJobUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/vybe/import/jobs/${id}`
+}
+
+/**
+ * @summary Get a VYBE CSV import job
+ */
+export const getAdminVybeCsvImportJob = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<VybeCsvImportJob> => {
+
+  return customFetch<VybeCsvImportJob>(getGetAdminVybeCsvImportJobUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminVybeCsvImportJobQueryKey = (id: number,) => {
+    return [
+    `/api/admin/vybe/import/jobs/${id}`
+    ] as const;
+    }
+
+
+export const getGetAdminVybeCsvImportJobQueryOptions = <TData = Awaited<ReturnType<typeof getAdminVybeCsvImportJob>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminVybeCsvImportJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminVybeCsvImportJobQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminVybeCsvImportJob>>> = ({ signal }) => getAdminVybeCsvImportJob(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminVybeCsvImportJob>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminVybeCsvImportJobQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminVybeCsvImportJob>>>
+export type GetAdminVybeCsvImportJobQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a VYBE CSV import job
+ */
+
+export function useGetAdminVybeCsvImportJob<TData = Awaited<ReturnType<typeof getAdminVybeCsvImportJob>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminVybeCsvImportJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminVybeCsvImportJobQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDownloadAdminVybeCsvImportErrorReportUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/vybe/import/jobs/${id}/report`
+}
+
+/**
+ * @summary Download a VYBE CSV import error report
+ */
+export const downloadAdminVybeCsvImportErrorReport = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<string> => {
+
+  return customFetch<string>(getDownloadAdminVybeCsvImportErrorReportUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadAdminVybeCsvImportErrorReportQueryKey = (id: number,) => {
+    return [
+    `/api/admin/vybe/import/jobs/${id}/report`
+    ] as const;
+    }
+
+
+export const getDownloadAdminVybeCsvImportErrorReportQueryOptions = <TData = Awaited<ReturnType<typeof downloadAdminVybeCsvImportErrorReport>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadAdminVybeCsvImportErrorReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadAdminVybeCsvImportErrorReportQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadAdminVybeCsvImportErrorReport>>> = ({ signal }) => downloadAdminVybeCsvImportErrorReport(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadAdminVybeCsvImportErrorReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadAdminVybeCsvImportErrorReportQueryResult = NonNullable<Awaited<ReturnType<typeof downloadAdminVybeCsvImportErrorReport>>>
+export type DownloadAdminVybeCsvImportErrorReportQueryError = ErrorType<void>
+
+
+/**
+ * @summary Download a VYBE CSV import error report
+ */
+
+export function useDownloadAdminVybeCsvImportErrorReport<TData = Awaited<ReturnType<typeof downloadAdminVybeCsvImportErrorReport>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadAdminVybeCsvImportErrorReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadAdminVybeCsvImportErrorReportQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getExportAdminVybeCreationsUrl = (params?: ExportAdminVybeCreationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/vybe/export?${stringifiedParams}` : `/api/admin/vybe/export`
+}
+
+/**
+ * @summary Stream matching VYBE creations as CSV
+ */
+export const exportAdminVybeCreations = async (params?: ExportAdminVybeCreationsParams, options?: Parameters<typeof customFetch>[1]): Promise<string> => {
+
+  return customFetch<string>(getExportAdminVybeCreationsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getExportAdminVybeCreationsQueryKey = (params?: ExportAdminVybeCreationsParams,) => {
+    return [
+    `/api/admin/vybe/export`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getExportAdminVybeCreationsQueryOptions = <TData = Awaited<ReturnType<typeof exportAdminVybeCreations>>, TError = ErrorType<void>>(params?: ExportAdminVybeCreationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportAdminVybeCreations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExportAdminVybeCreationsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportAdminVybeCreations>>> = ({ signal }) => exportAdminVybeCreations(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof exportAdminVybeCreations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ExportAdminVybeCreationsQueryResult = NonNullable<Awaited<ReturnType<typeof exportAdminVybeCreations>>>
+export type ExportAdminVybeCreationsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Stream matching VYBE creations as CSV
+ */
+
+export function useExportAdminVybeCreations<TData = Awaited<ReturnType<typeof exportAdminVybeCreations>>, TError = ErrorType<void>>(
+ params?: ExportAdminVybeCreationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportAdminVybeCreations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getExportAdminVybeCreationsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminVybeCreationUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/vybe/${id}`
+}
+
+/**
+ * @summary Update and publish or unpublish a VYBE creation
+ */
+export const updateAdminVybeCreation = async (id: number,
+    vybeCreationInput: VybeCreationInput, options?: Parameters<typeof customFetch>[1]): Promise<VybeCreation> => {
+
+  return customFetch<VybeCreation>(getUpdateAdminVybeCreationUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vybeCreationInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminVybeCreationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminVybeCreation>>, TError,{id: number;data: BodyType<VybeCreationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminVybeCreation>>, TError,{id: number;data: BodyType<VybeCreationInput>}, TContext> => {
+
+const mutationKey = ['updateAdminVybeCreation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminVybeCreation>>, {id: number;data: BodyType<VybeCreationInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminVybeCreation(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminVybeCreationMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminVybeCreation>>>
+    export type UpdateAdminVybeCreationMutationBody = BodyType<VybeCreationInput>
+    export type UpdateAdminVybeCreationMutationError = ErrorType<void>
+
+    /**
+ * @summary Update and publish or unpublish a VYBE creation
+ */
+export const useUpdateAdminVybeCreation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminVybeCreation>>, TError,{id: number;data: BodyType<VybeCreationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminVybeCreation>>,
+        TError,
+        {id: number;data: BodyType<VybeCreationInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminVybeCreationMutationOptions(options));
+    }
+
+export const getDeleteAdminVybeCreationUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/vybe/${id}`
+}
+
+/**
+ * @summary Delete a VYBE creation without deleting its media assets
+ */
+export const deleteAdminVybeCreation = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteAdminVybeCreationUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAdminVybeCreationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminVybeCreation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAdminVybeCreation>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteAdminVybeCreation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAdminVybeCreation>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteAdminVybeCreation(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAdminVybeCreationMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAdminVybeCreation>>>
+
+    export type DeleteAdminVybeCreationMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a VYBE creation without deleting its media assets
+ */
+export const useDeleteAdminVybeCreation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminVybeCreation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAdminVybeCreation>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteAdminVybeCreationMutationOptions(options));
+    }
+
+export const getDuplicateAdminVybeCreationUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/vybe/${id}/duplicate`
+}
+
+/**
+ * @summary Create a private draft copy of a VYBE creation
+ */
+export const duplicateAdminVybeCreation = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<VybeCreation> => {
+
+  return customFetch<VybeCreation>(getDuplicateAdminVybeCreationUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getDuplicateAdminVybeCreationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof duplicateAdminVybeCreation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof duplicateAdminVybeCreation>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['duplicateAdminVybeCreation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof duplicateAdminVybeCreation>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  duplicateAdminVybeCreation(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DuplicateAdminVybeCreationMutationResult = NonNullable<Awaited<ReturnType<typeof duplicateAdminVybeCreation>>>
+
+    export type DuplicateAdminVybeCreationMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a private draft copy of a VYBE creation
+ */
+export const useDuplicateAdminVybeCreation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof duplicateAdminVybeCreation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof duplicateAdminVybeCreation>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDuplicateAdminVybeCreationMutationOptions(options));
+    }
 
 export const getGetHomeUrl = () => {
 
@@ -1454,20 +2708,27 @@ export function useListHistory<TData = Awaited<ReturnType<typeof listHistory>>, 
 
 
 
-export const getGetAdminSummaryUrl = () => {
+export const getGetAdminSummaryUrl = (params?: GetAdminSummaryParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/summary`
+  return stringifiedParams.length > 0 ? `/api/admin/summary?${stringifiedParams}` : `/api/admin/summary`
 }
 
 /**
  * @summary Get dashboard metrics
  */
-export const getAdminSummary = async ( options?: Parameters<typeof customFetch>[1]): Promise<AdminSummary> => {
+export const getAdminSummary = async (params?: GetAdminSummaryParams, options?: Parameters<typeof customFetch>[1]): Promise<AdminSummary> => {
 
-  return customFetch<AdminSummary>(getGetAdminSummaryUrl(),
+  return customFetch<AdminSummary>(getGetAdminSummaryUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1480,23 +2741,23 @@ export const getAdminSummary = async ( options?: Parameters<typeof customFetch>[
 
 
 
-export const getGetAdminSummaryQueryKey = () => {
+export const getGetAdminSummaryQueryKey = (params?: GetAdminSummaryParams,) => {
     return [
-    `/api/admin/summary`
+    `/api/admin/summary`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetAdminSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getAdminSummary>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdminSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getAdminSummary>>, TError = ErrorType<void>>(params?: GetAdminSummaryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAdminSummaryQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminSummaryQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminSummary>>> = ({ signal }) => getAdminSummary({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminSummary>>> = ({ signal }) => getAdminSummary(params, { signal, ...requestOptions });
 
 
 
@@ -1514,11 +2775,11 @@ export type GetAdminSummaryQueryError = ErrorType<void>
  */
 
 export function useGetAdminSummary<TData = Awaited<ReturnType<typeof getAdminSummary>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetAdminSummaryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetAdminSummaryQueryOptions(options)
+  const queryOptions = getGetAdminSummaryQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1692,6 +2953,458 @@ export const useUploadAdminRecipeMedia = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUploadAdminRecipeMediaMutationOptions(options));
+    }
+
+export const getGetAdminImageKitConfigUrl = () => {
+
+
+
+
+  return `/api/admin/imagekit/config`
+}
+
+/**
+ * @summary Get ImageKit upload configuration
+ */
+export const getAdminImageKitConfig = async ( options?: Parameters<typeof customFetch>[1]): Promise<ImageKitConfigResponse> => {
+
+  return customFetch<ImageKitConfigResponse>(getGetAdminImageKitConfigUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminImageKitConfigQueryKey = () => {
+    return [
+    `/api/admin/imagekit/config`
+    ] as const;
+    }
+
+
+export const getGetAdminImageKitConfigQueryOptions = <TData = Awaited<ReturnType<typeof getAdminImageKitConfig>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminImageKitConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminImageKitConfigQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminImageKitConfig>>> = ({ signal }) => getAdminImageKitConfig({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminImageKitConfig>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminImageKitConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminImageKitConfig>>>
+export type GetAdminImageKitConfigQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get ImageKit upload configuration
+ */
+
+export function useGetAdminImageKitConfig<TData = Awaited<ReturnType<typeof getAdminImageKitConfig>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminImageKitConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminImageKitConfigQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminImageKitUploadAuthUrl = () => {
+
+
+
+
+  return `/api/admin/imagekit/auth`
+}
+
+/**
+ * @summary Generate secure ImageKit Upload File V1 authentication
+ */
+export const getAdminImageKitUploadAuth = async ( options?: Parameters<typeof customFetch>[1]): Promise<ImageKitUploadAuth> => {
+
+  return customFetch<ImageKitUploadAuth>(getGetAdminImageKitUploadAuthUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminImageKitUploadAuthQueryKey = () => {
+    return [
+    `/api/admin/imagekit/auth`
+    ] as const;
+    }
+
+
+export const getGetAdminImageKitUploadAuthQueryOptions = <TData = Awaited<ReturnType<typeof getAdminImageKitUploadAuth>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminImageKitUploadAuth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminImageKitUploadAuthQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminImageKitUploadAuth>>> = ({ signal }) => getAdminImageKitUploadAuth({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminImageKitUploadAuth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminImageKitUploadAuthQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminImageKitUploadAuth>>>
+export type GetAdminImageKitUploadAuthQueryError = ErrorType<void>
+
+
+/**
+ * @summary Generate secure ImageKit Upload File V1 authentication
+ */
+
+export function useGetAdminImageKitUploadAuth<TData = Awaited<ReturnType<typeof getAdminImageKitUploadAuth>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminImageKitUploadAuth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminImageKitUploadAuthQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAdminImageKitAssetsUrl = (params?: ListAdminImageKitAssetsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/imagekit/assets?${stringifiedParams}` : `/api/admin/imagekit/assets`
+}
+
+/**
+ * @summary Search and paginate ImageKit assets
+ */
+export const listAdminImageKitAssets = async (params?: ListAdminImageKitAssetsParams, options?: Parameters<typeof customFetch>[1]): Promise<ImageKitAssetListResponse> => {
+
+  return customFetch<ImageKitAssetListResponse>(getListAdminImageKitAssetsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminImageKitAssetsQueryKey = (params?: ListAdminImageKitAssetsParams,) => {
+    return [
+    `/api/admin/imagekit/assets`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminImageKitAssetsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminImageKitAssets>>, TError = ErrorType<void>>(params?: ListAdminImageKitAssetsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminImageKitAssets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminImageKitAssetsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminImageKitAssets>>> = ({ signal }) => listAdminImageKitAssets(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminImageKitAssets>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminImageKitAssetsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminImageKitAssets>>>
+export type ListAdminImageKitAssetsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Search and paginate ImageKit assets
+ */
+
+export function useListAdminImageKitAssets<TData = Awaited<ReturnType<typeof listAdminImageKitAssets>>, TError = ErrorType<void>>(
+ params?: ListAdminImageKitAssetsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminImageKitAssets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminImageKitAssetsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRegisterAdminImageKitAssetUrl = () => {
+
+
+
+
+  return `/api/admin/imagekit/assets`
+}
+
+/**
+ * @summary Verify and save ImageKit asset metadata
+ */
+export const registerAdminImageKitAsset = async (imageKitAssetInput: ImageKitAssetInput, options?: Parameters<typeof customFetch>[1]): Promise<ImageKitAsset> => {
+
+  return customFetch<ImageKitAsset>(getRegisterAdminImageKitAssetUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(imageKitAssetInput)
+  }
+);}
+
+
+
+
+
+export const getRegisterAdminImageKitAssetMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerAdminImageKitAsset>>, TError,{data: BodyType<ImageKitAssetInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof registerAdminImageKitAsset>>, TError,{data: BodyType<ImageKitAssetInput>}, TContext> => {
+
+const mutationKey = ['registerAdminImageKitAsset'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerAdminImageKitAsset>>, {data: BodyType<ImageKitAssetInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  registerAdminImageKitAsset(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegisterAdminImageKitAssetMutationResult = NonNullable<Awaited<ReturnType<typeof registerAdminImageKitAsset>>>
+    export type RegisterAdminImageKitAssetMutationBody = BodyType<ImageKitAssetInput>
+    export type RegisterAdminImageKitAssetMutationError = ErrorType<void>
+
+    /**
+ * @summary Verify and save ImageKit asset metadata
+ */
+export const useRegisterAdminImageKitAsset = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerAdminImageKitAsset>>, TError,{data: BodyType<ImageKitAssetInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof registerAdminImageKitAsset>>,
+        TError,
+        {data: BodyType<ImageKitAssetInput>},
+        TContext
+      > => {
+      return useMutation(getRegisterAdminImageKitAssetMutationOptions(options));
+    }
+
+export const getUpdateAdminImageKitAssetUrl = (fileId: string,) => {
+
+
+
+
+  return `/api/admin/imagekit/assets/${fileId}`
+}
+
+/**
+ * @summary Update ImageKit asset alt text and tags
+ */
+export const updateAdminImageKitAsset = async (fileId: string,
+    imageKitAssetUpdate: ImageKitAssetUpdate, options?: Parameters<typeof customFetch>[1]): Promise<ImageKitAsset> => {
+
+  return customFetch<ImageKitAsset>(getUpdateAdminImageKitAssetUrl(fileId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(imageKitAssetUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminImageKitAssetMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminImageKitAsset>>, TError,{fileId: string;data: BodyType<ImageKitAssetUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminImageKitAsset>>, TError,{fileId: string;data: BodyType<ImageKitAssetUpdate>}, TContext> => {
+
+const mutationKey = ['updateAdminImageKitAsset'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminImageKitAsset>>, {fileId: string;data: BodyType<ImageKitAssetUpdate>}> = (props) => {
+          const {fileId,data} = props ?? {};
+
+          return  updateAdminImageKitAsset(fileId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminImageKitAssetMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminImageKitAsset>>>
+    export type UpdateAdminImageKitAssetMutationBody = BodyType<ImageKitAssetUpdate>
+    export type UpdateAdminImageKitAssetMutationError = ErrorType<void>
+
+    /**
+ * @summary Update ImageKit asset alt text and tags
+ */
+export const useUpdateAdminImageKitAsset = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminImageKitAsset>>, TError,{fileId: string;data: BodyType<ImageKitAssetUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminImageKitAsset>>,
+        TError,
+        {fileId: string;data: BodyType<ImageKitAssetUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminImageKitAssetMutationOptions(options));
+    }
+
+export const getDeleteAdminImageKitAssetUrl = (fileId: string,) => {
+
+
+
+
+  return `/api/admin/imagekit/assets/${fileId}`
+}
+
+/**
+ * @summary Delete an unreferenced ImageKit asset
+ */
+export const deleteAdminImageKitAsset = async (fileId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteAdminImageKitAssetUrl(fileId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAdminImageKitAssetMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminImageKitAsset>>, TError,{fileId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAdminImageKitAsset>>, TError,{fileId: string}, TContext> => {
+
+const mutationKey = ['deleteAdminImageKitAsset'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAdminImageKitAsset>>, {fileId: string}> = (props) => {
+          const {fileId} = props ?? {};
+
+          return  deleteAdminImageKitAsset(fileId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAdminImageKitAssetMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAdminImageKitAsset>>>
+
+    export type DeleteAdminImageKitAssetMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete an unreferenced ImageKit asset
+ */
+export const useDeleteAdminImageKitAsset = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminImageKitAsset>>, TError,{fileId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAdminImageKitAsset>>,
+        TError,
+        {fileId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteAdminImageKitAssetMutationOptions(options));
     }
 
 export const getListAdminRecipesUrl = (params?: ListAdminRecipesParams,) => {
@@ -1921,21 +3634,101 @@ export const useBulkUpdateAdminRecipes = <TError = ErrorType<void>,
       return useMutation(getBulkUpdateAdminRecipesMutationOptions(options));
     }
 
-export const getImportAdminRecipesCsvUrl = () => {
+export const getBulkDeleteAdminRecipesUrl = () => {
 
 
 
 
-  return `/api/admin/recipes/import-csv`
+  return `/api/admin/recipes/bulk-delete`
+}
+
+/**
+ * Deletes up to 500 selected recipes and their related activity records in one transaction.
+ * @summary Delete selected admin recipes
+ */
+export const bulkDeleteAdminRecipes = async (bulkDeleteAdminRecipesBody: BulkDeleteAdminRecipesBody, options?: Parameters<typeof customFetch>[1]): Promise<BulkDeleteAdminRecipesResponse> => {
+
+  return customFetch<BulkDeleteAdminRecipesResponse>(getBulkDeleteAdminRecipesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkDeleteAdminRecipesBody)
+  }
+);}
+
+
+
+
+
+export const getBulkDeleteAdminRecipesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkDeleteAdminRecipes>>, TError,{data: BodyType<BulkDeleteAdminRecipesBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkDeleteAdminRecipes>>, TError,{data: BodyType<BulkDeleteAdminRecipesBody>}, TContext> => {
+
+const mutationKey = ['bulkDeleteAdminRecipes'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkDeleteAdminRecipes>>, {data: BodyType<BulkDeleteAdminRecipesBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkDeleteAdminRecipes(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkDeleteAdminRecipesMutationResult = NonNullable<Awaited<ReturnType<typeof bulkDeleteAdminRecipes>>>
+    export type BulkDeleteAdminRecipesMutationBody = BodyType<BulkDeleteAdminRecipesBody>
+    export type BulkDeleteAdminRecipesMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete selected admin recipes
+ */
+export const useBulkDeleteAdminRecipes = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkDeleteAdminRecipes>>, TError,{data: BodyType<BulkDeleteAdminRecipesBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkDeleteAdminRecipes>>,
+        TError,
+        {data: BodyType<BulkDeleteAdminRecipesBody>},
+        TContext
+      > => {
+      return useMutation(getBulkDeleteAdminRecipesMutationOptions(options));
+    }
+
+export const getImportAdminRecipesCsvUrl = (params?: ImportAdminRecipesCsvParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/recipes/import-csv?${stringifiedParams}` : `/api/admin/recipes/import-csv`
 }
 
 /**
  * Previews or imports up to 500 recipe rows. Set preview to true to validate without writing; any invalid row prevents the full batch from committing. CSV schema version 2 supports JSON-encoded dynamic inputs, workflow steps, output structures, and custom layout configuration. Existing slugs are create-only unless csv_action explicitly requests an update.
  * @summary Import recipes from a CSV spreadsheet
  */
-export const importAdminRecipesCsv = async (importAdminRecipesBody: ImportAdminRecipesBody, options?: Parameters<typeof customFetch>[1]): Promise<ImportAdminRecipesResponse> => {
+export const importAdminRecipesCsv = async (importAdminRecipesBody: ImportAdminRecipesBody,
+    params?: ImportAdminRecipesCsvParams, options?: Parameters<typeof customFetch>[1]): Promise<ImportAdminRecipesResponse> => {
 
-  return customFetch<ImportAdminRecipesResponse>(getImportAdminRecipesCsvUrl(),
+  return customFetch<ImportAdminRecipesResponse>(getImportAdminRecipesCsvUrl(params),
   {
     ...options,
     method: 'POST',
@@ -1949,8 +3742,8 @@ export const importAdminRecipesCsv = async (importAdminRecipesBody: ImportAdminR
 
 
 export const getImportAdminRecipesCsvMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importAdminRecipesCsv>>, TError,{data: BodyType<ImportAdminRecipesBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof importAdminRecipesCsv>>, TError,{data: BodyType<ImportAdminRecipesBody>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importAdminRecipesCsv>>, TError,{data: BodyType<ImportAdminRecipesBody>;params?: ImportAdminRecipesCsvParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importAdminRecipesCsv>>, TError,{data: BodyType<ImportAdminRecipesBody>;params?: ImportAdminRecipesCsvParams}, TContext> => {
 
 const mutationKey = ['importAdminRecipesCsv'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1962,10 +3755,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importAdminRecipesCsv>>, {data: BodyType<ImportAdminRecipesBody>}> = (props) => {
-          const {data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importAdminRecipesCsv>>, {data: BodyType<ImportAdminRecipesBody>;params?: ImportAdminRecipesCsvParams}> = (props) => {
+          const {data,params} = props ?? {};
 
-          return  importAdminRecipesCsv(data,requestOptions)
+          return  importAdminRecipesCsv(data,params,requestOptions)
         }
 
 
@@ -1983,30 +3776,37 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  * @summary Import recipes from a CSV spreadsheet
  */
 export const useImportAdminRecipesCsv = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importAdminRecipesCsv>>, TError,{data: BodyType<ImportAdminRecipesBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importAdminRecipesCsv>>, TError,{data: BodyType<ImportAdminRecipesBody>;params?: ImportAdminRecipesCsvParams}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof importAdminRecipesCsv>>,
         TError,
-        {data: BodyType<ImportAdminRecipesBody>},
+        {data: BodyType<ImportAdminRecipesBody>;params?: ImportAdminRecipesCsvParams},
         TContext
       > => {
       return useMutation(getImportAdminRecipesCsvMutationOptions(options));
     }
 
-export const getExportAdminRecipesCsvUrl = () => {
+export const getExportAdminRecipesCsvUrl = (params?: ExportAdminRecipesCsvParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/recipes/export-csv`
+  return stringifiedParams.length > 0 ? `/api/admin/recipes/export-csv?${stringifiedParams}` : `/api/admin/recipes/export-csv`
 }
 
 /**
  * @summary Export recipes using CSV schema version 2
  */
-export const exportAdminRecipesCsv = async ( options?: Parameters<typeof customFetch>[1]): Promise<string> => {
+export const exportAdminRecipesCsv = async (params?: ExportAdminRecipesCsvParams, options?: Parameters<typeof customFetch>[1]): Promise<string> => {
 
-  return customFetch<string>(getExportAdminRecipesCsvUrl(),
+  return customFetch<string>(getExportAdminRecipesCsvUrl(params),
   {
     ...options,
     method: 'GET'
@@ -2019,23 +3819,23 @@ export const exportAdminRecipesCsv = async ( options?: Parameters<typeof customF
 
 
 
-export const getExportAdminRecipesCsvQueryKey = () => {
+export const getExportAdminRecipesCsvQueryKey = (params?: ExportAdminRecipesCsvParams,) => {
     return [
-    `/api/admin/recipes/export-csv`
+    `/api/admin/recipes/export-csv`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getExportAdminRecipesCsvQueryOptions = <TData = Awaited<ReturnType<typeof exportAdminRecipesCsv>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportAdminRecipesCsv>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getExportAdminRecipesCsvQueryOptions = <TData = Awaited<ReturnType<typeof exportAdminRecipesCsv>>, TError = ErrorType<void>>(params?: ExportAdminRecipesCsvParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportAdminRecipesCsv>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getExportAdminRecipesCsvQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getExportAdminRecipesCsvQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportAdminRecipesCsv>>> = ({ signal }) => exportAdminRecipesCsv({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportAdminRecipesCsv>>> = ({ signal }) => exportAdminRecipesCsv(params, { signal, ...requestOptions });
 
 
 
@@ -2053,11 +3853,11 @@ export type ExportAdminRecipesCsvQueryError = ErrorType<void>
  */
 
 export function useExportAdminRecipesCsv<TData = Awaited<ReturnType<typeof exportAdminRecipesCsv>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportAdminRecipesCsv>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ExportAdminRecipesCsvParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportAdminRecipesCsv>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getExportAdminRecipesCsvQueryOptions(options)
+  const queryOptions = getExportAdminRecipesCsvQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -2426,6 +4226,83 @@ export const useUpdateAdminAudience = <TError = ErrorType<void>,
       > => {
       return useMutation(getUpdateAdminAudienceMutationOptions(options));
     }
+
+export const getGetAdminRecipeUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/recipes/${id}`
+}
+
+/**
+ * @summary Get an admin recipe, including unpublished content
+ */
+export const getAdminRecipe = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Recipe> => {
+
+  return customFetch<Recipe>(getGetAdminRecipeUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminRecipeQueryKey = (id: number,) => {
+    return [
+    `/api/admin/recipes/${id}`
+    ] as const;
+    }
+
+
+export const getGetAdminRecipeQueryOptions = <TData = Awaited<ReturnType<typeof getAdminRecipe>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminRecipe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminRecipeQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminRecipe>>> = ({ signal }) => getAdminRecipe(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminRecipe>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminRecipeQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminRecipe>>>
+export type GetAdminRecipeQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get an admin recipe, including unpublished content
+ */
+
+export function useGetAdminRecipe<TData = Awaited<ReturnType<typeof getAdminRecipe>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminRecipe>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminRecipeQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getUpdateAdminRecipeUrl = (id: number,) => {
 

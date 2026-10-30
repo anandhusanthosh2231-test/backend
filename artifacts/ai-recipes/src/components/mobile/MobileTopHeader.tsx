@@ -42,7 +42,7 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
   };
 
   return (
-    <header className="flipkart-mobile-header" role="banner">
+    <header className={`flipkart-mobile-header${location === '/' ? ' flipkart-mobile-header--home' : ''}`} role="banner">
       <div className="flipkart-mobile-header__top-row">
         <div className="flipkart-mobile-header__left">
           {isDetailPage ? (
@@ -61,14 +61,14 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
                 <source srcSet="/taskbakeai-mark-96.webp" type="image/webp" />
                 <img className="flipkart-mobile-header__brand-mark" src="/taskbakeai-mark.png" width="96" height="96" alt="" decoding="async" />
               </picture>
-              <span className="flipkart-mobile-header__brand-text">TaskBakeAI</span>
+              <span className="flipkart-mobile-header__brand-text">TaskBake<span>AI</span></span>
             </Link>
         </div>
 
         <div className="flipkart-mobile-header__actions">
           <Link
             href="/submit"
-            className="flipkart-mobile-header__action-btn create-btn"
+            className="flipkart-mobile-header__action-btn create-btn btn-secondary"
             aria-label="Create recipe"
             data-testid="mobile-link-submit"
           >
@@ -78,7 +78,7 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
           {isSignedIn ? (
             <Link
               href="/saved"
-              className="flipkart-mobile-header__action-btn"
+              className="flipkart-mobile-header__action-btn btn-secondary"
               aria-label="Saved Shelf"
               data-testid="mobile-link-saved"
             >
@@ -87,7 +87,7 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
           ) : (
             <Link
               href="/sign-in"
-              className="flipkart-mobile-header__login-pill"
+              className="flipkart-mobile-header__login-pill btn-secondary"
               data-testid="mobile-link-signin"
             >
               Sign in
@@ -107,7 +107,7 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
             type="search"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            placeholder="Search AI recipes, prompts, tools..."
+            placeholder="Search recipes, prompts..."
             aria-label="Search recipes"
             className="flipkart-mobile-header__search-input"
             data-testid="mobile-input-search"
@@ -123,7 +123,15 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
               <X size={16} />
             </button>
           ) : (
-            <span className="flipkart-mobile-header__search-badge">Explore</span>
+            <button
+              type="submit"
+              className="flipkart-mobile-header__search-submit"
+              aria-label="Search"
+              data-testid="mobile-button-search"
+            >
+              <Search size={17} aria-hidden="true" />
+              <span>Explore</span>
+            </button>
           )}
         </form>
       </div>

@@ -15,6 +15,7 @@ tags:
   - name: engagement
   - name: submissions
   - name: admin
+  - name: vybe
 paths:
   /healthz:
     get:
@@ -85,6 +86,281 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/RecipeCard" }
+  /vybe:
+    get:
+      operationId: listVybeCreations
+      tags: [vybe]
+      summary: Search published VYBE creations
+      description: Returns published creations only and is available only when VYBE_ENABLED is true.
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: category, in: query, schema: { type: string, maxLength: 80 } }
+        - { name: contentType, in: query, schema: { $ref: "#/components/schemas/VybeContentType" } }
+        - { name: featured, in: query, schema: { type: boolean, default: false } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 24 } }
+      responses:
+        "200":
+          description: Published VYBE creations
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VybeListResponse" }
+        "404": { description: VYBE public discovery is disabled }
+  /vybe/{slug}:
+    get:
+      operationId: getVybeCreation
+      tags: [vybe]
+      summary: Get a published VYBE creation
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Published VYBE creation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VybeCreation" }
+        "404": { description: VYBE is disabled or the creation is not public }
+  /admin/vybe:
+    get:
+      operationId: listAdminVybeCreations
+      tags: [admin, vybe]
+      summary: Search and paginate VYBE creations for admins
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: status, in: query, schema: { type: string, enum: [DRAFT, PUBLISHED, ARCHIVED] } }
+        - { name: category, in: query, schema: { type: string, maxLength: 80 } }
+        - { name: contentType, in: query, schema: { $ref: "#/components/schemas/VybeContentType" } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 24 } }
+      responses:
+        "200":
+          description: Admin VYBE records
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VybeAdminListResponse" }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+    post:
+      operationId: createAdminVybeCreation
+      tags: [admin, vybe]
+      summary: Create a VYBE creation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VybeCreationInput" }
+      responses:
+        "201":
+          description: VYBE creation created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VybeCreation" }
+        "400": { description: Invalid VYBE content }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "409": { description: Slug is already in use }
+  /admin/vybe/summary:
+    get:
+      operationId: getAdminVybeSummary
+      tags: [admin, vybe]
+      summary: Get VYBE studio dashboard counts
+      responses:
+        "200":
+          description: VYBE record counts
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VybeSummary" }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+  /admin/vybe/schema:
+    get:
+      operationId: getAdminVybeCsvSchema
+      tags: [admin, vybe]
+      summary: Get the versioned VYBE CSV field schema
+      responses:
+        "200":
+          description: Editable VYBE fields and CSV limits
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VybeCsvSchema" }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+  /admin/vybe/import/template:
+    get:
+      operationId: downloadAdminVybeCsvTemplate
+      tags: [admin, vybe]
+      summary: Download a VYBE CSV template
+      responses:
+        "200":
+          description: Versioned CSV template
+          content:
+            text/csv:
+              schema: { type: string }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+  /admin/vybe/import/validate:
+    post:
+      operationId: validateAdminVybeCsvImport
+      tags: [admin, vybe]
+      summary: Validate and preview a VYBE CSV without writing records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VybeCsvImportBody" }
+      responses:
+        "200":
+          description: Row validation results and conflict counts
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VybeCsvValidationResponse" }
+        "400": { description: CSV parsing or mapping error }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+  /admin/vybe/import/commit:
+    post:
+      operationId: commitAdminVybeCsvImport
+      tags: [admin, vybe]
+      summary: Commit a validated VYBE CSV import with idempotency protection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VybeCsvImportCommitBody" }
+      responses:
+        "201":
+          description: Import completed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VybeCsvImportJobResponse" }
+        "207":
+          description: Import completed with invalid rows
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VybeCsvImportJobResponse" }
+        "400": { description: CSV parsing or mapping error }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+  /admin/vybe/import/jobs:
+    get:
+      operationId: listAdminVybeCsvImportJobs
+      tags: [admin, vybe]
+      summary: List recent VYBE CSV import jobs
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+      responses:
+        "200":
+          description: Recent import jobs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs: { type: array, items: { $ref: "#/components/schemas/VybeCsvImportJobSummary" } }
+                required: [jobs]
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+  /admin/vybe/import/jobs/{id}:
+    get:
+      operationId: getAdminVybeCsvImportJob
+      tags: [admin, vybe]
+      summary: Get a VYBE CSV import job
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: Import job and report
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VybeCsvImportJob" }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: Import job not found }
+  /admin/vybe/import/jobs/{id}/report:
+    get:
+      operationId: downloadAdminVybeCsvImportErrorReport
+      tags: [admin, vybe]
+      summary: Download a VYBE CSV import error report
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "200":
+          description: CSV report of invalid imported rows
+          content:
+            text/csv:
+              schema: { type: string }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: Import job not found }
+  /admin/vybe/export:
+    get:
+      operationId: exportAdminVybeCreations
+      tags: [admin, vybe]
+      summary: Stream matching VYBE creations as CSV
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: status, in: query, schema: { type: string, enum: [DRAFT, PUBLISHED, ARCHIVED] } }
+        - { name: category, in: query, schema: { type: string, maxLength: 80 } }
+        - { name: contentType, in: query, schema: { $ref: "#/components/schemas/VybeContentType" } }
+        - { name: ids, in: query, description: Comma-separated selection of up to 500 IDs, schema: { type: string } }
+        - { name: sort, in: query, schema: { type: string, enum: [title, status, featured] } }
+      responses:
+        "200":
+          description: VYBE CSV export
+          content:
+            text/csv:
+              schema: { type: string }
+        "400": { description: Invalid export selection }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+  /admin/vybe/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    patch:
+      operationId: updateAdminVybeCreation
+      tags: [admin, vybe]
+      summary: Update and publish or unpublish a VYBE creation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VybeCreationInput" }
+      responses:
+        "200":
+          description: Updated VYBE creation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VybeCreation" }
+        "400": { description: Invalid VYBE content }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: VYBE creation not found }
+        "409": { description: Slug is already in use }
+    delete:
+      operationId: deleteAdminVybeCreation
+      tags: [admin, vybe]
+      summary: Delete a VYBE creation without deleting its media assets
+      responses:
+        "200": { description: VYBE creation deleted }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: VYBE creation not found }
+  /admin/vybe/{id}/duplicate:
+    post:
+      operationId: duplicateAdminVybeCreation
+      tags: [admin, vybe]
+      summary: Create a private draft copy of a VYBE creation
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        "201":
+          description: Draft copy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VybeCreation" }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: VYBE creation not found }
   /home:
     get:
       operationId: getHome
@@ -272,6 +548,8 @@ paths:
       operationId: getAdminSummary
       tags: [admin]
       summary: Get dashboard metrics
+      parameters:
+        - { name: catalogue, in: query, schema: { type: string, default: TASKBAKE } }
       responses:
         "200":
           description: Admin metrics
@@ -326,6 +604,104 @@ paths:
         "403": { description: Admin access required }
         "413": { description: Image exceeds the configured size limit }
         "503": { description: R2 is not configured }
+  /admin/imagekit/config:
+    get:
+      operationId: getAdminImageKitConfig
+      tags: [admin]
+      summary: Get ImageKit upload configuration
+      responses:
+        "200":
+          description: ImageKit public configuration
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImageKitConfigResponse" }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+  /admin/imagekit/auth:
+    get:
+      operationId: getAdminImageKitUploadAuth
+      tags: [admin]
+      summary: Generate secure ImageKit Upload File V1 authentication
+      responses:
+        "200":
+          description: Short-lived signature for an admin upload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImageKitUploadAuth" }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "503": { description: ImageKit is not configured }
+  /admin/imagekit/assets:
+    get:
+      operationId: listAdminImageKitAssets
+      tags: [admin]
+      summary: Search and paginate ImageKit assets
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: fileType, in: query, schema: { type: string, enum: [image, non-image] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 24 } }
+      responses:
+        "200":
+          description: ImageKit assets
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImageKitAssetListResponse" }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+    post:
+      operationId: registerAdminImageKitAsset
+      tags: [admin]
+      summary: Verify and save ImageKit asset metadata
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImageKitAssetInput" }
+      responses:
+        "201":
+          description: Verified asset metadata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImageKitAsset" }
+        "400": { description: Invalid or unverified asset metadata }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "503": { description: ImageKit is not configured }
+  /admin/imagekit/assets/{fileId}:
+    parameters:
+      - { name: fileId, in: path, required: true, schema: { type: string, maxLength: 200 } }
+    patch:
+      operationId: updateAdminImageKitAsset
+      tags: [admin]
+      summary: Update ImageKit asset alt text and tags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImageKitAssetUpdate" }
+      responses:
+        "200":
+          description: Updated ImageKit asset metadata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImageKitAsset" }
+        "400": { description: Invalid asset metadata }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: ImageKit asset not found }
+    delete:
+      operationId: deleteAdminImageKitAsset
+      tags: [admin]
+      summary: Delete an unreferenced ImageKit asset
+      responses:
+        "200":
+          description: ImageKit asset deleted
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: ImageKit asset not found }
+        "409": { description: Image asset is still referenced by recipes }
+        "503": { description: ImageKit is not configured }
   /admin/recipes:
     get:
       operationId: listAdminRecipes
@@ -335,6 +711,7 @@ paths:
         - { name: q, in: query, schema: { type: string } }
         - { name: status, in: query, schema: { type: string } }
         - { name: category, in: query, schema: { type: string } }
+        - { name: catalogue, in: query, schema: { type: string, default: TASKBAKE } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
       responses:
         "200":
@@ -378,11 +755,34 @@ paths:
         "401": { description: Authentication required }
         "403": { description: Admin access required }
         "404": { description: Category or recipe not found }
+  /admin/recipes/bulk-delete:
+    post:
+      operationId: bulkDeleteAdminRecipes
+      tags: [admin]
+      summary: Delete selected admin recipes
+      description: Deletes up to 500 selected recipes and their related activity records in one transaction.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BulkDeleteAdminRecipesBody" }
+      responses:
+        "200":
+          description: Number of recipes deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BulkDeleteAdminRecipesResponse" }
+        "400": { description: Invalid bulk delete request }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: One or more recipes were not found }
   /admin/recipes/import-csv:
     post:
       operationId: importAdminRecipesCsv
       tags: [admin]
       summary: Import recipes from a CSV spreadsheet
+      parameters:
+        - { name: catalogue, in: query, schema: { type: string, default: TASKBAKE } }
       description: >-
         Previews or imports up to 500 recipe rows. Set preview to true to validate
         without writing; any invalid row prevents the full batch from committing.
@@ -408,6 +808,8 @@ paths:
       operationId: exportAdminRecipesCsv
       tags: [admin]
       summary: Export recipes using CSV schema version 2
+      parameters:
+        - { name: catalogue, in: query, schema: { type: string, default: TASKBAKE } }
       responses:
         "200":
           description: Recipe data in versioned CSV format
@@ -516,6 +918,21 @@ paths:
         "404": { description: Audience not found }
         "409": { description: Audience name or slug already exists }
   /admin/recipes/{id}:
+    get:
+      operationId: getAdminRecipe
+      tags: [admin]
+      summary: Get an admin recipe, including unpublished content
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: number } }
+      responses:
+        "200":
+          description: Recipe available to an authorized administrator
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Recipe" }
+        "401": { description: Authentication required }
+        "403": { description: Admin access required }
+        "404": { description: Recipe not found }
     patch:
       operationId: updateAdminRecipe
       tags: [admin]
@@ -622,6 +1039,191 @@ paths:
               schema: { $ref: "#/components/schemas/AnalyticsResponse" }
 components:
   schemas:
+    VybeContentType:
+      type: string
+      enum: [image, video, art, design, "3d", app, game, interactive, custom]
+    VybeUrl:
+      anyOf:
+        - { type: string, maxLength: 0 }
+        - { type: string, format: uri, pattern: "^https://" }
+    VybeAsset:
+      type: object
+      properties:
+        assetId: { type: string, maxLength: 200 }
+        url: { type: string, format: uri, pattern: "^https://", maxLength: 2048 }
+        alt: { type: string, maxLength: 500 }
+        type: { type: string, enum: [image, video] }
+        caption: { type: string, maxLength: 500 }
+      required: [url, alt, type]
+    VybeCreationInput:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 160 }
+        slug: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", maxLength: 180 }
+        shortDescription: { type: string, minLength: 1, maxLength: 280 }
+        description: { type: string, minLength: 1, maxLength: 12000 }
+        category: { type: string, minLength: 1, maxLength: 80 }
+        contentType: { $ref: "#/components/schemas/VybeContentType" }
+        model: { type: string, maxLength: 160 }
+        models: { type: array, maxItems: 20, items: { type: string, minLength: 1, maxLength: 100 } }
+        prompt: { type: string, maxLength: 20000 }
+        negativePrompt: { type: string, maxLength: 10000 }
+        style: { type: string, maxLength: 500 }
+        aspectRatio: { type: string, maxLength: 40 }
+        parameters: { type: object, additionalProperties: true }
+        scene: { type: string, maxLength: 10000 }
+        motion: { type: string, maxLength: 10000 }
+        cameraInstructions: { type: string, maxLength: 10000 }
+        durationSeconds: { type: [integer, "null"], minimum: 1, maximum: 3600 }
+        videoUrl: { $ref: "#/components/schemas/VybeUrl" }
+        posterUrl: { $ref: "#/components/schemas/VybeUrl" }
+        visualReferences: { type: array, maxItems: 30, items: { $ref: "#/components/schemas/VybeAsset" } }
+        exampleOutputs: { type: array, maxItems: 30, items: { $ref: "#/components/schemas/VybeAsset" } }
+        refinementInstructions: { type: string, maxLength: 10000 }
+        builderInstructions: { type: string, maxLength: 20000 }
+        tools: { type: array, maxItems: 30, items: { type: string, minLength: 1, maxLength: 100 } }
+        demoUrl: { $ref: "#/components/schemas/VybeUrl" }
+        verificationDetails: { type: string, maxLength: 10000 }
+        experienceUrl: { $ref: "#/components/schemas/VybeUrl" }
+        experienceControls: { type: array, maxItems: 30, items: { type: string, minLength: 1, maxLength: 200 } }
+        mediaAssets: { type: array, maxItems: 50, items: { $ref: "#/components/schemas/VybeAsset" } }
+        extraData: { type: object, additionalProperties: true }
+        imageUrl: { $ref: "#/components/schemas/VybeUrl" }
+        imageAlt: { type: string, maxLength: 500 }
+        tags: { type: array, maxItems: 30, items: { type: string, minLength: 1, maxLength: 50 } }
+        status: { type: string, enum: [DRAFT, PUBLISHED, ARCHIVED] }
+        featured: { type: boolean }
+        featuredPosition: { type: integer, minimum: 0, maximum: 10000 }
+        trending: { type: boolean }
+      required: [title, slug, shortDescription, description, contentType]
+    VybeCreation:
+      allOf:
+        - $ref: "#/components/schemas/VybeCreationInput"
+        - type: object
+          properties:
+            id: { type: integer }
+            publishedAt: { type: [string, "null"], format: date-time }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+            metadata: { type: [object, "null"], additionalProperties: true }
+          required: [id, publishedAt, createdAt, updatedAt]
+    VybeListResponse:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/VybeCreation" } }
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        categories: { type: array, items: { type: string } }
+      required: [items, page, pageSize, total, categories]
+    VybeAdminListResponse:
+      allOf:
+        - $ref: "#/components/schemas/VybeListResponse"
+    VybeSummary:
+      type: object
+      properties:
+        total: { type: integer }
+        drafts: { type: integer }
+        published: { type: integer }
+        archived: { type: integer }
+        featured: { type: integer }
+        categories: { type: integer }
+      required: [total, drafts, published, archived, featured, categories]
+    VybeCsvField:
+      type: object
+      properties:
+        name: { type: string }
+        type: { type: string }
+        required: { type: boolean }
+        values: { type: array, items: { type: string } }
+      required: [name, type, required]
+    VybeCsvSchema:
+      type: object
+      properties:
+        version: { type: string }
+        maxBytes: { type: integer }
+        maxRows: { type: integer }
+        strategies: { type: array, items: { type: string, enum: [create-only, update-existing, upsert] } }
+        fields: { type: array, items: { $ref: "#/components/schemas/VybeCsvField" } }
+        protectedFields: { type: array, items: { type: string } }
+      required: [version, maxBytes, maxRows, strategies, fields, protectedFields]
+    VybeCsvImportBody:
+      type: object
+      properties:
+        csv: { type: string, maxLength: 5242880 }
+        mapping: { type: object, additionalProperties: { type: string } }
+        strategy: { type: string, enum: [create-only, update-existing, upsert], default: create-only }
+        publishImported: { type: boolean, default: false }
+      required: [csv]
+    VybeCsvImportCommitBody:
+      allOf:
+        - $ref: "#/components/schemas/VybeCsvImportBody"
+        - type: object
+          properties:
+            idempotencyKey: { type: string, format: uuid }
+          required: [idempotencyKey]
+    VybeCsvValidationResponse:
+      type: object
+      properties:
+        schemaVersion: { type: string }
+        strategy: { type: string, enum: [create-only, update-existing, upsert] }
+        publishImported: { type: boolean }
+        counts:
+          type: object
+          properties:
+            create: { type: integer }
+            update: { type: integer }
+            skipped: { type: integer }
+            invalid: { type: integer }
+            total: { type: integer }
+          required: [create, update, skipped, invalid, total]
+        rows:
+          type: array
+          items:
+            type: object
+            properties:
+              row: { type: integer }
+              slug: { type: string }
+              valid: { type: boolean }
+              errors: { type: array, items: { type: object, additionalProperties: true } }
+              warnings: { type: array, items: { type: string } }
+              action: { type: string, enum: [invalid, skip, update, create] }
+            required: [row, slug, valid, errors, warnings, action]
+      required: [schemaVersion, strategy, publishImported, counts, rows]
+    VybeCsvImportJob:
+      type: object
+      properties:
+        id: { type: integer }
+        status: { type: string }
+        strategy: { type: string, enum: [create-only, update-existing, upsert] }
+        totalRows: { type: integer }
+        importedRows: { type: integer }
+        skippedRows: { type: integer }
+        failedRows: { type: integer }
+        report: { type: object, additionalProperties: true }
+        adminId: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, status, strategy, totalRows, importedRows, skippedRows, failedRows, report, adminId, createdAt, updatedAt]
+    VybeCsvImportJobSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        status: { type: string }
+        strategy: { type: string, enum: [create-only, update-existing, upsert] }
+        totalRows: { type: integer }
+        importedRows: { type: integer }
+        skippedRows: { type: integer }
+        failedRows: { type: integer }
+        createdAt: { type: string, format: date-time }
+      required: [id, status, strategy, totalRows, importedRows, skippedRows, failedRows, createdAt]
+    VybeCsvImportJobResponse:
+      type: object
+      properties:
+        job: { $ref: "#/components/schemas/VybeCsvImportJob" }
+        report: { type: object, additionalProperties: true }
+        alreadyProcessed: { type: boolean }
+      required: [job, report]
     HealthStatus:
       type: object
       properties:
@@ -689,6 +1291,7 @@ components:
         viewCount: { type: number }
         copyCount: { type: number }
         saveCount: { type: number }
+        catalogue: { type: string }
       required: [id, title, slug, shortDescription, category, categorySlug, audience, audienceSlug, difficulty, estimatedTime, language, aiTools, tags, featured, trending, viewCount, copyCount, saveCount]
     Recipe:
       allOf:
@@ -714,6 +1317,7 @@ components:
               items: { type: string }
             verificationNotes: { type: string }
             status: { type: string }
+            catalogue: { type: string }
             version: { type: string }
             testedAt: { type: ["string", "null"], format: date }
             testedWith:
@@ -734,7 +1338,7 @@ components:
               oneOf:
                 - $ref: "#/components/schemas/RecipeLayoutConfig"
                 - type: "null"
-          required: [problem, subcategory, aiTools, requiredInputs, steps, prompt, exampleInput, exampleOutput, refinementPrompts, verificationNotes, status, version, testedWith, seoTitle, seoDescription, layoutMode, layoutConfig]
+          required: [problem, subcategory, aiTools, requiredInputs, steps, prompt, exampleInput, exampleOutput, refinementPrompts, verificationNotes, status, catalogue, version, testedWith, seoTitle, seoDescription, layoutMode, layoutConfig]
     RecipeInput:
       type: object
       properties:
@@ -758,6 +1362,7 @@ components:
         verificationNotes: { type: string }
         tags: { type: array, items: { type: string } }
         status: { type: string }
+        catalogue: { type: string, default: TASKBAKE }
         featured: { type: boolean }
         trending: { type: boolean }
         recipeOfDay: { type: boolean }
@@ -822,6 +1427,62 @@ components:
           type: array
           items: { $ref: "#/components/schemas/AdminMediaItem" }
       required: [configured, items]
+    ImageKitConfigResponse:
+      type: object
+      properties:
+        configured: { type: boolean }
+        publicKey: { type: string }
+        urlEndpoint: { type: string, format: uri }
+        maxFileSizeBytes: { type: integer }
+      required: [configured]
+    ImageKitUploadAuth:
+      type: object
+      properties:
+        token: { type: string }
+        expire: { type: integer }
+        signature: { type: string }
+        publicKey: { type: string }
+        urlEndpoint: { type: string, format: uri }
+      required: [token, expire, signature, publicKey, urlEndpoint]
+    ImageKitAsset:
+      type: object
+      properties:
+        fileId: { type: string }
+        filePath: { type: string }
+        url: { type: string, format: uri }
+        fileName: { type: string }
+        fileType: { type: string }
+        size: { type: integer }
+        alt: { type: string }
+        tags: { type: array, items: { type: string } }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [fileId, filePath, url, fileName, fileType, size, alt, tags, createdAt, updatedAt]
+    ImageKitAssetInput:
+      type: object
+      properties:
+        fileId: { type: string, maxLength: 200 }
+        filePath: { type: string, maxLength: 500 }
+        url: { type: string, format: uri, maxLength: 2048 }
+        name: { type: string, maxLength: 255 }
+        fileType: { type: string, enum: [image, non-image] }
+        size: { type: integer, minimum: 1 }
+        alt: { type: string, maxLength: 500 }
+        tags: { type: array, maxItems: 20, items: { type: string, maxLength: 50 } }
+      required: [fileId, filePath, url, name, fileType, size, alt, tags]
+    ImageKitAssetUpdate:
+      type: object
+      properties:
+        alt: { type: string, maxLength: 500 }
+        tags: { type: array, maxItems: 20, items: { type: string, maxLength: 50 } }
+    ImageKitAssetListResponse:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/ImageKitAsset" } }
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+      required: [items, page, pageSize, total]
     ImportAdminRecipesBody:
       type: object
       properties:
@@ -875,10 +1536,15 @@ components:
         - type: object
           properties:
             status: { type: string }
-          required: [status]
+            updatedAt: { type: string, format: date-time }
+            contentType: { type: string }
+            imageUrl: { type: string, format: uri }
+            catalogue: { type: string }
+          required: [status, updatedAt, contentType, catalogue]
     BulkUpdateAdminRecipesBody:
       type: object
       properties:
+        catalogue: { type: string, default: TASKBAKE }
         ids:
           type: array
           minItems: 1
@@ -893,6 +1559,22 @@ components:
       properties:
         updatedCount: { type: integer }
       required: [updatedCount]
+    BulkDeleteAdminRecipesBody:
+      type: object
+      properties:
+        catalogue: { type: string, default: TASKBAKE }
+        ids:
+          type: array
+          minItems: 1
+          maxItems: 500
+          uniqueItems: true
+          items: { type: integer, minimum: 1 }
+      required: [ids]
+    BulkDeleteAdminRecipesResponse:
+      type: object
+      properties:
+        deletedCount: { type: integer }
+      required: [deletedCount]
     CollectionResponse:
       type: object
       properties:
@@ -1066,6 +1748,8 @@ components:
         url: { type: string, format: uri, maxLength: 2048 }
         alt: { type: string, minLength: 1, maxLength: 500 }
         caption: { type: string, maxLength: 500 }
+        fileId: { type: string, minLength: 1, maxLength: 200 }
+        filePath: { type: string, minLength: 1, maxLength: 500 }
       required: [url, alt]
     RecipePromptStudio:
       type: object
@@ -1151,6 +1835,9 @@ components:
         publishedRecipes: { type: number }
         draftRecipes: { type: number }
         testingRecipes: { type: number }
+        featuredRecipes: { type: number }
+        missingArtworkRecipes: { type: number }
+        recipesMissingRequiredContent: { type: number }
         views: { type: number }
         copies: { type: number }
         saves: { type: number }
@@ -1158,7 +1845,7 @@ components:
         positiveFeedback: { type: number }
         negativeFeedback: { type: number }
         pendingSubmissions: { type: number }
-      required: [totalRecipes, publishedRecipes, draftRecipes, testingRecipes, views, copies, saves, shares, positiveFeedback, negativeFeedback, pendingSubmissions]
+      required: [totalRecipes, publishedRecipes, draftRecipes, testingRecipes, featuredRecipes, missingArtworkRecipes, recipesMissingRequiredContent, views, copies, saves, shares, positiveFeedback, negativeFeedback, pendingSubmissions]
     AnalyticsResponse:
       type: object
       properties:

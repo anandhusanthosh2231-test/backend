@@ -8,14 +8,14 @@
 
 .slider {
   overflow: hidden;
-  background-color: white;
+  background-color: var(--brand);
   margin: 0 15px;
   height: 80px;
   width: 20px;
   border-radius: 30px;
-  box-shadow: 15px 15px 20px rgba(0, 0, 0, 0.1), -15px -15px 30px #fff,
-    inset -5px -5px 10px rgba(0, 0, 255, 0.1),
-    inset 5px 5px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 15px 15px 20px rgb(var(--ink-rgb) / 0.1), -15px -15px 30px var(--ink),
+    inset -5px -5px 10px rgb(var(--cool-rgb) / 0.1),
+    inset 5px 5px 10px rgb(var(--ink-rgb) / 0.1);
   position: relative;
 }
 
@@ -27,8 +27,8 @@
   height: 20px;
   width: 20px;
   border-radius: 100%;
-  box-shadow: inset 0px 0px 0px rgba(0, 0, 0, 0.3), 0px 420px 0 400px #2697f3,
-    inset 0px 0px 0px rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0px 0px 0px rgb(var(--ink-rgb) / 0.3), 0px 420px 0 400px var(--cool),
+    inset 0px 0px 0px rgb(var(--ink-rgb) / 0.1);
   animation: animate_2 2.5s ease-in-out infinite;
   animation-delay: calc(-0.5s * var(--i));
 }

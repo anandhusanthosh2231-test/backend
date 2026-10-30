@@ -11,19 +11,19 @@
 .layout-remove-image {
   width: auto;
   padding: 0.2rem 0.45rem;
-  color: #8b352e;
+  color: var(--brand-dark);
   font-size: 0.8rem;
 }
 
 .layout-remove-image:focus-visible,
 .layout-media-grid button:focus-visible {
-  outline: 2px solid #397565;
+  outline: 2px solid var(--cool);
   outline-offset: 2px;
 }
 
 .layout-media-note {
   margin: 0;
-  color: #625f59;
+  color: var(--brand-dark);
   font-size: 0.9rem;
   line-height: 1.5;
 }
@@ -32,7 +32,7 @@
   display: grid;
   width: 100%;
   gap: 0.6rem;
-  border: 1px solid #d9d7ce;
+  border: 1px solid var(--brand);
   border-radius: 5px;
   padding: 0.7rem;
 }
@@ -41,10 +41,10 @@
   display: grid;
   place-items: center;
   min-height: 4.2rem;
-  border: 1px dashed #92978f;
+  border: 1px dashed var(--border);
   border-radius: 5px;
   padding: 0.6rem;
-  color: #3b514b;
+  color: var(--muted);
   text-align: center;
   cursor: pointer;
 }
@@ -65,9 +65,9 @@
 .layout-media-grid button {
   aspect-ratio: 1;
   overflow: hidden;
-  border: 1px solid #d9d7ce;
+  border: 1px solid var(--brand);
   border-radius: 4px;
-  background: #eeeee8;
+  background: var(--bg);
   padding: 0;
   cursor: pointer;
 }
@@ -82,7 +82,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  color: #9b3028;
+  color: var(--error);
 }
 
 .layout-media-error button {

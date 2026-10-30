@@ -25,4 +25,5 @@ export interface RecipeCard {
   viewCount: number;
   copyCount: number;
   saveCount: number;
+  catalogue?: string;
 }

@@ -6,20 +6,20 @@ import { publishableKeyFromHost } from '@clerk/react/internal';
 import {
   AlertCircle, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bookmark, BookmarkCheck, Check, CheckCircle2,
   ChevronLeft, ChevronRight, Clock3, Copy, ExternalLink, Eye, EyeOff, FileText, Filter, Flame,
-  History, Info, Key, Layers, LayoutDashboard, Lock, Menu, PenLine, Phone, Plus, RefreshCw,
-  Search, Send, Share2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Tag, ThumbsUp, Trash2, Upload,
+  History, Images, Info, Key, Layers, LayoutDashboard, Lock, Menu, PenLine, Phone, Plus, RefreshCw,
+  Pause, Play, Search, Send, Share2, Shield, ShieldAlert, ShieldCheck, Sliders, Smartphone, Sparkles, Star, Tag, ThumbsUp, Trash2, Upload,
   TrendingUp, Unlock, Users, Wand2, X, Zap,
 } from 'lucide-react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation, useParams } from 'wouter';
 import {
-  getGetCategoryQueryKey, getGetRecipeQueryKey, getGetRelatedRecipesQueryKey,
+  getGetAdminRecipeQueryKey, getGetCategoryQueryKey, getGetRecipeQueryKey, getGetRelatedRecipesQueryKey,
   getGetAdminSummaryQueryKey, getGetHomeQueryKey, getListAdminRecipesQueryKey, getListAdminSubmissionsQueryKey, getListAudiencesQueryKey, getListCategoriesQueryKey, getListRecipesQueryKey, getListSavedRecipesQueryKey,
   useCreateAdminAudience, useCreateAdminCategory, useCreateAdminRecipe, useCreateSubmission, useDeleteAdminCategory, useDeleteAdminRecipe, useDuplicateAdminRecipe,
-  useBulkUpdateAdminRecipes, useGenerateDraftRecipe, useGetAdminAnalytics, useGetAdminSummary, useGetCategory,
+  useBulkDeleteAdminRecipes, useBulkUpdateAdminRecipes, useGenerateDraftRecipe, useGetAdminAnalytics, useGetAdminSummary, useGetCategory,
   useGetHome, useGetMe, useGetRecipe, useGetRelatedRecipes, useListAdminRecipes,
   useImportAdminRecipesCsv, useListAdminSubmissions, useListAudiences, useListCategories, useListHistory, useListRecipes,
-  useListSavedRecipes, useSaveRecipe, useSubmitFeedback, useTrackEvent, useUnsaveRecipe,
+  useGetAdminRecipe, useListSavedRecipes, useSaveRecipe, useSubmitFeedback, useTrackEvent, useUnsaveRecipe,
   useUpdateAdminAudience, useUpdateAdminCategory,
   useUpdateAdminRecipe, useUpdateAdminSubmission,
 } from '@workspace/api-client-react';
@@ -32,15 +32,20 @@ import { MobileTopHeader } from '@/components/mobile/MobileTopHeader';
 import { MobileCategoryChips } from '@/components/mobile/MobileCategoryChips';
 import { MobileBannerCarousel } from '@/components/mobile/MobileBannerCarousel';
 import { createDefaultRecipeLayout, isValidRecipeLayout } from '@/lib/recipe-layout-utils';
+import { pageTitle } from '@/lib/pageTitle';
 import type { RecipeLayoutData } from '@/components/recipe-layout';
 import { RecipePromptInputs } from '@/components/recipe-prompt-inputs';
 import { PromptStudio } from '@/components/admin/PromptStudio';
+import { ImageKitMediaLibrary } from '@/components/admin/ImageKitMediaLibrary';
 import { RecipePromptShowcase } from '@/components/RecipePromptShowcase';
 import { getRecipePromptFields, getRecipePromptInputErrors, resolveRecipePrompt } from '@/lib/recipe-prompt';
 import { ADMIN_PATH, getAdminPath } from '@/lib/admin-path';
 import { Footer } from '@/components/Footer';
+import { VybeCreationPage, VybeMarketplace } from '@/components/vybe/VybeMarketplace';
+import { VybeStudio } from '@/components/admin/VybeStudio';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+const publicVybeEnabled = import.meta.env.VITE_VYBE_ENABLED === 'true';
 const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 const ClerkSignIn = lazy(() => import('@/components/ClerkSignIn'));
 const ClerkSignUp = lazy(() => import('@/components/ClerkSignUp'));
@@ -65,29 +70,29 @@ if (!clerkPubKey) {
 
 const clerkAppearance = {
   variables: {
-    colorPrimary: '#272235', colorForeground: '#272235', colorMutedForeground: '#766f7d',
-    colorDanger: '#ad3f36', colorBackground: '#fffdf7', colorInput: '#f5f0e5',
-    colorInputForeground: '#272235', colorNeutral: '#ddd4c5', fontFamily: 'DM Sans',
+    colorPrimary: 'var(--ink)', colorForeground: 'var(--ink)', colorMutedForeground: 'var(--muted)',
+    colorDanger: 'var(--error)', colorBackground: 'var(--surface)', colorInput: 'var(--sand)',
+    colorInputForeground: 'var(--ink)', colorNeutral: 'var(--border)', fontFamily: 'DM Sans',
     borderRadius: '0.75rem',
   },
   elements: {
     rootBox: 'w-full min-w-0 flex justify-center',
-    cardBox: 'bg-[#fffdf7] rounded-2xl w-full max-w-[440px] overflow-hidden border border-[#ddd4c5]',
+    cardBox: 'bg-surface rounded-2xl w-full max-w-[440px] overflow-hidden border border-border',
     card: '!shadow-none !border-0 !bg-transparent',
     footer: '!shadow-none !border-0 !bg-transparent',
-    headerTitle: 'text-[#272235] font-semibold',
-    headerSubtitle: 'text-[#766f7d]',
-    socialButtonsBlockButtonText: 'text-[#272235]',
-    formFieldLabel: 'text-[#272235]',
-    footerActionLink: 'text-[#ad3f36] font-semibold',
-    footerActionText: 'text-[#766f7d]',
-    dividerText: 'text-[#766f7d]',
-    formButtonPrimary: 'bg-[#272235] hover:bg-[#3d3452] text-[#fffdf7]',
-    formFieldInput: 'bg-[#f5f0e5] text-[#272235] border-[#ddd4c5]',
+    headerTitle: 'text-ink font-semibold',
+    headerSubtitle: 'text-muted',
+    socialButtonsBlockButtonText: 'text-ink',
+    formFieldLabel: 'text-ink',
+    footerActionLink: 'text-brand-dark font-semibold',
+    footerActionText: 'text-muted',
+    dividerText: 'text-muted',
+    formButtonPrimary: 'bg-ink hover:bg-brand text-surface',
+    formFieldInput: 'bg-sand text-ink border-border',
     logoBox: 'h-10',
     logoImage: 'h-10',
-    socialButtonsBlockButton: 'border-[#ddd4c5] bg-[#fffdf7]',
-    footerAction: 'border-[#ddd4c5]',
+    socialButtonsBlockButton: 'border-border bg-surface',
+    footerAction: 'border-border',
     main: 'bg-transparent',
   },
   options: {
@@ -97,9 +102,10 @@ const clerkAppearance = {
   },
 };
 
-function usePageMeta(title: string, description: string, structured?: unknown) {
+function usePageMeta(title: string | undefined, description: string, structured?: unknown) {
   useEffect(() => {
-    document.title = title;
+    const formattedTitle = pageTitle(title);
+    document.title = formattedTitle;
     const setMeta = (name: string, content: string, property = false) => {
       const selector = property ? `meta[property="${name}"]` : `meta[name="${name}"]`;
       let tag = document.head.querySelector(selector) as HTMLMetaElement | null;
@@ -107,10 +113,10 @@ function usePageMeta(title: string, description: string, structured?: unknown) {
       tag.content = content;
     };
     setMeta('description', description);
-    setMeta('og:title', title, true);
+    setMeta('og:title', formattedTitle, true);
     setMeta('og:description', description, true);
     setMeta('og:type', 'website', true);
-    setMeta('twitter:title', title);
+    setMeta('twitter:title', formattedTitle);
     setMeta('twitter:description', description);
     let canonical = document.head.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (!canonical) { canonical = document.createElement('link'); canonical.rel = 'canonical'; document.head.appendChild(canonical); }
@@ -152,8 +158,17 @@ function Header() {
   const [open, setOpen] = useState(false);
   const [location] = useLocation();
   const { isSignedIn } = useAuth();
-  const links = [['/recipes', 'Discover'], ['/categories', 'Categories'], ['/why-ai-recipes', 'Why recipes'], ['/about', 'About']];
-  return <header className="site-header">
+  const [scrolled, setScrolled] = useState(false);
+  const isHome = location === '/';
+  const links = [['/recipes', 'Discover'], ...(publicVybeEnabled ? [['/vybe', 'VYBE']] : []), ['/why-ai-recipes', 'Why recipes'], ['/about', 'About']];
+  useEffect(() => {
+    if (!isHome) return;
+    const updateScrollState = () => setScrolled(window.scrollY > 24);
+    updateScrollState();
+    window.addEventListener('scroll', updateScrollState, { passive: true });
+    return () => window.removeEventListener('scroll', updateScrollState);
+  }, [isHome]);
+  return <header className={`site-header${isHome ? ' site-header--home' : ''}${scrolled ? ' is-scrolled' : ''}`}>
     <div className="shell header-inner">
       <Logo />
        <nav className={`main-nav ${open ? 'is-open' : ''}`} aria-label="Primary navigation">
@@ -208,10 +223,10 @@ function EmptyState({ title, body, action }: { title: string; body: string; acti
   return <div className="state-panel empty-state" data-testid="status-empty"><span className="empty-icon"><Sparkles size={20} /></span><h2>{title}</h2><p>{body}</p>{action}</div>;
 }
 
-function RecipeCardView({ recipe, saved = false, onSave }: { recipe: RecipeCard; saved?: boolean; onSave?: (recipe: RecipeCard) => void }) {
+function RecipeCardView({ recipe, saved = false, onSave, recipeBasePath = '/recipes' }: { recipe: RecipeCard; saved?: boolean; onSave?: (recipe: RecipeCard) => void; recipeBasePath?: string }) {
   return <article className={`recipe-card category-${recipe.categorySlug}`} data-testid={`card-recipe-${recipe.id}`}>
     <div className="card-topline"><span className="category-pill">{recipe.category}</span>{recipe.trending && <span className="trend-label"><Flame size={12} /> Trending</span>}</div>
-    <Link href={`/recipes/${recipe.slug}`} className="card-title-link" data-testid={`link-recipe-${recipe.id}`}><h3>{recipe.title}</h3></Link>
+    <Link href={`${recipeBasePath}/${recipe.slug}`} className="card-title-link" data-testid={`link-recipe-${recipe.id}`}><h3>{recipe.title}</h3></Link>
     <p className="card-description">{recipe.shortDescription}</p>
     <div className="card-meta-chips"><span className="meta-chip"><Clock3 size={12} /> {recipe.estimatedTime}</span><span className="meta-chip">{recipe.difficulty}</span><span className="meta-chip">{recipe.language}</span></div>
     {recipe.tags?.length ? <div className="card-tags">{recipe.tags.slice(0, 3).map((tag) => <span key={tag}>#{tag}</span>)}</div> : null}
@@ -244,9 +259,216 @@ function HomeRecipeCard({ recipe }: { recipe: RecipeCard }) {
   );
 }
 
-function RecipeGrid({ recipes, savedIds, onSave }: { recipes: RecipeCard[]; savedIds?: Set<number>; onSave?: (r: RecipeCard) => void }) {
+function HomeHero({ recipes, totalRecipes, loading }: { recipes: RecipeCard[]; totalRecipes: number; loading: boolean }) {
+  const [, setLocation] = useLocation();
+  const heroRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [search, setSearch] = useState('');
+  const [placeholder, setPlaceholder] = useState('Search AI recipes, workflows, and use cases...');
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
+  const [inView, setInView] = useState(false);
+  const [tabVisible, setTabVisible] = useState(() => !document.hidden);
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [recipeCount, setRecipeCount] = useState(0);
+  const exampleSearches = ['Create a LinkedIn post', 'Build a presentation', 'Analyze data', 'Create an Instagram campaign', 'Study for an exam', 'Generate an image'];
+  const rotatingWords = ['writing', 'studying', 'running a business', 'making things'];
+  const rotatingSearches = ['Create a LinkedIn post…', 'Build a presentation…', 'Analyze data…'];
+  const motionEnabled = inView && tabVisible && !reducedMotion && !userPaused;
+  const activeRecipe = recipes.length ? recipes[activeIndex % recipes.length] : undefined;
+  const nextRecipe = recipes.length > 1 ? recipes[(activeIndex + 1) % recipes.length] : undefined;
+  const thirdRecipe = recipes.length > 2 ? recipes[(activeIndex + 2) % recipes.length] : undefined;
+  const [wordIndex, setWordIndex] = useState(0);
+
+  useEffect(() => {
+    const node = heroRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.12 });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updateMotionPreference = () => setReducedMotion(media.matches);
+    const updateVisibility = () => setTabVisible(!document.hidden);
+    media.addEventListener('change', updateMotionPreference);
+    document.addEventListener('visibilitychange', updateVisibility);
+    return () => {
+      media.removeEventListener('change', updateMotionPreference);
+      document.removeEventListener('visibilitychange', updateVisibility);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!motionEnabled || paused || recipes.length < 2) return;
+    const timer = window.setInterval(() => setActiveIndex((index) => (index + 1) % recipes.length), 6000);
+    return () => window.clearInterval(timer);
+  }, [motionEnabled, paused, recipes.length]);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setWordIndex(0);
+      return;
+    }
+    if (!motionEnabled) return;
+    const timer = window.setInterval(() => setWordIndex((index) => (index + 1) % rotatingWords.length), 2500);
+    return () => window.clearInterval(timer);
+  }, [motionEnabled, reducedMotion]);
+
+  useEffect(() => {
+    if (search || !motionEnabled) {
+      setPlaceholder('Search AI recipes, workflows, and use cases...');
+      return;
+    }
+    let timeout = 0;
+    let queryIndex = 0;
+    let characterIndex = 0;
+    let deleting = false;
+    const tick = () => {
+      const current = rotatingSearches[queryIndex];
+      characterIndex += deleting ? -1 : 1;
+      setPlaceholder(current.slice(0, Math.max(0, characterIndex)));
+      if (!deleting && characterIndex >= current.length) {
+        deleting = true;
+        timeout = window.setTimeout(tick, 1300);
+        return;
+      }
+      if (deleting && characterIndex <= 0) {
+        deleting = false;
+        queryIndex = (queryIndex + 1) % rotatingSearches.length;
+      }
+      timeout = window.setTimeout(tick, deleting ? 30 : 58);
+    };
+    timeout = window.setTimeout(tick, 800);
+    return () => window.clearTimeout(timeout);
+  }, [motionEnabled, search]);
+
+  useEffect(() => {
+    if (!inView || totalRecipes <= 0) return;
+    if (reducedMotion) {
+      setRecipeCount(totalRecipes);
+      return;
+    }
+    let frame = 0;
+    let start = 0;
+    const animateCount = (now: number) => {
+      if (!start) start = now;
+      const progress = Math.min((now - start) / 900, 1);
+      setRecipeCount(Math.round(totalRecipes * progress));
+      if (progress < 1) frame = window.requestAnimationFrame(animateCount);
+    };
+    frame = window.requestAnimationFrame(animateCount);
+    return () => window.cancelAnimationFrame(frame);
+  }, [inView, reducedMotion, totalRecipes]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey || target?.matches('input, textarea, select, [contenteditable="true"]')) return;
+      if (window.matchMedia('(max-width: 768px)').matches) return;
+      event.preventDefault();
+      searchInputRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  const runExampleSearch = (example: string) => setLocation(`/search?q=${encodeURIComponent(example)}`);
+  const handleHeroPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse') return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty('--pointer-x', `${event.clientX - rect.left}px`);
+    event.currentTarget.style.setProperty('--pointer-y', `${event.clientY - rect.top}px`);
+  };
+  const handleCardPointer = (event: React.PointerEvent<HTMLElement>) => {
+    if (event.pointerType !== 'mouse' || reducedMotion || window.innerWidth < 769) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width;
+    const y = (event.clientY - rect.top) / rect.height;
+    event.currentTarget.style.setProperty('--tilt-x', `${(x - 0.5) * 8}deg`);
+    event.currentTarget.style.setProperty('--tilt-y', `${(0.5 - y) * 8}deg`);
+    event.currentTarget.style.setProperty('--glare-x', `${x * 100}%`);
+    event.currentTarget.style.setProperty('--glare-y', `${y * 100}%`);
+  };
+  const resetCardPointer = (event: React.PointerEvent<HTMLElement>) => {
+    event.currentTarget.style.setProperty('--tilt-x', '0deg');
+    event.currentTarget.style.setProperty('--tilt-y', '0deg');
+    setPaused(false);
+  };
+
+  return <div ref={heroRef} className={`home-hero${motionEnabled ? ' is-motion-active' : ' is-motion-paused'}`} onPointerMove={handleHeroPointer}>
+    <div className="hero-atmosphere" aria-hidden="true"><span className="hero-ember hero-ember--one" /><span className="hero-ember hero-ember--two" /><span className="hero-ember hero-ember--three" /><span className="hero-ember hero-ember--four" /></div>
+    <div className="shell hero-grid">
+      <div className="hero-copy">
+        <span className="kicker hero-kicker"><span className="kicker-mark" />A field guide for the AI age</span>
+        <h1 aria-label="Practical AI workflows you can actually use.">
+          {['Practical', 'AI', 'workflows', 'you', 'can'].map((word, index) => <span className="hero-headline-word" style={{ '--word-index': index } as React.CSSProperties} key={word}>{word}{index < 4 ? '\u00a0' : ''}</span>)}
+          <em><span className="hero-headline-word" style={{ '--word-index': 5 } as React.CSSProperties}>actually{'\u00a0'}</span><span className="hero-headline-word" style={{ '--word-index': 6 } as React.CSSProperties}>use.</span></em>
+        </h1>
+        <p className="hero-subcopy"><span className="hero-subcopy-static">Tested, outcome-focused recipes for writing, studying, running a business, making things, and getting through the everyday.</span><span className="hero-subcopy-rotating" aria-hidden="true" aria-live="off">Tested, outcome-focused recipes for <span key={wordIndex}>{rotatingWords[wordIndex]}</span>, and getting through the everyday.</span></p>
+        <div className="hero-cta-row">
+          <Link href="/recipes" className="button button-dark" data-testid="link-hero-explore">Explore Recipes <ArrowRight size={16} /></Link>
+          <Link href="/submit" className="button button-outline" data-testid="link-hero-create">Create a Recipe</Link>
+        </div>
+        <form className="hero-search" role="search" onSubmit={(event) => { event.preventDefault(); if (search.trim()) setLocation(`/search?q=${encodeURIComponent(search.trim())}`); }}>
+          <Search size={19} aria-hidden="true" />
+          <input ref={searchInputRef} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={placeholder} aria-label="Search workflows" data-testid="input-home-search" />
+          <kbd aria-hidden="true">/</kbd>
+          <button type="submit" data-testid="button-home-search">Search <ArrowRight size={16} /></button>
+        </form>
+        <div className="hero-examples" aria-label="Popular searches">{exampleSearches.map((example) => <button key={example} type="button" className="hero-example-chip" onClick={() => runExampleSearch(example)} data-testid={`chip-example-${example.toLowerCase().replace(/\s+/g, '-')}`}><Sparkles size={12} aria-hidden="true" />{example}</button>)}</div>
+        <div className="hero-proof">
+          <span className="hero-proof-label">Works with</span>
+          <span className="hero-proof-tools">{(activeRecipe?.aiTools ?? []).slice(0, 3).map((tool) => <span key={tool}>{tool}</span>)}</span>
+          <span className="hero-proof-divider" aria-hidden="true" />
+          {totalRecipes > 0 && <span className="hero-recipe-count" aria-live="off"><strong>{recipeCount.toLocaleString()}+</strong> recipes in the library</span>}
+          <button type="button" className="hero-motion-toggle" aria-pressed={userPaused} onClick={() => setUserPaused((value) => !value)}>{userPaused ? <Play size={12} /> : <Pause size={12} />}{userPaused ? 'Play motion' : 'Pause motion'}</button>
+        </div>
+      </div>
+      <div className="hero-art">
+        <div className="hero-ghost-card hero-ghost-card--back" aria-hidden="true"><span>{thirdRecipe?.category ?? nextRecipe?.category ?? 'A tested workflow'}</span><strong>{thirdRecipe?.title ?? nextRecipe?.title ?? 'A practical recipe'}</strong></div>
+        <div className="hero-ghost-card hero-ghost-card--front" aria-hidden="true"><span>{nextRecipe?.category ?? activeRecipe?.category ?? 'A tested workflow'}</span><strong>{nextRecipe?.title ?? activeRecipe?.title ?? 'A practical recipe'}</strong></div>
+        {activeRecipe ? (
+          <article key={activeRecipe.id} className="hero-recipe-preview" data-testid="hero-recipe-preview" aria-live="off" onPointerMove={handleCardPointer} onPointerLeave={resetCardPointer} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false); }}>
+            <div className="hero-recipe-preview__topline">
+              <span><Sparkles size={14} /> WORKFLOW PREVIEW</span>
+              <span className="hero-recipe-preview__status"><Check size={13} /> Published recipe</span>
+            </div>
+            <div className="hero-recipe-preview__meta">
+              <span>{activeRecipe.category}</span>
+              <span><Clock3 size={13} /> {activeRecipe.estimatedTime}</span>
+            </div>
+            <h2 key={activeRecipe.id}>{activeRecipe.title}</h2>
+            <p className="hero-recipe-preview__description">{activeRecipe.shortDescription}</p>
+            <div className="hero-recipe-preview__flow">
+              <div><span>YOU BRING</span><p className="hero-preview-input">Your task and the context that matters</p></div>
+              <span className="hero-preview-connector"><ArrowRight size={18} aria-hidden="true" /><i /></span>
+              <div><span>YOU GET</span><p className="hero-preview-result">A practical prompt, steps, and checks</p></div>
+            </div>
+            <div className="hero-recipe-preview__footer">
+              <span>Works with</span>
+              {activeRecipe.aiTools.slice(0, 3).map((tool) => <span className="hero-recipe-preview__tool" key={tool}>{tool}</span>)}
+            </div>
+            <Link href={`/recipes/${activeRecipe.slug}`} className="hero-recipe-preview__link" data-testid="link-hero-recipe-preview">
+              Open this recipe <ArrowRight size={15} />
+            </Link>
+            <div className="hero-preview-dots" aria-label="Featured workflow previews">
+              {recipes.slice(0, 4).map((recipe, index) => <button type="button" key={recipe.id} className={index === activeIndex ? 'is-active' : ''} aria-label={`Show preview ${index + 1}: ${recipe.title}`} aria-current={index === activeIndex ? 'true' : undefined} onClick={() => setActiveIndex(index)} />)}
+            </div>
+          </article>
+        ) : loading ? (
+          <div className="hero-recipe-preview hero-recipe-preview--loading" aria-hidden="true"><span /><span /><span /></div>
+        ) : null}
+      </div>
+    </div>
+  </div>;
+}
+
+function RecipeGrid({ recipes, savedIds, onSave, recipeBasePath = '/recipes' }: { recipes: RecipeCard[]; savedIds?: Set<number>; onSave?: (r: RecipeCard) => void; recipeBasePath?: string }) {
   if (!recipes.length) return <EmptyState title="No recipes found yet" body="Try a broader search, or tell us what workflow you need next." action={<Link href="/submit" className="button button-dark" data-testid="link-submit-empty">Suggest a workflow <ArrowRight size={16} /></Link>} />;
-  return <div className="recipe-grid">{recipes.map((recipe) => <RecipeCardView key={recipe.id} recipe={recipe} saved={savedIds?.has(recipe.id)} onSave={onSave} />)}</div>;
+  return <div className="recipe-grid">{recipes.map((recipe) => <RecipeCardView key={recipe.id} recipe={recipe} saved={savedIds?.has(recipe.id)} onSave={onSave} recipeBasePath={recipeBasePath} />)}</div>;
 }
 
 function RecipeGridSkeleton({ count = 6 }: { count?: number }) {
@@ -271,76 +493,24 @@ function SaveAction({ recipe, isSaved = false }: { recipe: RecipeCard | Recipe; 
 
 function HomePage() {
   const { data, isLoading, isError, refetch } = useGetHome();
-  const [, setLocation] = useLocation();
-  const [search, setSearch] = useState('');
-  const exampleSearches = ['Create a LinkedIn post', 'Build a presentation', 'Analyze data', 'Create an Instagram campaign', 'Study for an exam', 'Generate an image'];
-  const runExampleSearch = (example: string) => setLocation(`/search?q=${encodeURIComponent(example)}`);
-  usePageMeta('TaskBakeAI — Practical AI workflows for real work', 'A trusted, Indian-first field guide to practical AI workflows you can copy, run, and make your own.');
+  usePageMeta(undefined, 'A trusted, Indian-first field guide to practical AI workflows you can copy, run, and make your own.');
   if (isError) return <SiteShell><ErrorState retry={() => refetch()} /></SiteShell>;
   const home = data ?? { recipeOfDay: null, trending: [], popular: [], categories: [], audiences: [] };
-  const previewRecipe = home.recipeOfDay ?? home.popular[0] ?? home.trending[0];
+  const heroRecipes = Array.from(new Map(
+    [home.recipeOfDay, ...home.popular, ...home.trending]
+      .filter((recipe): recipe is RecipeCard => Boolean(recipe))
+      .map((recipe) => [recipe.id, recipe]),
+  ).values()).slice(0, 4);
+  const totalRecipes = home.categories.reduce((total, category) => total + category.recipeCount, 0);
   const featuredRecipes = (home.popular.length ? home.popular : home.trending).slice(0, 3);
   const categoryHref = (slug: string) => {
     const category = home.categories.find((item) => item.slug === slug);
     return category ? `/categories/${category.slug}` : '/recipes';
   };
   return <SiteShell>
+    <HomeHero recipes={heroRecipes} totalRecipes={totalRecipes} loading={isLoading} />
     <MobileCategoryChips categories={home.categories.slice(0, 8)} loading={isLoading} />
     <MobileBannerCarousel recipeOfDay={home.recipeOfDay} loading={isLoading} />
-    <div className="home-hero">
-      <div className="shell hero-grid">
-        <div className="hero-copy">
-          <span className="kicker"><span className="kicker-mark" />A field guide for the AI age</span>
-          <h1>Practical AI workflows you can actually use.</h1>
-          <p>Tested, outcome-focused recipes for writing, studying, running a business, making things, and getting through the everyday.</p>
-          <div className="hero-cta-row">
-            <Link href="/recipes" className="button button-dark" data-testid="link-hero-explore">Explore Recipes <ArrowRight size={16} /></Link>
-            <Link href="/submit" className="button button-outline" data-testid="link-hero-create">Create a Recipe</Link>
-          </div>
-          <form className="hero-search" onSubmit={(e) => { e.preventDefault(); if (search.trim()) setLocation(`/search?q=${encodeURIComponent(search.trim())}`); }}>
-            <Search size={19} />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search AI recipes, workflows, and use cases..." aria-label="Search workflows" data-testid="input-home-search" />
-            <button type="submit" data-testid="button-home-search">Search <ArrowRight size={16} /></button>
-          </form>
-          <div className="hero-examples">{exampleSearches.map((example) => <button key={example} type="button" className="hero-example-chip" onClick={() => runExampleSearch(example)} data-testid={`chip-example-${example.toLowerCase().replace(/\s+/g, '-')}`}>{example}</button>)}</div>
-          <div className="hero-proof"><span className="proof-avatars"><i>AS</i><i>RK</i><i>MP</i></span><span>Made for real work, not prompt theatre.</span></div>
-        </div>
-        <div className="hero-art">
-          {previewRecipe ? (
-            <article className="hero-recipe-preview" data-testid="hero-recipe-preview">
-              <div className="hero-recipe-preview__topline">
-                <span><Sparkles size={14} /> WORKFLOW PREVIEW</span>
-                <span className="hero-recipe-preview__status"><Check size={13} /> Published recipe</span>
-              </div>
-              <div className="hero-recipe-preview__meta">
-                <span>{previewRecipe.category}</span>
-                <span><Clock3 size={13} /> {previewRecipe.estimatedTime}</span>
-              </div>
-              <h2>{previewRecipe.title}</h2>
-              <p className="hero-recipe-preview__description">{previewRecipe.shortDescription}</p>
-              <div className="hero-recipe-preview__flow">
-                <div><span>YOU BRING</span><p>Your task and the context that matters</p></div>
-                <ArrowRight size={18} aria-hidden="true" />
-                <div><span>YOU GET</span><p>A practical prompt, steps, and checks</p></div>
-              </div>
-              <div className="hero-recipe-preview__footer">
-                <span>Works with</span>
-                {previewRecipe.aiTools.slice(0, 3).map((tool) => <span className="hero-recipe-preview__tool" key={tool}>{tool}</span>)}
-              </div>
-              <Link href={`/recipes/${previewRecipe.slug}`} className="hero-recipe-preview__link" data-testid="link-hero-recipe-preview">
-                Open this recipe <ArrowRight size={15} />
-              </Link>
-            </article>
-          ) : (
-            <div className="hero-recipe-preview hero-recipe-preview--loading" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
     <section className="shell home-discovery-section" aria-labelledby="home-discovery-title">
       <div className="home-discovery-section__heading">
         <div>
@@ -384,7 +554,7 @@ function LibraryPage() {
   const { data: audiences } = useListAudiences();
   const [savedIds] = useState(() => new Set<number>());
   const [, setLocation] = useLocation();
-  usePageMeta(q ? `Search results for ${q} — TaskBakeAI` : 'Recipe library — TaskBakeAI', 'Browse practical, tested AI workflows for work, study, business, creativity, and everyday life.');
+  usePageMeta(q ? `Search results for ${q}` : 'Recipe library', 'Browse practical, tested AI workflows for work, study, business, creativity, and everyday life.');
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); searchInputRef.current?.focus(); } };
     window.addEventListener('keydown', onKeyDown);
@@ -420,7 +590,7 @@ function LibraryPage() {
     </div>
     <section className="shell library-layout-modern">
       <div className="filter-bar-desktop">{filterControls}</div>
-      <button type="button" className="filter-toggle-mobile" onClick={() => setMobileFiltersOpen(true)} data-testid="button-open-filters"><Filter size={15} /> Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}</button>
+      <button type="button" className="filter-toggle-mobile btn-secondary" onClick={() => setMobileFiltersOpen(true)} data-testid="button-open-filters"><Filter size={15} /> Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}</button>
       <div className="results-toolbar"><span>{query.data?.total ?? 0} recipes</span><select value={sort} onChange={(e) => { setSort(e.target.value as typeof sort); setPage(1); }} aria-label="Sort recipes" data-testid="select-sort"><option value="relevance">Most relevant</option><option value="popular">Most copied</option><option value="newest">Newest tested</option></select></div>
       {query.isLoading ? <RecipeGridSkeleton /> : query.isError ? <ErrorState retry={() => query.refetch()} /> : isEmpty ? <EmptyState title="No recipes found" body="Try another search or clear your filters." action={<button type="button" className="button button-dark" onClick={clearFilters} data-testid="button-clear-filters">Clear filters</button>} /> : <RecipeGrid recipes={query.data?.items || []} savedIds={savedIds} onSave={onSave} />}
       {hasResults && <div className="pagination"><button disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="Previous page" data-testid="button-page-prev"><ChevronLeft size={17} /></button><span>Page {page} of {Math.max(1, Math.ceil((query.data?.total || 0) / 9))}</span><button disabled={!query.data || page >= Math.ceil(query.data.total / 9)} onClick={() => setPage(page + 1)} aria-label="Next page" data-testid="button-page-next"><ChevronRight size={17} /></button></div>}
@@ -455,6 +625,7 @@ function RecipePage() {
   const [selectedRefinement, setSelectedRefinement] = useState('');
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [copyError, setCopyError] = useState(false);
+  const [customCopyAttempted, setCustomCopyAttempted] = useState(false);
   const selectedSituation = situationSelection?.slug === slug ? situationSelection.value : '';
   const updateSelectedSituation = (value: string) => setSituationSelection({ slug, value });
   useEffect(() => {
@@ -463,6 +634,7 @@ function RecipePage() {
     setFeedbackError('');
     setFeedbackReasonsOpen(false);
     setSelectedRefinement('');
+    setCustomCopyAttempted(false);
     try {
       setSituationSelection({ slug, value: localStorage.getItem(`recipe-situation:${slug}`) ?? '' });
     } catch {
@@ -491,9 +663,9 @@ function RecipePage() {
       track.mutate({ data: { type: "recipe_view", recipeId: query.data.id } });
   }, [query.data]);
   usePageMeta(
-    query.data ? `${query.data.title} — TaskBakeAI` : "Recipe — TaskBakeAI",
+    query.data ? query.data.title : 'Recipe',
     query.data?.seoDescription ||
-      "A tested, practical AI workflow from TaskBakeAI.",
+      `A tested, practical AI workflow from TaskBakeAI.`,
     query.data
       ? {
           "@context": "https://schema.org",
@@ -546,10 +718,13 @@ function RecipePage() {
   ) => {
     track.mutate({ data: { type, recipeId: recipe.id, metadata: { category: recipe.category, ...metadata } } });
   };
-  const copyPrompt = async () => {
-    if (missingRequiredPromptVariables) return;
+  const copyPromptText = async (promptToCopy: string) => {
+    if (missingRequiredPromptVariables) {
+      setCustomCopyAttempted(true);
+      return;
+    }
     try {
-      await navigator.clipboard.writeText(finalPrompt);
+      await navigator.clipboard.writeText(promptToCopy);
       setCopyError(false);
       setCopied(true);
       trackGuideEvent("recipe_copy");
@@ -558,6 +733,7 @@ function RecipePage() {
       setCopyError(true);
     }
   };
+  const copyPrompt = async () => copyPromptText(finalPrompt);
   const share = async () => {
     if (navigator.share)
       await navigator.share({
@@ -652,10 +828,21 @@ function RecipePage() {
       recipe={recipe}
       config={recipe.layoutConfig}
       related={related.data ?? []}
+      recipeBasePath="/recipes"
       promptValues={variableValues}
       promptInputErrors={promptInputErrors}
       resolvedPrompt={finalPrompt}
       onPromptValueChange={(name, value) => setVariableValues((current) => ({ ...current, [name]: value }))}
+      onCopyPrompt={(prompt) => { setCustomCopyAttempted(true); void copyPromptText(prompt ?? finalPrompt); }}
+      copied={copied}
+      copyAttempted={customCopyAttempted}
+      copyError={copyError}
+      onShare={() => { void share(); }}
+      saveAction={<SaveAction recipe={recipe} />}
+      onRefinementSelect={(prompt, index) => {
+        setSelectedRefinement(prompt);
+        trackGuideEvent("recipe_refinement_click", { refinement: String(index + 1) });
+      }}
     /></Suspense></div></SiteShell>;
   }
   return (
@@ -921,7 +1108,7 @@ function RecipePage() {
             <p>{related.data?.some((item) => item.categorySlug === recipe.categorySlug) ? `Because you’re working in ${recipe.category}.` : related.data?.some((item) => item.audienceSlug === recipe.audienceSlug) ? `More workflows for ${recipe.audience}.` : "A few practical next recipes."}</p>
           </div>
         </div>
-        <RecipeGrid recipes={related.data || []} />
+        <RecipeGrid recipes={related.data || []} recipeBasePath="/recipes" />
       </section>
       <section className="shell recipe-quick-start">
         <div><span className="kicker">Quick start</span><h2>Ready to try?</h2></div>
@@ -940,8 +1127,8 @@ function CollectionPage() {
   });
   usePageMeta(
     query.data
-      ? `${query.data.name} workflows — TaskBakeAI`
-      : "Collection — TaskBakeAI",
+      ? `${query.data.name} workflows`
+      : 'Collection',
     query.data?.description ||
       "Browse practical AI workflows in this collection.",
   );
@@ -978,7 +1165,7 @@ function CollectionPage() {
 
 function CollectionsIndex() {
   const query = useListCategories();
-  usePageMeta('Categories — TaskBakeAI', 'Find the right shelf of practical AI workflows for the work you do.');
+  usePageMeta('Categories', 'Find the right shelf of practical AI workflows for the work you do.');
   if (query.isLoading) return <SiteShell><LoadingState /></SiteShell>;
   if (query.isError || !query.data) return <SiteShell><ErrorState retry={() => query.refetch()} /></SiteShell>;
   const items = query.data;
@@ -989,10 +1176,251 @@ function SubmitPage() {
   const create = useCreateSubmission();
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState({ title: '', problem: '', workflow: '', howUsed: '', email: '' });
-  usePageMeta('Share a workflow — TaskBakeAI', 'Share a practical AI workflow with the TaskBakeAI field guide.');
+  usePageMeta('Share a workflow', 'Share a practical AI workflow with the TaskBakeAI field guide.');
   const update = (key: keyof typeof form) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm({ ...form, [key]: e.target.value });
   if (sent) return <SiteShell><div className="success-panel shell"><span className="success-mark"><Check size={25} /></span><span className="kicker">Workflow received</span><h1>That is exactly the kind of thing we want to test.</h1><p>We will review your workflow for clarity, usefulness, and whether someone else can actually run it.</p><Link href="/recipes" className="button button-dark" data-testid="link-submit-success">Back to the library <ArrowRight size={16} /></Link></div></SiteShell>;
   return <SiteShell><div className="form-page shell"><div className="form-intro"><span className="kicker">Contribute to the field guide</span><h1>What workflow saved you time?</h1><p>Share the problem, the steps, and how you know it worked. We will do the editing and testing; you bring the useful bit.</p><div className="form-aside-note"><PenLine size={18} /><span>Good submissions are specific, honest, and repeatable.</span></div></div><form className="workflow-form" onSubmit={(e) => { e.preventDefault(); create.mutate({ data: { ...form, email: form.email || null } }, { onSuccess: () => setSent(true) }); }}><label>Give it a useful title<input required minLength={3} value={form.title} onChange={update('title')} placeholder="e.g. Turn a messy brief into a clear project plan" data-testid="input-submit-title" /></label><label>What problem does it solve?<textarea required minLength={10} value={form.problem} onChange={update('problem')} placeholder="Describe the moment when this workflow is useful." data-testid="input-submit-problem" /></label><label>Walk us through the workflow<textarea required minLength={20} className="tall-input" value={form.workflow} onChange={update('workflow')} placeholder="What do you put in, what do you ask, and what do you do with the result?" data-testid="input-submit-workflow" /></label><label>How did you use it?<textarea required minLength={10} value={form.howUsed} onChange={update('howUsed')} placeholder="Tell us what changed, or what you checked." data-testid="input-submit-how-used" /></label><label>Your email <span className="optional">(optional)</span><input type="email" value={form.email} onChange={update('email')} placeholder="you@example.com" data-testid="input-submit-email" /></label><button className="button button-dark submit-button" type="submit" disabled={create.isPending} data-testid="button-submit-workflow">{create.isPending ? 'Sending...' : 'Send workflow for review'} <Send size={16} /></button>{create.isError && <p className="form-error">Could not send that just now. Please try again.</p>}</form></div></SiteShell>;
+}
+
+type VybeItem = {
+  id: number;
+  title: string;
+  slug: string;
+  shortDescription: string;
+  description: string;
+  category: string;
+  contentType: string;
+  model: string;
+  prompt: string;
+  imageUrl: string;
+  imageAlt: string;
+  tags: string[];
+  status: string;
+  featured: boolean;
+  trending: boolean;
+  publishedAt?: string;
+  createdAt?: string;
+};
+
+function VybePage() {
+  const [items, setItems] = useState<VybeItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  usePageMeta('VYBE AI discovery marketplace', 'Explore VYBE generative creations, visual experiments, and creative AI prompts.');
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/vybe', { credentials: 'include' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.error || 'Failed to load VYBE items.');
+        return data as { items?: VybeItem[] };
+      })
+      .then((data) => {
+        if (active) setItems(data.items ?? []);
+      })
+      .catch((reason) => {
+        if (active) setError(reason instanceof Error ? reason.message : 'Could not load VYBE.');
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const featured = items.filter((item) => item.featured).slice(0, 3);
+  const trending = items.filter((item) => item.trending).slice(0, 4);
+
+  return <SiteShell>
+    <div className="shell" style={{ paddingTop: '2rem', paddingBottom: '2rem' }}>
+      <div style={{ border: '1px solid rgba(160,134,255,0.25)', background: 'linear-gradient(140deg, rgba(19,16,32,0.96), rgba(13,16,27,0.9))', borderRadius: '28px', padding: '2rem', display: 'grid', gap: '1.5rem' }}>
+        <span className="kicker" style={{ color: '#9fdcff' }}>VYBE marketplace</span>
+        <h1 style={{ fontSize: 'clamp(2.4rem, 5vw, 5rem)', lineHeight: 1.05, margin: 0 }}>Find your next AI obsession.</h1>
+        <p style={{ maxWidth: '58rem', color: '#d1cde8', margin: 0 }}>Private VYBE creations, visual experiments, image prompts, videos and game concepts curated for discovery.</p>
+      </div>
+      {error ? <div className="state-panel error-state" data-testid="status-vybe-error"><h2>VYBE is not available</h2><p>{error}</p></div> : null}
+      {!loading && !error && !items.length ? <div className="state-panel empty-state"><span className="empty-icon"><Sparkles size={20} /></span><h2>No published VYBE creations yet</h2><p>Publish a VYBE item from the admin studio to make it appear here.</p></div> : null}
+      {!loading && featured.length ? <section style={{ marginTop: '2rem' }}> <div className="section-heading"><div><span className="kicker">Featured</span><h2>Trending creations</h2></div></div><div className="home-recipe-grid">{featured.map((item) => <article key={item.id} className="recipe-card" style={{ background: '#121521', borderColor: 'rgba(159,220,255,0.18)' }}><div className="card-topline"><span className="category-pill">{item.category}</span>{item.trending ? <span className="trend-label"><Flame size={12} /> Trending</span> : null}</div><Link href={`/vybe/${item.slug}`} className="card-title-link"><h3>{item.title}</h3></Link><p className="card-description">{item.shortDescription}</p><div className="card-meta-chips"><span className="meta-chip"><Clock3 size={12} /> {item.contentType}</span><span className="meta-chip">{item.model || 'AI model'}</span></div>{item.imageUrl ? <img src={item.imageUrl} alt={item.imageAlt || item.title} style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: '12px', marginTop: '1rem' }} /> : null}</article>)}</div></section> : null}
+      {!loading && trending.length ? <section style={{ marginTop: '2rem' }}> <div className="section-heading"><div><span className="kicker">Discovery</span><h2>Curated picks</h2></div></div><div className="home-recipe-grid">{trending.map((item) => <article key={item.id} className="recipe-card" style={{ background: '#121521', borderColor: 'rgba(168,120,255,0.18)' }}><div className="card-topline"><span className="category-pill">{item.contentType}</span></div><Link href={`/vybe/${item.slug}`} className="card-title-link"><h3>{item.title}</h3></Link><p className="card-description">{item.shortDescription}</p><div className="card-tags">{item.tags.slice(0, 3).map((tag) => <span key={tag}>#{tag}</span>)}</div></article>)}</div></section> : null}
+      {!loading && items.length ? <section style={{ marginTop: '2rem' }}><div className="section-heading"><div><span className="kicker">Library</span><h2>All published VYBE creations</h2></div></div><div className="home-recipe-grid">{items.map((item) => <article key={item.id} className="recipe-card" style={{ background: '#121521', borderColor: 'rgba(160,134,255,0.14)' }}><div className="card-topline"><span className="category-pill">{item.category}</span>{item.featured ? <span className="trend-label"><Star size={12} /> Featured</span> : null}</div><Link href={`/vybe/${item.slug}`} className="card-title-link"><h3>{item.title}</h3></Link><p className="card-description">{item.shortDescription}</p><div className="card-meta-chips"><span className="meta-chip">{item.contentType}</span>{item.model ? <span className="meta-chip">{item.model}</span> : null}</div>{item.imageUrl ? <img src={item.imageUrl} alt={item.imageAlt || item.title} style={{ width: '100%', height: 190, objectFit: 'cover', borderRadius: '12px', marginTop: '1rem' }} /> : null}</article>)}</div></section> : null}
+    </div>
+  </SiteShell>;
+}
+
+function VybeDetailPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const [items, setItems] = useState<VybeItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetch('/api/vybe', { credentials: 'include' })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.error || 'Could not load this VYBE item.');
+        return (data as { items?: VybeItem[] }).items ?? [];
+      })
+      .then((data) => setItems(data))
+      .catch((reason) => setError(reason instanceof Error ? reason.message : 'Could not load VYBE item.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const item = items.find((entry) => entry.slug === slug);
+  usePageMeta(item ? item.title : 'VYBE detail', item ? item.shortDescription : 'Detailed VYBE creation');
+
+  if (loading) return <SiteShell><LoadingState label="Loading VYBE item" /></SiteShell>;
+  if (error || !item) return <SiteShell><div className="state-panel error-state"><span className="state-kicker">VYBE item missing</span><h2>That creation is not publicly available.</h2><Link href="/vybe" className="button button-dark">Back to VYBE <ArrowRight size={16} /></Link></div></SiteShell>;
+
+  return <SiteShell>
+    <div className="shell" style={{ paddingTop: '2rem', paddingBottom: '2rem' }}>
+      <div className="breadcrumbs"><Link href="/vybe">VYBE</Link><ChevronRight size={14} /><span>{item.title}</span></div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '2rem', alignItems: 'start' }}>
+        <div>
+          {item.imageUrl ? <img src={item.imageUrl} alt={item.imageAlt || item.title} style={{ width: '100%', borderRadius: '20px', maxHeight: '560px', objectFit: 'cover', border: '1px solid rgba(160,134,255,0.2)' }} /> : <div style={{ minHeight: '280px', borderRadius: '20px', background: '#111827', display: 'grid', placeItems: 'center', border: '1px dashed rgba(159,220,255,0.3)' }}>No visual provided</div>}
+        </div>
+        <div style={{ background: '#121521', borderRadius: '20px', padding: '1.25rem', border: '1px solid rgba(160,134,255,0.12)' }}>
+          <span className="kicker" style={{ color: '#9fdcff' }}>{item.category}</span>
+          <h1 style={{ margin: '0.5rem 0' }}>{item.title}</h1>
+          <p style={{ color: '#d1cde8' }}>{item.shortDescription}</p>
+          <div className="card-tags">{item.tags.map((tag) => <span key={tag}>#{tag}</span>)}</div>
+          <div className="card-meta-chips" style={{ margin: '1rem 0' }}><span className="meta-chip">{item.contentType}</span>{item.model ? <span className="meta-chip">{item.model}</span> : null}</div>
+          <p style={{ whiteSpace: 'pre-wrap', color: '#e8e7ff' }}>{item.description}</p>
+          {item.prompt ? <div style={{ marginTop: '1rem', background: '#0d1020', padding: '1rem', borderRadius: '12px' }}><strong>Prompt</strong><pre style={{ whiteSpace: 'pre-wrap', margin: '0.75rem 0 0', color: '#dfe9ff' }}>{item.prompt}</pre></div> : null}
+        </div>
+      </div>
+    </div>
+  </SiteShell>;
+}
+
+function AdminVybeStudio() {
+  const [items, setItems] = useState<VybeItem[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState({ title: '', slug: '', shortDescription: '', description: '', category: 'Images', contentType: 'image', model: '', prompt: '', imageUrl: '', imageAlt: '', tags: 'cyberpunk, editorial', status: 'DRAFT', featured: false, trending: false });
+
+  const loadItems = async () => {
+    const response = await fetch('/api/admin/vybe', { credentials: 'include' });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data?.error || 'Failed to load VYBE items.');
+    setItems((data as { items?: VybeItem[] }).items ?? []);
+  };
+
+  useEffect(() => {
+    void loadItems().catch((reason) => {
+      console.error(reason);
+    });
+  }, []);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      const payload = {
+        title: form.title,
+        slug: form.slug || form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+        shortDescription: form.shortDescription,
+        description: form.description,
+        category: form.category,
+        contentType: form.contentType,
+        model: form.model,
+        prompt: form.prompt,
+        imageUrl: form.imageUrl,
+        imageAlt: form.imageAlt,
+        tags: form.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+        status: form.status,
+        featured: form.featured,
+        trending: form.trending,
+      };
+
+      const response = await fetch(editingId ? `/api/admin/vybe/${editingId}` : '/api/admin/vybe', {
+        method: editingId ? 'PATCH' : 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || 'VYBE save failed.');
+      setForm({ title: '', slug: '', shortDescription: '', description: '', category: 'Images', contentType: 'image', model: '', prompt: '', imageUrl: '', imageAlt: '', tags: 'cyberpunk, editorial', status: 'DRAFT', featured: false, trending: false });
+      setEditingId(null);
+      await loadItems();
+    } catch (reason) {
+      window.alert(reason instanceof Error ? reason.message : 'Could not save VYBE item.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (id: number) => {
+    if (!window.confirm('Delete this VYBE creation?')) return;
+    const response = await fetch(`/api/admin/vybe/${id}`, { method: 'DELETE', credentials: 'include' });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      window.alert(data?.error || 'Delete failed.');
+      return;
+    }
+    await loadItems();
+  };
+
+  const beginEdit = (item: VybeItem) => {
+    setEditingId(item.id);
+    setForm({
+      title: item.title,
+      slug: item.slug,
+      shortDescription: item.shortDescription,
+      description: item.description,
+      category: item.category,
+      contentType: item.contentType,
+      model: item.model,
+      prompt: item.prompt,
+      imageUrl: item.imageUrl,
+      imageAlt: item.imageAlt,
+      tags: item.tags.join(', '),
+      status: item.status,
+      featured: item.featured,
+      trending: item.trending,
+    });
+  };
+
+  return <div className="shell" style={{ padding: '2rem 0' }}>
+    <div className="page-intro compact">
+      <span className="kicker">VYBE Studio</span>
+      <h1>Create and manage VYBE creations</h1>
+      <p>Dedicated VYBE content stays separate from regular TaskBakeAI recipes and public discovery.</p>
+    </div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.95fr', gap: '2rem', alignItems: 'start' }}>
+      <form className="workflow-form" onSubmit={submit}>
+        <label>Title<input required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
+        <label>Slug<input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} placeholder="cyber-jungle" /></label>
+        <label>Short description<textarea required value={form.shortDescription} onChange={(event) => setForm({ ...form, shortDescription: event.target.value })} /></label>
+        <label>Full description<textarea required value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <label>Category<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}><option>Images</option><option>Video</option><option>Art</option><option>Photography</option><option>3D</option><option>Games</option><option>Writing</option><option>Marketing</option><option>Productivity</option><option>Business</option><option>Coding</option><option>AI Tools</option></select></label>
+          <label>Content type<select value={form.contentType} onChange={(event) => setForm({ ...form, contentType: event.target.value })}><option value="image">image</option><option value="video">video</option><option value="experiment">experiment</option><option value="game">game</option><option value="creative">creative</option></select></label>
+        </div>
+        <label>Model or tool<input value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} placeholder="Midjourney, Flux, Runway" /></label>
+        <label>Prompt<textarea value={form.prompt} onChange={(event) => setForm({ ...form, prompt: event.target.value })} /></label>
+        <label>Image URL<input value={form.imageUrl} onChange={(event) => setForm({ ...form, imageUrl: event.target.value })} placeholder="https://.../image.webp" /></label>
+        <label>Alt text<input value={form.imageAlt} onChange={(event) => setForm({ ...form, imageAlt: event.target.value })} /></label>
+        <label>Tags<input value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} /></label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <label>Status<select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="DRAFT">DRAFT</option><option value="PUBLISHED">PUBLISHED</option></select></label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', justifyContent: 'center' }}>
+            <label><input type="checkbox" checked={form.featured} onChange={(event) => setForm({ ...form, featured: event.target.checked })} /> Featured</label>
+            <label><input type="checkbox" checked={form.trending} onChange={(event) => setForm({ ...form, trending: event.target.checked })} /> Trending</label>
+          </div>
+        </div>
+        <button type="submit" className="button button-dark" disabled={saving}>{saving ? 'Saving...' : editingId ? 'Update VYBE' : 'Create VYBE'} </button>
+      </form>
+      <div>
+        <div style={{ background: '#121521', borderRadius: '18px', padding: '1rem', border: '1px solid rgba(160,134,255,0.2)' }}>
+          <h2 style={{ marginTop: 0 }}>Published and draft records</h2>
+          {items.length ? <div style={{ display: 'grid', gap: '0.9rem' }}>{items.map((item) => <div key={item.id} style={{ border: '1px solid rgba(160,134,255,0.18)', borderRadius: '12px', padding: '0.9rem', display: 'grid', gap: '0.4rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}><strong>{item.title}</strong><span className="badge">{item.status}</span></div>
+            <small>{item.category} · {item.contentType}</small>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}><button className="button button-outline" type="button" onClick={() => beginEdit(item)}>Edit</button><button className="button button-outline" type="button" onClick={() => remove(item.id)}>Delete</button></div>
+          </div>)}</div> : <p>No VYBE records yet.</p>}
+        </div>
+      </div>
+    </div>
+  </div>;
 }
 
 function Protected({ children }: { children: ReactNode }) {
@@ -1004,7 +1432,7 @@ function Protected({ children }: { children: ReactNode }) {
 
 function SavedPage() {
   const query = useListSavedRecipes();
-  usePageMeta('Saved recipes — TaskBakeAI', 'Your saved practical AI workflows.');
+  usePageMeta('Saved recipes', 'Your saved practical AI workflows.');
   if (query.isLoading) return <LoadingState label="Opening your shelf" />;
   if (query.isError) return <ErrorState retry={() => query.refetch()} />;
   return <div className="protected-page shell"><div className="page-intro compact"><span className="kicker">Your shelf</span><h1>Saved for later.</h1><p>A short list of workflows worth keeping close.</p></div><RecipeGrid recipes={query.data || []} /></div>;
@@ -1012,7 +1440,7 @@ function SavedPage() {
 
 function HistoryPage() {
   const query = useListHistory();
-  usePageMeta('History — TaskBakeAI', 'Recently opened workflows from TaskBakeAI.');
+  usePageMeta('History', 'Recently opened workflows from TaskBakeAI.');
   if (query.isLoading) return <LoadingState label="Replaying your trail" />;
   if (query.isError) return <ErrorState retry={() => query.refetch()} />;
   return <div className="protected-page shell"><div className="page-intro compact"><span className="kicker">Your trail</span><h1>Recently opened.</h1><p>Pick up where you left off.</p></div><RecipeGrid recipes={query.data || []} /></div>;
@@ -1022,7 +1450,7 @@ function ProfilePage() {
   const query = useGetMe();
   const { user } = useUser();
   const { signOut } = useClerk();
-  usePageMeta('Profile — TaskBakeAI', 'Your TaskBakeAI profile and personal library.');
+  usePageMeta('Profile', 'Your TaskBakeAI profile and personal library.');
   if (query.isLoading) return <LoadingState />;
   if (query.isError || !query.data) return <ErrorState retry={() => query.refetch()} />;
   const profile = query.data;
@@ -1247,7 +1675,7 @@ function AdminSettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
 
         <div className="modal-body">
           <div className="settings-section">
-            <h3>👤 Active Administrator Account</h3>
+            <h3>ðŸ‘¤ Active Administrator Account</h3>
             <p>Signed in securely via OAuth 2.0 with PKCE and encrypted allow-list verification.</p>
             <div className="code-display-box">
               <code>Account: {adminUser?.emailMasked || 'Authenticated Admin'}</code>
@@ -1256,7 +1684,7 @@ function AdminSettingsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () 
           </div>
 
           <div className="settings-section">
-            <h3>🔒 Admin Allow-List Management</h3>
+            <h3>ðŸ”’ Admin Allow-List Management</h3>
             <p>
               The admin allow-list is stored encrypted in server environment variables (<code>ADMIN_ALLOWLIST_HASHES</code>).
               There is <strong>no API route or database screen</strong> that edits the allow-list.
@@ -1646,7 +2074,7 @@ function SmartDraftModal({
         <div className="modal-header">
           <div className="modal-title-row">
             <Wand2 size={20} className="accent-indigo" />
-            <h2>✨ AI Smart Draft & Starter Presets</h2>
+            <h2>âœ¨ AI Smart Draft & Starter Presets</h2>
           </div>
           <div className="smart-draft-header-actions">
             {onImportCsv && (
@@ -1666,14 +2094,14 @@ function SmartDraftModal({
             className={tab === 'presets' ? 'active' : ''}
             onClick={() => setTab('presets')}
           >
-            ⚡ Quick-Start Presets
+            âš¡ Quick-Start Presets
           </button>
           <button
             type="button"
             className={tab === 'ai' ? 'active' : ''}
             onClick={() => setTab('ai')}
           >
-            ✨ Custom AI Generator
+            âœ¨ Custom AI Generator
           </button>
         </div>
 
@@ -1784,6 +2212,8 @@ function AdminShell({ children }: { children: ReactNode }) {
   const navItems = [
     { href: getAdminPath(), label: 'Overview', icon: LayoutDashboard },
     { href: getAdminPath('/recipes'), label: 'Recipes', icon: FileText },
+    { href: getAdminPath('/vybe'), label: 'VYBE Studio', icon: Sparkles },
+    { href: getAdminPath('/imagekit'), label: 'Media', icon: Images },
     { href: getAdminPath('/submissions'), label: 'Submissions', icon: InboxIcon, badge: pendingSubmissionsCount },
     { href: getAdminPath('/categories'), label: 'Categories', icon: Tag },
     { href: getAdminPath('/audiences'), label: 'Audiences', icon: Users },
@@ -1800,7 +2230,7 @@ function AdminShell({ children }: { children: ReactNode }) {
         aria-label="Toggle admin sidebar"
         aria-expanded={sidebarOpen}
       >
-        ☰
+        â˜°
       </button>
       {/* Sidebar */}
       <aside className={`admin-sidebar${sidebarOpen ? ' is-open' : ''}`}>
@@ -1831,7 +2261,7 @@ function AdminShell({ children }: { children: ReactNode }) {
             onClick={() => setShowDraftModal(true)}
             data-testid="button-sidebar-smart-draft"
           >
-            <Wand2 size={16} /> ✨ AI Draft Generator
+            <Wand2 size={16} /> âœ¨ AI Draft Generator
           </button>
           <Link href="/" data-testid="link-admin-view-site" className="flex items-center">
             <ExternalLink size={16} /> View public site
@@ -1914,7 +2344,7 @@ function AdminOverview() {
   const [, setLocation] = useLocation();
   const [showDraftModal, setShowDraftModal] = useState(false);
 
-  usePageMeta('Super Admin Dashboard — TaskBakeAI', 'Comprehensive command center for the TaskBakeAI field guide.');
+  usePageMeta('Super Admin Dashboard', 'Comprehensive command center for the TaskBakeAI field guide.');
 
   if (summaryQuery.isLoading || recipesQuery.isLoading) return <LoadingState label="Loading Command Center" />;
   if (summaryQuery.isError || !summaryQuery.data) return <ErrorState retry={() => summaryQuery.refetch()} />;
@@ -1977,7 +2407,7 @@ function AdminOverview() {
             onClick={() => setShowDraftModal(true)}
             data-testid="button-overview-ai-generator"
           >
-            <Wand2 size={16} /> ✨ AI Draft Generator
+            <Wand2 size={16} /> âœ¨ AI Draft Generator
           </button>
           <Link href={getAdminPath('/recipes/new')} className="button button-dark" data-testid="link-admin-new-recipe">
             <Plus size={16} /> New Recipe
@@ -2012,7 +2442,7 @@ function AdminOverview() {
           <div className="kpi-icon-wrap"><InboxIcon size={20} /></div>
           <span className="kpi-label">Pending Submissions</span>
           <strong className="kpi-value">{s.pendingSubmissions}</strong>
-          <small className="kpi-sub">{s.pendingSubmissions > 0 ? '⚡ Needs triage' : 'Queue clear'}</small>
+          <small className="kpi-sub">{s.pendingSubmissions > 0 ? 'âš¡ Needs triage' : 'Queue clear'}</small>
         </div>
 
         <div className="kpi-card views-card">
@@ -2179,6 +2609,7 @@ function AdminOverview() {
 }
 
 function AdminRecipes() {
+  const catalogue = 'TASKBAKE';
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [categorySlug, setCategorySlug] = useState('');
@@ -2186,12 +2617,23 @@ function AdminRecipes() {
   const [selectedRecipeIds, setSelectedRecipeIds] = useState<Set<number>>(() => new Set());
   const [bulkCategoryId, setBulkCategoryId] = useState('');
   const [bulkUpdateMessage, setBulkUpdateMessage] = useState('');
-  const query = useListAdminRecipes({ q: q || undefined, status: status || undefined, category: categorySlug || undefined, page });
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const taskBakeQuery = useListAdminRecipes(
+    { catalogue: 'TASKBAKE', q: q || undefined, status: status || undefined, category: categorySlug || undefined, page },
+    {
+      query: {
+        queryKey: getListAdminRecipesQueryKey({ catalogue: 'TASKBAKE', q: q || undefined, status: status || undefined, category: categorySlug || undefined, page }),
+      },
+    },
+  );
+  const query = taskBakeQuery;
   const filteredRecipes = query.data?.items ?? [];
   const bulkSelectableRecipes = filteredRecipes.slice(0, 500);
   const duplicate = useDuplicateAdminRecipe();
   const deleteMutation = useDeleteAdminRecipe();
+  const bulkDelete = useBulkDeleteAdminRecipes();
   const bulkUpdate = useBulkUpdateAdminRecipes();
+  const isBulkDeleting = bulkDelete.isPending || deleteMutation.isPending;
   const importCsv = useImportAdminRecipesCsv();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -2207,7 +2649,7 @@ function AdminRecipes() {
   const categoriesQuery = useListCategories();
   const audiencesQuery = useListAudiences();
 
-  usePageMeta('Manage Recipes — TaskBakeAI', 'Edit, test, and publish recipes.');
+  usePageMeta('Manage Recipes', 'Edit, test, and publish recipes.');
 
   useEffect(() => {
     setSelectedRecipeIds(new Set());
@@ -2232,7 +2674,7 @@ function AdminRecipes() {
     if (!selectedRecipeIds.size || !window.confirm(`Publish ${selectedRecipeIds.size} selected recipe${selectedRecipeIds.size === 1 ? '' : 's'}? They will become visible in the public recipe library.`)) return;
     setBulkUpdateMessage('');
     bulkUpdate.mutate(
-      { data: { ids: [...selectedRecipeIds], status: 'PUBLISHED' } },
+      { data: { catalogue, ids: [...selectedRecipeIds], status: 'PUBLISHED' } },
       {
         onSuccess: ({ updatedCount }) => refreshAfterBulkUpdate(updatedCount),
         onError: (error) => setBulkUpdateMessage(error instanceof Error ? error.message : 'Could not publish the selected recipes.'),
@@ -2245,7 +2687,7 @@ function AdminRecipes() {
     if (!selectedRecipeIds.size || !Number.isSafeInteger(categoryId) || categoryId <= 0) return;
     setBulkUpdateMessage('');
     bulkUpdate.mutate(
-      { data: { ids: [...selectedRecipeIds], categoryId } },
+      { data: { catalogue, ids: [...selectedRecipeIds], categoryId } },
       {
         onSuccess: ({ updatedCount }) => {
           setBulkCategoryId('');
@@ -2256,17 +2698,74 @@ function AdminRecipes() {
     );
   };
 
+  const invalidateAfterDelete = () => {
+    void queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: getGetHomeQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: getListRecipesQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: getListCategoriesQueryKey() });
+    void queryClient.invalidateQueries({
+      predicate: ({ queryKey }) => typeof queryKey[0] === 'string' && queryKey[0].startsWith('/api/categories/'),
+    });
+  };
+
+  const finishBulkDelete = (deletedCount: number) => {
+    setShowBulkDeleteModal(false);
+    setSelectedRecipeIds(new Set());
+    setPage(1);
+    setBulkUpdateMessage(`${deletedCount} recipe${deletedCount === 1 ? '' : 's'} deleted.`);
+    invalidateAfterDelete();
+  };
+
+  const deleteSelectedRecipes = async () => {
+    if (!selectedRecipeIds.size) return;
+    const ids = [...selectedRecipeIds];
+    setBulkUpdateMessage('');
+    try {
+      const { deletedCount } = await bulkDelete.mutateAsync({ data: { catalogue, ids } });
+      finishBulkDelete(deletedCount);
+    } catch (error) {
+      const isUnavailableBulkEndpoint = error instanceof Error
+        && 'status' in error
+        && error.status === 404
+        && 'url' in error
+        && typeof error.url === 'string'
+        && error.url.endsWith('/api/admin/recipes/bulk-delete');
+      if (!isUnavailableBulkEndpoint) {
+        setBulkUpdateMessage(error instanceof Error ? error.message : 'Could not delete the selected recipes.');
+        return;
+      }
+
+      bulkDelete.reset();
+      deleteMutation.reset();
+      let deletedCount = 0;
+      for (const id of ids) {
+        try {
+          await deleteMutation.mutateAsync({ id });
+          deletedCount += 1;
+        } catch (fallbackError) {
+          setSelectedRecipeIds(new Set(ids.slice(deletedCount)));
+          setPage(1);
+          if (deletedCount > 0) invalidateAfterDelete();
+          setBulkUpdateMessage(
+            `The server does not support bulk delete yet. Deleted ${deletedCount} of ${ids.length} recipes; recipe ${id} failed: ${
+              fallbackError instanceof Error ? fallbackError.message : 'Unknown error.'
+            }`,
+          );
+          return;
+        }
+      }
+      finishBulkDelete(deletedCount);
+    }
+  };
+
   const handleDeleteConfirm = () => {
     if (!recipeToDelete) return;
-    deleteMutation.mutate(
-      { id: recipeToDelete.id },
-      {
-        onSuccess: () => {
-          setRecipeToDelete(null);
-          queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
-        },
-      }
-    );
+    const onSuccess = () => {
+      setRecipeToDelete(null);
+      void queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
+    };
+    deleteMutation.mutate({ id: recipeToDelete.id }, { onSuccess });
   };
 
   const handleCsvFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -2295,7 +2794,7 @@ function AdminRecipes() {
         return;
       }
       setImportCsvText(csv);
-      importCsv.mutate({ data: { csv, preview: true } }, {
+      importCsv.mutate({ data: { csv, preview: true }, params: { catalogue } }, {
         onSuccess: (report) => {
           setImportReport(report);
         },
@@ -2308,7 +2807,7 @@ function AdminRecipes() {
   const commitCsvImport = () => {
     if (!importCsvText || !importReport?.preview || importReport.failedCount > 0) return;
     setImportError('');
-    importCsv.mutate({ data: { csv: importCsvText, preview: false } }, {
+    importCsv.mutate({ data: { csv: importCsvText, preview: false }, params: { catalogue } }, {
       onSuccess: (report) => {
         setImportReport(report);
         if (report.createdCount) {
@@ -2339,13 +2838,13 @@ function AdminRecipes() {
     setExportingCsv(true);
     setExportError('');
     try {
-      const response = await fetch('/api/admin/recipes/export-csv', { credentials: 'include' });
+      const response = await fetch(`/api/admin/recipes/export-csv?catalogue=${catalogue}`, { credentials: 'include' });
       if (!response.ok) throw new Error(`CSV export failed (HTTP ${response.status}).`);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'ai-recipes-v2.csv';
+      link.download = `${catalogue.toLowerCase()}-recipes-v2.csv`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
@@ -2395,7 +2894,7 @@ function AdminRecipes() {
         <div>
           <span className="kicker">Content Library</span>
           <h1>Recipe Shelf ({query.data.total})</h1>
-          <p className="admin-subtitle">Search, edit, test, and manage published and drafted recipes.</p>
+          <p className="admin-subtitle">Search, edit, test, and manage TaskBakeAI recipes.</p>
         </div>
         <div className="admin-heading-actions">
           <input
@@ -2428,7 +2927,7 @@ function AdminRecipes() {
             onClick={() => setShowDraftModal(true)}
             data-testid="button-recipes-smart-draft"
           >
-            <Wand2 size={16} /> ✨ Smart Draft
+            <Wand2 size={16} /> âœ¨ Smart Draft
           </button>
           <Link href={getAdminPath('/recipes/new')} className="button button-dark" data-testid="link-admin-add-recipe">
             <Plus size={16} /> Add Recipe
@@ -2518,7 +3017,7 @@ function AdminRecipes() {
             type="button"
             className="button button-outline"
             onClick={recategorizeSelectedRecipes}
-            disabled={!selectedRecipeIds.size || !bulkCategoryId || bulkUpdate.isPending}
+            disabled={!selectedRecipeIds.size || !bulkCategoryId || bulkUpdate.isPending || isBulkDeleting}
             data-testid="button-bulk-change-category"
           >
             Apply category
@@ -2527,14 +3026,23 @@ function AdminRecipes() {
             type="button"
             className="button button-dark"
             onClick={publishSelectedRecipes}
-            disabled={!selectedRecipeIds.size || bulkUpdate.isPending}
+            disabled={!selectedRecipeIds.size || bulkUpdate.isPending || isBulkDeleting}
             data-testid="button-bulk-publish"
           >
             {bulkUpdate.isPending ? 'Updating...' : 'Publish selected'}
           </button>
+          <button
+            type="button"
+            className="button button-danger"
+            onClick={() => setShowBulkDeleteModal(true)}
+            disabled={!selectedRecipeIds.size || isBulkDeleting || bulkUpdate.isPending}
+            data-testid="button-bulk-delete-recipes"
+          >
+            <Trash2 size={15} /> Delete selected
+          </button>
         </div>
         {bulkUpdateMessage && (
-          <p role={bulkUpdate.isError ? 'alert' : 'status'} aria-live="polite">{bulkUpdateMessage}</p>
+          <p role={bulkUpdate.isError || bulkDelete.isError || deleteMutation.isError ? 'alert' : 'status'} aria-live="polite">{bulkUpdateMessage}</p>
         )}
       </section>
 
@@ -2636,7 +3144,12 @@ function AdminRecipes() {
                           type="button"
                           className="table-action"
                           title="Duplicate as draft"
-                          onClick={() => duplicate.mutate({ id: recipe.id }, { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() }) })}
+                          onClick={() => {
+                            const onSuccess = () => {
+                              void queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
+                            };
+                            duplicate.mutate({ id: recipe.id }, { onSuccess });
+                          }}
                           data-testid={`button-duplicate-recipe-${recipe.id}`}
                         >
                           <Copy size={14} />
@@ -2718,6 +3231,46 @@ function AdminRecipes() {
         </div>
       )}
 
+      {showBulkDeleteModal && (
+        <div className="modal-backdrop" onClick={() => { if (!isBulkDeleting) setShowBulkDeleteModal(false); }}>
+          <div
+            className="modal-container delete-confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bulk-delete-recipes-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div className="delete-icon-wrap"><AlertCircle size={24} /></div>
+              <h2 id="bulk-delete-recipes-title">Delete selected recipes?</h2>
+            </div>
+            <div className="modal-body">
+              <p>Permanently delete <strong>{selectedRecipeIds.size} selected recipe{selectedRecipeIds.size === 1 ? '' : 's'}</strong>?</p>
+              <small>This also removes their saved entries, viewing history, feedback, and activity records. This action cannot be undone.</small>
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="button button-outline"
+                  onClick={() => setShowBulkDeleteModal(false)}
+                  disabled={isBulkDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="button button-danger"
+                  disabled={isBulkDeleting || !selectedRecipeIds.size}
+                  onClick={deleteSelectedRecipes}
+                  data-testid="button-confirm-bulk-delete-recipes"
+                >
+                  {isBulkDeleting ? 'Deleting...' : `Delete ${selectedRecipeIds.size} recipe${selectedRecipeIds.size === 1 ? '' : 's'}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <SmartDraftModal
         isOpen={showDraftModal}
         onClose={() => setShowDraftModal(false)}
@@ -2727,7 +3280,7 @@ function AdminRecipes() {
         }}
         onSelectDraft={(draft) => {
           setShowDraftModal(false);
-          setLocation(getAdminPath(`/recipes/new?draft=${encodeURIComponent(JSON.stringify(draft))}`));
+          setLocation(getAdminPath(`/recipes/new?catalogue=${catalogue}&draft=${encodeURIComponent(JSON.stringify(draft))}`));
         }}
         categories={categoriesQuery.data}
         audiences={audiencesQuery.data}
@@ -2766,6 +3319,7 @@ const emptyRecipe: RecipeInput = {
   verificationNotes: 'Check that all placeholder brackets are replaced with actual context.',
   tags: ['workflow', 'practical'],
   status: 'DRAFT',
+  catalogue: 'TASKBAKE',
   featured: false,
   trending: false,
   recipeOfDay: false,
@@ -3033,8 +3587,14 @@ function CustomLayoutRecipeEditor({
 function AdminRecipeEditor() {
   const { id } = useParams<{ id: string }>();
   const isNew = !id || id === 'new';
-  const list = useListAdminRecipes({ page: 1 });
-  const existing = list.data?.items.find((item) => item.id === Number(id));
+  const recipeId = Number(id);
+  const existingQuery = useGetAdminRecipe(recipeId, {
+    query: {
+      queryKey: getGetAdminRecipeQueryKey(recipeId),
+      enabled: !isNew && Number.isSafeInteger(recipeId) && recipeId > 0,
+    },
+  });
+  const existing = existingQuery.data;
   const categories = useListCategories();
   const audiences = useListAudiences();
   const create = useCreateAdminRecipe();
@@ -3044,10 +3604,12 @@ function AdminRecipeEditor() {
   const updateSubmission = useUpdateAdminSubmission();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
-  const [form, setForm] = useState<RecipeInput>(emptyRecipe);
+  const [form, setForm] = useState<RecipeInput>(() => ({ ...emptyRecipe, catalogue: 'TASKBAKE' }));
   const [guide, setGuide] = useState<RecipeGuideData>(() => createEmptyRecipeGuide(emptyRecipe.requiredInputs));
   const initialEditorSnapshot = useRef(JSON.stringify({ form, guide }));
-  const [editorTab, setEditorTab] = useState<'edit' | 'preview' | 'checklist'>('edit');
+  const [editorTab, setEditorTab] = useState<'edit' | 'preview' | 'checklist'>(() =>
+    new URLSearchParams(window.location.search).get('tab') === 'preview' ? 'preview' : 'edit'
+  );
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
@@ -3111,6 +3673,7 @@ function AdminRecipeEditor() {
         seoDescription: existingDetail.seoDescription,
         layoutMode: existingDetail.layoutMode ?? 'normal',
         layoutConfig: existingDetail.layoutConfig ?? null,
+        catalogue: existingDetail.catalogue,
       };
       initialEditorSnapshot.current = JSON.stringify({ form: nextForm, guide: loadedGuide });
       setForm(nextForm);
@@ -3195,7 +3758,6 @@ function AdminRecipeEditor() {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const mutation = isNew ? create : update;
     const cleanGuide = cleanRecipeGuide(guide, form.requiredInputs);
     cleanGuide.quality = {
       ...cleanGuide.quality,
@@ -3207,56 +3769,53 @@ function AdminRecipeEditor() {
         ? cleanGuide.quality.testedWith?.length ? cleanGuide.quality.testedWith : form.testedWith
         : cleanGuide.quality?.testedWith,
     };
-    const body = {
-      data: {
-        ...form,
-        ...(form.layoutMode === 'custom' ? {
-          problem: form.problem.trim() || form.shortDescription.trim() || cleanGuide.expectedOutput?.description?.trim() || form.title,
-        } : {}),
-        testedAt: cleanGuide.quality.status === 'tested' ? cleanGuide.quality.lastTested : form.testedAt,
-        testedWith: cleanGuide.quality.status === 'tested' ? cleanGuide.quality.testedWith ?? form.testedWith : form.testedWith,
-        guide: cleanGuide,
-      },
-      ...(isNew ? {} : { id: Number(id) }),
-    } as never;
-    mutation.mutate(body, {
-      onSuccess: () => {
-        // If converting a submission, mark it as CONVERTED
-        const urlParams = new URLSearchParams(window.location.search);
-        const submissionId = urlParams.get('submissionId');
-        if (submissionId) {
-          updateSubmission.mutate({ id: Number(submissionId), data: { status: 'CONVERTED' } });
-        }
-        queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
-        setLocation(getAdminPath('/recipes'));
-      },
-    });
+    const data = {
+      ...form,
+      ...(form.layoutMode === 'custom' ? {
+        problem: form.problem.trim() || form.shortDescription.trim() || cleanGuide.expectedOutput?.description?.trim() || form.title,
+      } : {}),
+      testedAt: cleanGuide.quality.status === 'tested' ? cleanGuide.quality.lastTested : form.testedAt,
+      testedWith: cleanGuide.quality.status === 'tested' ? cleanGuide.quality.testedWith ?? form.testedWith : form.testedWith,
+      guide: cleanGuide,
+      catalogue: form.catalogue,
+    };
+    const onSuccess = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const submissionId = urlParams.get('submissionId');
+      if (submissionId) {
+        updateSubmission.mutate({ id: Number(submissionId), data: { status: 'CONVERTED' } });
+      }
+      queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getListRecipesQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetHomeQueryKey() });
+      if (form.slug) {
+        queryClient.invalidateQueries({ queryKey: getGetRecipeQueryKey(form.slug) });
+      }
+      setLocation(getAdminPath('/recipes'));
+    };
+    const body = { data, ...(isNew ? {} : { id: Number(id) }) } as never;
+    (isNew ? create : update).mutate(body, { onSuccess });
   };
 
   const handleDeleteRecipe = () => {
     if (isNew) return;
-    deleteMutation.mutate(
-      { id: Number(id) },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
-          setLocation(getAdminPath('/recipes'));
-        },
-      }
-    );
+    const onSuccess = () => {
+      queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+      setLocation(getAdminPath('/recipes'));
+    };
+    deleteMutation.mutate({ id: Number(id) }, { onSuccess });
   };
 
   const handleDuplicateRecipe = () => {
     if (isNew) return;
-    duplicateMutation.mutate(
-      { id: Number(id) },
-      {
-        onSuccess: (dup: any) => {
-          queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
-          setLocation(getAdminPath(`/recipes/${dup.id}`));
-        },
-      }
-    );
+    const onSuccess = (dup: { id: number }) => {
+      queryClient.invalidateQueries({ queryKey: getListAdminRecipesQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+      setLocation(getAdminPath(`/recipes/${dup.id}`));
+    };
+    duplicateMutation.mutate({ id: Number(id) }, { onSuccess });
   };
 
   // Real-time Checklist computation
@@ -3299,7 +3858,18 @@ function AdminRecipeEditor() {
     guide,
   };
 
-  usePageMeta(isNew ? 'New Recipe Editor — TaskBakeAI' : `Edit: ${form.title || 'Recipe'} — TaskBakeAI`, 'Edit and curate practical AI workflows.');
+  usePageMeta(isNew ? 'New Recipe' : `Edit: ${form.title || 'Recipe'}`, 'Edit and curate practical AI workflows.');
+
+  if (!isNew && existingQuery.isLoading) {
+    return <LoadingState label="Loading recipe for editing..." />;
+  }
+  if (!isNew && existingQuery.isError) {
+    return <div className="admin-page"><div className="state-panel error-state" role="alert">
+      <h2>Could not load this recipe.</h2>
+      <p>{existingQuery.error instanceof Error ? existingQuery.error.message : 'Check your connection and try again.'}</p>
+      <button type="button" className="button button-dark" onClick={() => void existingQuery.refetch()}>Retry</button>
+    </div></div>;
+  }
 
   return (
     <div className="admin-page editor-page">
@@ -3317,7 +3887,7 @@ function AdminRecipeEditor() {
             onClick={() => setShowDraftModal(true)}
             data-testid="button-editor-ai-draft"
           >
-            <Wand2 size={15} /> ✨ Smart Auto-Fill & Presets
+            <Wand2 size={15} /> âœ¨ Smart Auto-Fill & Presets
           </button>
           {!isNew && (
             <button
@@ -3346,10 +3916,19 @@ function AdminRecipeEditor() {
             disabled={create.isPending || update.isPending}
             data-testid="button-header-save"
           >
-            {create.isPending || update.isPending ? 'Saving...' : form.status === 'PUBLISHED' ? 'Publish Recipe 🚀' : 'Save Draft 💾'}
+            {create.isPending || update.isPending ? 'Saving...' : form.status === 'PUBLISHED' ? 'Publish Recipe ðŸš€' : 'Save Draft ðŸ’¾'}
           </button>
         </div>
       </div>
+
+      {create.isError || update.isError ? <div className="state-panel error-state" role="alert">
+        <strong>Recipe was not saved.</strong>
+        <p>{
+          create.error instanceof Error ? create.error.message
+            : update.error instanceof Error ? update.error.message
+              : 'Check the recipe fields and try again.'
+        }</p>
+      </div> : null}
 
       {/* Editor Navigation Tabs */}
       <div className="editor-nav-tabs">
@@ -3359,7 +3938,7 @@ function AdminRecipeEditor() {
           onClick={() => setEditorTab('edit')}
           data-testid="tab-editor-form"
         >
-          <FileText size={16} /> 📝 Structured Editor
+          <FileText size={16} /> ðŸ“ Structured Editor
         </button>
         <button
           type="button"
@@ -3367,7 +3946,7 @@ function AdminRecipeEditor() {
           onClick={() => setEditorTab('preview')}
           data-testid="tab-editor-preview"
         >
-          <Eye size={16} /> 👁️ Live Real-Time Preview
+          <Eye size={16} /> ðŸ‘ï¸ Live Real-Time Preview
         </button>
         <button
           type="button"
@@ -3375,7 +3954,7 @@ function AdminRecipeEditor() {
           onClick={() => setEditorTab('checklist')}
           data-testid="tab-editor-checklist"
         >
-          <CheckCircle2 size={16} /> ✅ Quality Checklist ({completenessScore}%)
+          <CheckCircle2 size={16} /> âœ… Quality Checklist ({completenessScore}%)
         </button>
       </div>
 
@@ -3756,7 +4335,7 @@ function AdminRecipeEditor() {
               </div>
               <p className="completeness-hint">
                 {completenessScore === 100
-                  ? '✨ Excellent quality! Ready for publishing.'
+                  ? 'âœ¨ Excellent quality! Ready for publishing.'
                   : `${checklist.length - completedChecks} items remaining in quality checklist.`}
               </p>
             </div>
@@ -3774,10 +4353,10 @@ function AdminRecipeEditor() {
                 <input type="checkbox" checked={form.featured} onChange={set('featured')} /> Featured on Shelves
               </label>
               <label className="toggle-line">
-                <input type="checkbox" checked={form.trending} onChange={set('trending')} /> Mark as Trending 🔥
+                <input type="checkbox" checked={form.trending} onChange={set('trending')} /> Mark as Trending ðŸ”¥
               </label>
               <label className="toggle-line">
-                <input type="checkbox" checked={form.recipeOfDay} onChange={set('recipeOfDay')} /> Recipe of the Day ⭐
+                <input type="checkbox" checked={form.recipeOfDay} onChange={set('recipeOfDay')} /> Recipe of the Day â­
               </label>
             </div>
 
@@ -3787,7 +4366,7 @@ function AdminRecipeEditor() {
               disabled={create.isPending || update.isPending}
               data-testid="button-save-editor"
             >
-              {create.isPending || update.isPending ? 'Saving...' : form.status === 'PUBLISHED' ? 'Publish Recipe 🚀' : 'Save Recipe 💾'}
+              {create.isPending || update.isPending ? 'Saving...' : form.status === 'PUBLISHED' ? 'Publish Recipe ðŸš€' : 'Save Recipe ðŸ’¾'}
             </button>
           </aside>
         </form>
@@ -4038,7 +4617,7 @@ function AdminSubmissions() {
   const [, setLocation] = useLocation();
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
-  usePageMeta('Community Submissions — TaskBakeAI', 'Review, approve, and convert workflow submissions.');
+  usePageMeta('Community Submissions', 'Review, approve, and convert workflow submissions.');
 
   if (query.isLoading) return <LoadingState label="Loading submissions inbox..." />;
   if (query.isError || !query.data) return <ErrorState retry={() => query.refetch()} />;
@@ -4198,7 +4777,7 @@ function AdminCollections({ type }: { type: 'categories' | 'audiences' }) {
     ? createCategory.isPending || updateCategory.isPending
     : createAudience.isPending || updateAudience.isPending;
 
-  usePageMeta(`Manage ${type} — TaskBakeAI`, `Manage recipe ${type}.`);
+  usePageMeta(`Manage ${type}`, `Manage recipe ${type}.`);
 
   const openCreateForm = () => {
     setIsFormOpen(true);
@@ -4377,7 +4956,7 @@ function AdminCollections({ type }: { type: 'categories' | 'audiences' }) {
 
 function AdminAnalytics() {
   const query = useGetAdminAnalytics();
-  usePageMeta('Analytics — TaskBakeAI', 'Understand what people need from the field guide.');
+  usePageMeta('Analytics', 'Understand what people need from the field guide.');
   if (query.isLoading) return <LoadingState />;
   if (query.isError || !query.data) return <ErrorState retry={() => query.refetch()} />;
   return (
@@ -4429,7 +5008,7 @@ function AdminAnalytics() {
   );
 }
 
-function AboutPage() { usePageMeta('About TaskBakeAI', 'Why TaskBakeAI exists: practical, tested AI workflows for real work.'); return <SiteShell><div className="prose-page shell"><span className="kicker">About the field guide</span><h1>Less prompt theatre.<br /><em>More useful work.</em></h1><p className="lead">TaskBakeAI is an Indian-first library of practical workflows for people who have something real to do.</p><div className="prose-columns"><div><h2>Why this exists</h2><p>The internet is full of impressive prompts. We wanted the other thing: instructions you can copy on a Tuesday morning, with the context, caveats, and checks that make them actually work.</p><p>Recipes begin with the problem, not the model. Each one is tested, edited, and written to be useful whether you are running a small business in Jaipur, studying in Kochi, or making your next thing from a shared desk.</p></div><div><h2>Our standard</h2><p>A good recipe tells you what to bring, what to ask, what a decent result looks like, and how to improve it. It leaves you with a skill, not a dependency.</p><p>Have a workflow that deserves a place here? <Link href="/submit" data-testid="link-about-submit">Send it in.</Link></p></div></div></div></SiteShell>; }
+function AboutPage() { usePageMeta('About', 'Why TaskBakeAI exists: practical, tested AI workflows for real work.'); return <SiteShell><div className="prose-page shell"><span className="kicker">About the field guide</span><h1>Less prompt theatre.<br /><em>More useful work.</em></h1><p className="lead">TaskBakeAI is an Indian-first library of practical workflows for people who have something real to do.</p><div className="prose-columns"><div><h2>Why this exists</h2><p>The internet is full of impressive prompts. We wanted the other thing: instructions you can copy on a Tuesday morning, with the context, caveats, and checks that make them actually work.</p><p>Recipes begin with the problem, not the model. Each one is tested, edited, and written to be useful whether you are running a small business in Jaipur, studying in Kochi, or making your next thing from a shared desk.</p></div><div><h2>Our standard</h2><p>A good recipe tells you what to bring, what to ask, what a decent result looks like, and how to improve it. It leaves you with a skill, not a dependency.</p><p>Have a workflow that deserves a place here? <Link href="/submit" data-testid="link-about-submit">Send it in.</Link></p></div></div></div></SiteShell>; }
 
 const whyRecipeExamples = [
   {
@@ -4569,7 +5148,7 @@ function WhyRecipesPage() {
   };
 
   usePageMeta(
-    'Why TaskBakeAI? — Better workflows start with better context',
+    'Better workflows start with better context',
     'Compare a quick prompt with a reusable AI recipe: clear context, practical instructions, and a reviewable result.',
   );
 
@@ -4689,15 +5268,15 @@ function WhyRecipesPage() {
   </SiteShell>;
 }
 
-function SimplePage({ type }: { type: 'privacy' | 'terms' | 'disclaimer' }) { const titles = { privacy: 'Privacy, plainly.', terms: 'The terms, without the fog.', disclaimer: 'A note on using recipes.' }; const copy = { privacy: 'We collect only what helps TaskBakeAI work: account details for signed-in shelves, and lightweight usage signals to understand which workflows help.', terms: 'Use the library thoughtfully. Recipes are provided as practical guidance, not as a promise of a particular business, academic, legal, or financial outcome.', disclaimer: 'AI can be confidently wrong. Check outputs, protect private information, and use your own judgment before acting on any recipe.' }; usePageMeta(`${titles[type]} — TaskBakeAI`, copy[type]); return <SiteShell><div className="prose-page shell legal-page"><span className="kicker">TaskBakeAI / {type}</span><h1>{titles[type]}</h1><p className="lead">{copy[type]}</p><hr /><h2>What to keep in mind</h2><p>Recipes are starting points. Read the verification notes, adapt the workflow to your context, and check important work with a qualified person or a trusted source.</p><h2>Questions</h2><p>If something is unclear, send us a note through the workflow submission form. We would rather make the guide clearer than hide behind small print.</p></div></SiteShell>; }
+function SimplePage({ type }: { type: 'privacy' | 'terms' | 'disclaimer' }) { const titles = { privacy: 'Privacy, plainly.', terms: 'The terms, without the fog.', disclaimer: 'A note on using recipes.' }; const copy = { privacy: 'We collect only what helps TaskBakeAI work: account details for signed-in shelves, and lightweight usage signals to understand which workflows help.', terms: 'Use the library thoughtfully. Recipes are provided as practical guidance, not as a promise of a particular business, academic, legal, or financial outcome.', disclaimer: 'AI can be confidently wrong. Check outputs, protect private information, and use your own judgment before acting on any recipe.' }; usePageMeta(titles[type], copy[type]); return <SiteShell><div className="prose-page shell legal-page"><span className="kicker">TaskBakeAI / {type}</span><h1>{titles[type]}</h1><p className="lead">{copy[type]}</p><hr /><h2>What to keep in mind</h2><p>Recipes are starting points. Read the verification notes, adapt the workflow to your context, and check important work with a qualified person or a trusted source.</p><h2>Questions</h2><p>If something is unclear, send us a note through the workflow submission form. We would rather make the guide clearer than hide behind small print.</p></div></SiteShell>; }
 
 function SearchPage() { const query = new URLSearchParams(window.location.search).get('q') || ''; return <LibraryPage key={query} />; }
 
 function AuthBrand() {
   return <Link href="/" className="auth-brand" aria-label="TaskBakeAI home">
     <picture className="brand-picture">
-      <source srcSet={`${basePath}/taskbakeai-wordmark-light.webp`} type="image/webp" />
-      <img src={`${basePath}/taskbakeai-wordmark-light.png`} width="2172" height="724" alt="TaskBakeAI — Practical AI workflows for real life" decoding="async" />
+      <source srcSet={`${basePath}/taskbakeai-wordmark.webp`} type="image/webp" />
+      <img src={`${basePath}/taskbakeai-wordmark.png`} width="2172" height="724" alt="TaskBakeAI — Practical AI workflows for real life" decoding="async" />
     </picture>
   </Link>;
 }
@@ -4735,17 +5314,38 @@ function SignUpPage() {
 
 function Router() {
   const stripBase = (path: string) => basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
+  const localVybePreview = import.meta.env.DEV && !publicVybeEnabled;
+  const VybeIndexRoute = () => localVybePreview
+    ? <AdminShell><VybeMarketplace previewMode /></AdminShell>
+    : <SiteShell><VybeMarketplace /></SiteShell>;
+  const VybeDetailRoute = () => localVybePreview
+    ? <AdminShell><VybeCreationPage previewMode /></AdminShell>
+    : <SiteShell><VybeCreationPage /></SiteShell>;
   return <Switch>
     <Route path="/sign-in/*?" component={SignInPage} /><Route path="/sign-up/*?" component={SignUpPage} />
     <Route path="/login" component={() => <Redirect to="/sign-in" />} /><Route path="/signup" component={() => <Redirect to="/sign-up" />} />
     <Route path="/" component={HomePage} /><Route path="/recipes" component={LibraryPage} /><Route path="/recipes/:slug" component={RecipePage} />
     <Route path="/categories" component={CollectionsIndex} /><Route path="/categories/:slug" component={CollectionPage} />
-    <Route path="/search" component={SearchPage} /><Route path="/submit" component={SubmitPage} /><Route path="/why-ai-recipes" component={WhyRecipesPage} /><Route path="/about" component={AboutPage} />
+    <Route path="/search" component={SearchPage} /><Route path="/submit" component={SubmitPage} /><Route path="/vybe" component={VybeIndexRoute} /><Route path="/vybe/:slug" component={VybeDetailRoute} /><Route path="/why-ai-recipes" component={WhyRecipesPage} /><Route path="/about" component={AboutPage} />
     <Route path="/privacy" component={() => <SimplePage type="privacy" />} /><Route path="/terms" component={() => <SimplePage type="terms" />} /><Route path="/disclaimer" component={() => <SimplePage type="disclaimer" />} />
     <Route path="/profile" component={() => <Protected><ProfilePage /></Protected>} /><Route path="/saved" component={() => <Protected><SavedPage /></Protected>} /><Route path="/history" component={() => <Protected><HistoryPage /></Protected>} />
-    <Route path={ADMIN_PATH} component={() => <AdminShell><AdminOverview /></AdminShell>} /><Route path={getAdminPath('/recipes')} component={() => <AdminShell><AdminRecipes /></AdminShell>} /><Route path={getAdminPath('/recipes/new')} component={() => <AdminShell><AdminRecipeEditor /></AdminShell>} /><Route path={getAdminPath('/recipes/:id')} component={() => <AdminShell><AdminRecipeEditor /></AdminShell>} /><Route path={getAdminPath('/categories')} component={() => <AdminShell><AdminCollections type="categories" /></AdminShell>} /><Route path={getAdminPath('/audiences')} component={() => <AdminShell><AdminCollections type="audiences" /></AdminShell>} /><Route path={getAdminPath('/submissions')} component={() => <AdminShell><AdminSubmissions /></AdminShell>} /><Route path={getAdminPath('/analytics')} component={() => <AdminShell><AdminAnalytics /></AdminShell>} />
-    <Route component={() => <SiteShell><div className="state-panel shell"><span className="kicker">404</span><h1>This recipe is not on the shelf.</h1><Link href="/recipes" className="button button-dark" data-testid="link-404-library">Back to the library <ArrowRight size={16} /></Link></div></SiteShell>} />
+    <Route path={ADMIN_PATH} component={() => <AdminShell><AdminOverview /></AdminShell>} />
+    <Route path={getAdminPath('/recipes')} component={() => <AdminShell><AdminRecipes /></AdminShell>} />
+    <Route path={getAdminPath('/vybe')} component={() => <AdminShell><VybeStudio /></AdminShell>} />
+    <Route path={getAdminPath('/recipes/new')} component={() => <AdminShell><AdminRecipeEditor /></AdminShell>} />
+    <Route path={getAdminPath('/recipes/:id')} component={() => <AdminShell><AdminRecipeEditor /></AdminShell>} />
+    <Route path={getAdminPath('/imagekit')} component={() => <AdminShell><ImageKitMediaLibrary /></AdminShell>} />
+    <Route path={getAdminPath('/categories')} component={() => <AdminShell><AdminCollections type="categories" /></AdminShell>} />
+    <Route path={getAdminPath('/audiences')} component={() => <AdminShell><AdminCollections type="audiences" /></AdminShell>} />
+    <Route path={getAdminPath('/submissions')} component={() => <AdminShell><AdminSubmissions /></AdminShell>} />
+    <Route path={getAdminPath('/analytics')} component={() => <AdminShell><AdminAnalytics /></AdminShell>} />
+    <Route component={NotFoundPage} />
   </Switch>;
+}
+
+function NotFoundPage() {
+  usePageMeta('Page not found', 'The page you requested could not be found.');
+  return <SiteShell><div className="state-panel shell"><span className="kicker">404</span><h1>This recipe is not on the shelf.</h1><Link href="/recipes" className="button button-dark" data-testid="link-404-library">Back to the library <ArrowRight size={16} /></Link></div></SiteShell>;
 }
 
 function ClerkRoutes() {
@@ -4753,8 +5353,13 @@ function ClerkRoutes() {
   return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={clerkAppearance} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} localization={{ signIn: { start: { title: 'Welcome back', subtitle: 'Keep your useful workflows close.' } }, signUp: { start: { title: 'Build your shelf', subtitle: 'Start with one useful thing.' } } }} routerPush={(to) => setLocation(to.replace(basePath, '') || '/')} routerReplace={(to) => setLocation(to.replace(basePath, '') || '/')}><Router /></ClerkProvider>;
 }
 
+function RouteErrorBoundary({ children }: { children: ReactNode }) {
+  const [location] = useLocation();
+  return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
+}
+
 function App() {
-  return <QueryClientProviderWrapper><WouterRouter base={basePath}><ScrollToTop /><ErrorBoundary><ClerkRoutes /></ErrorBoundary></WouterRouter><Toaster /></QueryClientProviderWrapper>;
+  return <QueryClientProviderWrapper><WouterRouter base={basePath}><ScrollToTop /><RouteErrorBoundary><ClerkRoutes /></RouteErrorBoundary></WouterRouter><Toaster /></QueryClientProviderWrapper>;
 }
 
 function QueryClientProviderWrapper({ children }: { children: ReactNode }) {

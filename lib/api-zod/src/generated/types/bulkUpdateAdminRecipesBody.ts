@@ -8,6 +8,7 @@
 import type { BulkUpdateAdminRecipesBodyStatus } from './bulkUpdateAdminRecipesBodyStatus';
 
 export interface BulkUpdateAdminRecipesBody {
+  catalogue?: string;
   /**
      * @minItems 1
      * @maxItems 500

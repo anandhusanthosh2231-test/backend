@@ -22,6 +22,7 @@ export type Recipe = RecipeCard & ({
   refinementPrompts: string[];
   verificationNotes: string;
   status: string;
+  catalogue: string;
   version: string;
   /** @nullable */
   testedAt?: Date | null;

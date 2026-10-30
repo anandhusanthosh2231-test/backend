@@ -10,6 +10,7 @@ export type ListAdminRecipesParams = {
 q?: string;
 status?: string;
 category?: string;
+catalogue?: string;
 /**
  * @minimum 1
  */
