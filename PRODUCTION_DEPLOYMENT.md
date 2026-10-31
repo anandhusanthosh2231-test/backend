@@ -210,22 +210,23 @@ URLs are unchanged.
 VYBE content is stored in its own `vybe_creations` table. Apply
 `lib/db/migrations/0006_vybe_creations.sql` followed by
 `lib/db/migrations/0007_vybe_content.sql` before opening Admin → VYBE Studio.
-Public discovery is disabled unless both of these are explicitly enabled:
+Public discovery is intentionally disabled in production. The API ignores
+`VYBE_ENABLED=true` when `NODE_ENV=production`, and the frontend only enables
+public VYBE routes during development. Production `/vybe` URLs redirect to the
+home page; authenticated admins can continue using VYBE Studio.
 
 ```env
-# API host — enforced by public VYBE API routes
+# Keep disabled on production hosts
 VYBE_ENABLED=false
-
-# Frontend build — controls the public navigation and VYBE experience
 VITE_VYBE_ENABLED=false
 ```
 
-Admins continue to manage drafts while both flags are off. Launch by setting
-both values to `true` and redeploying the API and frontend. The public API only
-returns `PUBLISHED` creations, and draft/admin data is never included in the
-public endpoints. In local development with launch flags off, `/vybe` is
-available only through the authenticated admin preview and remains
-`noindex,nofollow`. Do not configure the private ImageKit key in the frontend.
+The flags may be set to `true` in local development to test public discovery.
+With the frontend flag off, local `/vybe` is available only through the
+authenticated admin preview and remains `noindex,nofollow`. The public API
+only returns `PUBLISHED` creations outside production, and draft/admin data is
+never included in public endpoints. Do not configure the private ImageKit key
+in the frontend.
 
 VYBE Studio's schema-driven CSV tools support column mapping, dry-run
 validation, create-only/update-existing/upsert strategies, durable import

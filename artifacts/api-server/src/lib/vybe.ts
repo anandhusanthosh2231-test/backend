@@ -93,8 +93,11 @@ export const vybeCreationInputSchema = z.object({
 
 export type VybeCreationInput = z.infer<typeof vybeCreationInputSchema>;
 
-export function isVybePublicEnabled(value = process.env.VYBE_ENABLED): boolean {
-  return value?.trim().toLowerCase() === "true";
+export function isVybePublicEnabled(
+  value = process.env.VYBE_ENABLED,
+  nodeEnv = process.env.NODE_ENV,
+): boolean {
+  return nodeEnv !== "production" && value?.trim().toLowerCase() === "true";
 }
 
 export function formatZodIssues(error: z.ZodError): string {

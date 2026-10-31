@@ -10,10 +10,11 @@ const baseCreation = {
   contentType: "image",
 };
 
-test("VYBE public access requires explicit launch configuration", () => {
-  assert.equal(isVybePublicEnabled("false"), false);
-  assert.equal(isVybePublicEnabled(""), false);
-  assert.equal(isVybePublicEnabled(" true "), true);
+test("VYBE public access is disabled in production", () => {
+  assert.equal(isVybePublicEnabled("true", "production"), false);
+  assert.equal(isVybePublicEnabled(" true ", "development"), true);
+  assert.equal(isVybePublicEnabled("false", "development"), false);
+  assert.equal(isVybePublicEnabled("", "development"), false);
 });
 
 test("VYBE validation supports flexible content without productivity fields", () => {

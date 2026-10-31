@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './loader.css';
 import './why-page.css';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
@@ -46,7 +46,7 @@ import { VybeCreationPage, VybeMarketplace } from '@/components/vybe/VybeMarketp
 import { VybeStudio } from '@/components/admin/VybeStudio';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
-const publicVybeEnabled = import.meta.env.VITE_VYBE_ENABLED === 'true';
+const publicVybeEnabled = import.meta.env.DEV && import.meta.env.VITE_VYBE_ENABLED === 'true';
 const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 const ClerkSignIn = lazy(() => import('@/components/ClerkSignIn'));
 const ClerkSignUp = lazy(() => import('@/components/ClerkSignUp'));
@@ -71,29 +71,74 @@ if (!clerkPubKey) {
 
 const clerkAppearance = {
   variables: {
-    colorPrimary: 'var(--ink)', colorForeground: 'var(--ink)', colorMutedForeground: 'var(--muted)',
-    colorDanger: 'var(--error)', colorBackground: 'var(--surface)', colorInput: 'var(--sand)',
-    colorInputForeground: 'var(--ink)', colorNeutral: 'var(--border)', fontFamily: 'DM Sans',
-    borderRadius: '0.75rem',
+    fontFamily: '"DM Sans", system-ui, sans-serif',
+    fontFamilyButtons: '"DM Sans", system-ui, sans-serif',
+    colorPrimary: '#16130F',
+    colorText: '#16130F',
+    colorTextSecondary: '#5E574E',
+    colorBackground: '#FFFFFF',
+    borderRadius: '12px',
+    fontSize: '16px',
   },
   elements: {
     rootBox: 'w-full min-w-0 flex justify-center',
     cardBox: 'bg-surface rounded-2xl w-full max-w-[440px] overflow-hidden border border-border',
-    card: '!shadow-none !border-0 !bg-transparent',
-    footer: '!shadow-none !border-0 !bg-transparent',
-    headerTitle: 'text-ink font-semibold',
-    headerSubtitle: 'text-muted',
-    socialButtonsBlockButtonText: 'text-ink',
-    formFieldLabel: 'text-ink',
-    footerActionLink: 'text-brand-dark font-semibold',
-    footerActionText: 'text-muted',
-    dividerText: 'text-muted',
-    formButtonPrimary: 'bg-ink hover:bg-brand text-surface',
-    formFieldInput: 'bg-sand text-ink border-border',
+    card: {
+      boxShadow: '0 8px 30px rgba(22,19,15,.08)',
+      border: '1px solid #E7DFD3',
+      borderRadius: '20px',
+    },
+    footer: { fontFamily: 'inherit', fontSize: '14px' },
+    headerTitle: { fontSize: '24px', fontWeight: 600 },
+    headerSubtitle: { color: '#5E574E', fontSize: '15px' },
+    socialButtonsBlockButton: {
+      position: 'relative',
+      height: '48px',
+      border: '1px solid #E7DFD3',
+      borderRadius: '12px',
+      background: '#fff',
+      outline: 'none',
+    },
+    socialButtonsBlockButtonText: {
+      border: 'none',
+      borderRadius: 0,
+      background: 'transparent',
+      padding: 0,
+      boxShadow: 'none',
+      fontWeight: 500,
+      fontSize: '15px',
+      outline: 'none',
+    },
+    socialButtonsBlockButtonBadge: {
+      position: 'absolute',
+      top: '50%',
+      right: '12px',
+      transform: 'translateY(-50%)',
+      fontSize: '12px',
+      background: '#F3EEE6',
+      color: '#5E574E',
+    },
+    dividerText: { color: '#5E574E', fontFamily: 'inherit', fontSize: '14px' },
+    footerActionText: { color: '#5E574E', fontFamily: 'inherit', fontSize: '14px' },
+    footerActionLink: { color: '#9A5B2E', fontFamily: 'inherit', fontSize: '14px', fontWeight: 600 },
+    developmentModeNotice: { fontFamily: 'inherit', fontSize: '14px' },
+    formFieldInput: {
+      height: '48px',
+      border: '1px solid #E7DFD3',
+      borderRadius: '12px',
+    },
+    formButtonPrimary: {
+      height: '48px',
+      border: 'none',
+      borderRadius: '12px',
+      background: '#16130F',
+      boxShadow: 'none',
+      color: '#fff',
+      fontSize: '16px',
+      fontWeight: 600,
+    },
     logoBox: 'h-10',
     logoImage: 'h-10',
-    socialButtonsBlockButton: 'border-border bg-surface',
-    footerAction: 'border-border',
     main: 'bg-transparent',
   },
   options: {
@@ -189,13 +234,13 @@ function Header() {
 
 
 
-function SiteShell({ children }: { children: ReactNode }) {
+function SiteShell({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <>
       <Header />
       <MobileTopHeader />
-      <main>{children}</main>
-      <Footer />
+      <main className={className}>{children}</main>
+      <Footer className={className ? `${className}-footer` : undefined} />
       <MobileBottomNav />
     </>
   );
@@ -263,6 +308,12 @@ function EmptyState({ title, body, action }: { title: string; body: string; acti
   return <div className="state-panel empty-state" data-testid="status-empty"><span className="empty-icon"><Sparkles size={20} /></span><h2>{title}</h2><p>{body}</p>{action}</div>;
 }
 
+function mobileToolSummary(tools: string[]) {
+  const visibleTools = tools.slice(0, 2).join(', ');
+  const remainingCount = Math.max(0, tools.length - 2);
+  return `${visibleTools}${remainingCount ? ` +${remainingCount}` : ''}`;
+}
+
 function RecipeCardView({ recipe, saved = false, onSave, recipeBasePath = '/recipes' }: { recipe: RecipeCard; saved?: boolean; onSave?: (recipe: RecipeCard) => void; recipeBasePath?: string }) {
   return <article className={`recipe-card category-${recipe.categorySlug}`} data-testid={`card-recipe-${recipe.id}`}>
     <div className="card-topline"><span className="category-pill">{recipe.category}</span>{recipe.trending && <span className="trend-label"><Flame size={12} /> Trending</span>}</div>
@@ -291,6 +342,7 @@ function HomeRecipeCard({ recipe }: { recipe: RecipeCard }) {
       <p>{recipe.shortDescription}</p>
       <div className="home-recipe-card__tools" aria-label="Supported AI tools">
         {recipe.aiTools.slice(0, 3).map((tool) => <span key={tool}>{tool}</span>)}
+        <span className="home-recipe-card__mobile-tools" style={{ display: 'none' }}>{mobileToolSummary(recipe.aiTools)}</span>
       </div>
       <Link href={`/recipes/${recipe.slug}`} className="home-recipe-card__open">
         See workflow <ArrowRight size={15} />
@@ -299,27 +351,40 @@ function HomeRecipeCard({ recipe }: { recipe: RecipeCard }) {
   );
 }
 
-function HomeHero({ recipes, totalRecipes, loading }: { recipes: RecipeCard[]; totalRecipes: number; loading: boolean }) {
+function HomeHero({ recipes, totalRecipes }: { recipes: RecipeCard[]; totalRecipes: number }) {
   const [, setLocation] = useLocation();
   const heroRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState('');
-  const [placeholder, setPlaceholder] = useState('Search AI recipes, workflows, and use cases...');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchPlaceholderIndex, setSearchPlaceholderIndex] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
   const [inView, setInView] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 768px)').matches);
   const [tabVisible, setTabVisible] = useState(() => !document.hidden);
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [recipeCount, setRecipeCount] = useState(0);
   const exampleSearches = ['Create a LinkedIn post', 'Build a presentation', 'Analyze data', 'Create an Instagram campaign', 'Study for an exam', 'Generate an image'];
   const rotatingWords = ['writing', 'studying', 'running a business', 'making things'];
-  const rotatingSearches = ['Create a LinkedIn post…', 'Build a presentation…', 'Analyze data…'];
+  const rotatingSearches = ['Build a presentation', 'Create a LinkedIn post', 'Analyze data'];
   const motionEnabled = inView && tabVisible && !reducedMotion && !userPaused;
-  const activeRecipe = recipes.length ? recipes[activeIndex % recipes.length] : undefined;
-  const nextRecipe = recipes.length > 1 ? recipes[(activeIndex + 1) % recipes.length] : undefined;
-  const thirdRecipe = recipes.length > 2 ? recipes[(activeIndex + 2) % recipes.length] : undefined;
+  const selectedPreviewIndex = recipes.length ? activeIndex % recipes.length : 0;
+  const activeRecipe = recipes[selectedPreviewIndex];
   const [wordIndex, setWordIndex] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (document.head.querySelector('#home-hero-font-preload')) return;
+    const fontStylesheet = document.createElement('link');
+    fontStylesheet.id = 'home-hero-font-preload';
+    fontStylesheet.rel = 'preload';
+    fontStylesheet.as = 'style';
+    fontStylesheet.href = 'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap';
+    fontStylesheet.onload = () => { fontStylesheet.rel = 'stylesheet'; };
+    document.head.appendChild(fontStylesheet);
+  }, []);
 
   useEffect(() => {
     const node = heroRef.current;
@@ -330,60 +395,54 @@ function HomeHero({ recipes, totalRecipes, loading }: { recipes: RecipeCard[]; t
   }, []);
 
   useEffect(() => {
+    if (!isMobile) return;
+    setActiveIndex(0);
+    if (carouselRef.current) carouselRef.current.scrollLeft = 0;
+  }, [isMobile]);
+
+  useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const mobileMedia = window.matchMedia('(max-width: 768px)');
     const updateMotionPreference = () => setReducedMotion(media.matches);
+    const updateViewport = () => setIsMobile(mobileMedia.matches);
     const updateVisibility = () => setTabVisible(!document.hidden);
     media.addEventListener('change', updateMotionPreference);
+    mobileMedia.addEventListener('change', updateViewport);
     document.addEventListener('visibilitychange', updateVisibility);
     return () => {
       media.removeEventListener('change', updateMotionPreference);
+      mobileMedia.removeEventListener('change', updateViewport);
       document.removeEventListener('visibilitychange', updateVisibility);
     };
   }, []);
 
   useEffect(() => {
-    if (!motionEnabled || paused || recipes.length < 2) return;
-    const timer = window.setInterval(() => setActiveIndex((index) => (index + 1) % recipes.length), 6000);
+    if (!motionEnabled || isMobile || paused || recipes.length < 2) return;
+    const timer = window.setInterval(() => setActiveIndex((index) => (index + 1) % recipes.length), 5000);
     return () => window.clearInterval(timer);
-  }, [motionEnabled, paused, recipes.length]);
+  }, [isMobile, motionEnabled, paused, recipes.length]);
 
   useEffect(() => {
-    if (reducedMotion) {
+    if (reducedMotion || userPaused) {
       setWordIndex(0);
       return;
     }
-    if (!motionEnabled) return;
-    const timer = window.setInterval(() => setWordIndex((index) => (index + 1) % rotatingWords.length), 2500);
+    if (!motionEnabled || search || searchFocused) return;
+    const timer = window.setInterval(() => setWordIndex((index) => (index + 1) % rotatingWords.length), 3000);
     return () => window.clearInterval(timer);
-  }, [motionEnabled, reducedMotion]);
+  }, [motionEnabled, reducedMotion, rotatingWords.length, search, searchFocused, userPaused]);
 
   useEffect(() => {
-    if (search || !motionEnabled) {
-      setPlaceholder('Search AI recipes, workflows, and use cases...');
+    if (reducedMotion || userPaused) {
+      setSearchPlaceholderIndex(0);
       return;
     }
-    let timeout = 0;
-    let queryIndex = 0;
-    let characterIndex = 0;
-    let deleting = false;
-    const tick = () => {
-      const current = rotatingSearches[queryIndex];
-      characterIndex += deleting ? -1 : 1;
-      setPlaceholder(current.slice(0, Math.max(0, characterIndex)));
-      if (!deleting && characterIndex >= current.length) {
-        deleting = true;
-        timeout = window.setTimeout(tick, 1300);
-        return;
-      }
-      if (deleting && characterIndex <= 0) {
-        deleting = false;
-        queryIndex = (queryIndex + 1) % rotatingSearches.length;
-      }
-      timeout = window.setTimeout(tick, deleting ? 30 : 58);
-    };
-    timeout = window.setTimeout(tick, 800);
-    return () => window.clearTimeout(timeout);
-  }, [motionEnabled, search]);
+    if (search || searchFocused || !motionEnabled) return;
+    const timer = window.setInterval(() => {
+      setSearchPlaceholderIndex((index) => (index + 1) % rotatingSearches.length);
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [motionEnabled, reducedMotion, rotatingSearches.length, search, searchFocused, userPaused]);
 
   useEffect(() => {
     if (!inView || totalRecipes <= 0) return;
@@ -422,21 +481,21 @@ function HomeHero({ recipes, totalRecipes, loading }: { recipes: RecipeCard[]; t
     event.currentTarget.style.setProperty('--pointer-x', `${event.clientX - rect.left}px`);
     event.currentTarget.style.setProperty('--pointer-y', `${event.clientY - rect.top}px`);
   };
-  const handleCardPointer = (event: React.PointerEvent<HTMLElement>) => {
-    if (event.pointerType !== 'mouse' || reducedMotion || window.innerWidth < 769) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / rect.width;
-    const y = (event.clientY - rect.top) / rect.height;
-    event.currentTarget.style.setProperty('--tilt-x', `${(x - 0.5) * 8}deg`);
-    event.currentTarget.style.setProperty('--tilt-y', `${(0.5 - y) * 8}deg`);
-    event.currentTarget.style.setProperty('--glare-x', `${x * 100}%`);
-    event.currentTarget.style.setProperty('--glare-y', `${y * 100}%`);
+  const handlePreviewScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (!isMobile || !event.currentTarget.clientWidth) return;
+    const index = Math.round(event.currentTarget.scrollLeft / event.currentTarget.clientWidth);
+    setActiveIndex((current) => current === index ? current : index);
   };
-  const resetCardPointer = (event: React.PointerEvent<HTMLElement>) => {
-    event.currentTarget.style.setProperty('--tilt-x', '0deg');
-    event.currentTarget.style.setProperty('--tilt-y', '0deg');
-    setPaused(false);
+  const selectPreview = (index: number) => {
+    setActiveIndex(index);
+    if (isMobile && carouselRef.current) {
+      carouselRef.current.scrollTo({
+        left: index * carouselRef.current.clientWidth,
+        behavior: reducedMotion ? 'auto' : 'smooth',
+      });
+    }
   };
+  const previewRecipes: (RecipeCard | null)[] = recipes.length ? recipes : [null];
 
   return <div ref={heroRef} className={`home-hero${motionEnabled ? ' is-motion-active' : ' is-motion-paused'}`} onPointerMove={handleHeroPointer}>
     <div className="hero-atmosphere" aria-hidden="true"><span className="hero-ember hero-ember--one" /><span className="hero-ember hero-ember--two" /><span className="hero-ember hero-ember--three" /><span className="hero-ember hero-ember--four" /></div>
@@ -444,17 +503,28 @@ function HomeHero({ recipes, totalRecipes, loading }: { recipes: RecipeCard[]; t
       <div className="hero-copy">
         <span className="kicker hero-kicker"><span className="kicker-mark" />A field guide for the AI age</span>
         <h1 aria-label="Practical AI workflows you can actually use.">
-          {['Practical', 'AI', 'workflows', 'you', 'can'].map((word, index) => <span className="hero-headline-word" style={{ '--word-index': index } as React.CSSProperties} key={word}>{word}{index < 4 ? '\u00a0' : ''}</span>)}
-          <em><span className="hero-headline-word" style={{ '--word-index': 5 } as React.CSSProperties}>actually{'\u00a0'}</span><span className="hero-headline-word" style={{ '--word-index': 6 } as React.CSSProperties}>use.</span></em>
+          <span className="home-desktop-copy">Practical{' '}AI{' '}workflows{' '}you{' '}can{' '}
+            <em>actually use.</em></span>
+          <span className="home-mobile-copy" style={{ display: 'none' }} aria-hidden="true">Practical AI workflows</span>
         </h1>
-        <p className="hero-subcopy"><span className="hero-subcopy-static">Tested, outcome-focused recipes for writing, studying, running a business, making things, and getting through the everyday.</span><span className="hero-subcopy-rotating" aria-hidden="true" aria-live="off">Tested, outcome-focused recipes for <span key={wordIndex}>{rotatingWords[wordIndex]}</span>, and getting through the everyday.</span></p>
+        <p className="hero-subcopy">
+          <span className="hero-subcopy-static">Tested, outcome-focused recipes for writing, studying, running a business, making things, and getting through the everyday.</span>
+          <span className="hero-subcopy-rotating" aria-hidden="true" aria-live="off">
+            Tested, outcome-focused recipes for{' '}
+            <span className="hero-phrase-rotator">{rotatingWords.map((word, index) => <span className={index === wordIndex ? 'is-active' : ''} key={word}>{word}</span>)}</span>
+            , and getting through the everyday.
+          </span>
+        </p>
         <div className="hero-cta-row">
           <Link href="/recipes" className="button button-dark" data-testid="link-hero-explore">Explore Recipes <ArrowRight size={16} /></Link>
           <Link href="/submit" className="button button-outline" data-testid="link-hero-create">Create a Recipe</Link>
         </div>
         <form className="hero-search" role="search" onSubmit={(event) => { event.preventDefault(); if (search.trim()) setLocation(`/search?q=${encodeURIComponent(search.trim())}`); }}>
           <Search size={19} aria-hidden="true" />
-          <input ref={searchInputRef} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={placeholder} aria-label="Search workflows" data-testid="input-home-search" />
+          <span className={`hero-search-input-wrap${search || searchFocused ? ' is-inactive' : ''}`}>
+            <input ref={searchInputRef} value={search} onChange={(event) => setSearch(event.target.value)} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} placeholder={rotatingSearches[searchPlaceholderIndex]} aria-label="Search workflows" data-testid="input-home-search" />
+            <span className="hero-search-placeholder-rotator" aria-hidden="true">{rotatingSearches.map((placeholderText, index) => <span className={index === searchPlaceholderIndex ? 'is-active' : ''} key={placeholderText}>{placeholderText}</span>)}</span>
+          </span>
           <kbd aria-hidden="true">/</kbd>
           <button type="submit" data-testid="button-home-search">Search <ArrowRight size={16} /></button>
         </form>
@@ -468,51 +538,59 @@ function HomeHero({ recipes, totalRecipes, loading }: { recipes: RecipeCard[]; t
         </div>
       </div>
       <div className="hero-art">
-        <div className="hero-ghost-card hero-ghost-card--back" aria-hidden="true"><span>{thirdRecipe?.category ?? nextRecipe?.category ?? 'A tested workflow'}</span><strong>{thirdRecipe?.title ?? nextRecipe?.title ?? 'A practical recipe'}</strong></div>
-        <div className="hero-ghost-card hero-ghost-card--front" aria-hidden="true"><span>{nextRecipe?.category ?? activeRecipe?.category ?? 'A tested workflow'}</span><strong>{nextRecipe?.title ?? activeRecipe?.title ?? 'A practical recipe'}</strong></div>
-        {activeRecipe ? (
-          <article key={activeRecipe.id} className="hero-recipe-preview" data-testid="hero-recipe-preview" aria-live="off" onPointerMove={handleCardPointer} onPointerLeave={resetCardPointer} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false); }}>
+        <div className="hero-ghost-card hero-ghost-card--back" aria-hidden="true"><span /><strong /></div>
+        <div className="hero-ghost-card hero-ghost-card--front" aria-hidden="true"><span /><strong /></div>
+        <div ref={carouselRef} className="hero-preview-carousel" onScroll={handlePreviewScroll} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false); }}>
+          {previewRecipes.map((recipe, index) => {
+            const isActive = index === selectedPreviewIndex;
+            return <article key={recipe?.id ?? 'preview-placeholder'} className={`hero-recipe-preview${isActive ? ' is-active' : ''}`} data-testid={isActive ? 'hero-recipe-preview' : undefined} aria-live="off" aria-hidden={!isActive} inert={!isActive}>
             <div className="hero-recipe-preview__topline">
               <span><Sparkles size={14} /> WORKFLOW PREVIEW</span>
-              <span className="hero-recipe-preview__status"><Check size={13} /> Published recipe</span>
+              <span className="hero-recipe-preview__status"><Check size={13} /> {recipe ? 'Published recipe' : 'Ready to explore'}</span>
             </div>
             <div className="hero-recipe-preview__meta">
-              <span>{activeRecipe.category}</span>
-              <span><Clock3 size={13} /> {activeRecipe.estimatedTime}</span>
+              <span>{recipe?.category ?? 'A practical starting point'}</span>
+              {recipe && <span><Clock3 size={13} /> {recipe.estimatedTime}</span>}
             </div>
-            <h2 key={activeRecipe.id}>{activeRecipe.title}</h2>
-            <p className="hero-recipe-preview__description">{activeRecipe.shortDescription}</p>
+            <h2>{recipe?.title ?? 'A workflow for the task ahead'}</h2>
+            <p className="hero-recipe-preview__description">{recipe?.shortDescription ?? 'Find tested steps for the work, study, or creative task in front of you.'}</p>
             <div className="hero-recipe-preview__flow">
-              <div><span>YOU BRING</span><p className="hero-preview-input">Your task and the context that matters</p></div>
+              <div><span>YOU BRING</span><p className="hero-preview-input">Your goal and a little context</p></div>
               <span className="hero-preview-connector"><ArrowRight size={18} aria-hidden="true" /><i /></span>
               <div><span>YOU GET</span><p className="hero-preview-result">A practical prompt, steps, and checks</p></div>
             </div>
             <div className="hero-recipe-preview__footer">
               <span>Works with</span>
-              {activeRecipe.aiTools.slice(0, 3).map((tool) => <span className="hero-recipe-preview__tool" key={tool}>{tool}</span>)}
+              {(recipe?.aiTools ?? []).slice(0, 3).map((tool) => <span className="hero-recipe-preview__tool" key={tool}>{tool}</span>)}
+              <span className="hero-recipe-preview__mobile-tools" style={{ display: 'none' }}>Works with {mobileToolSummary(recipe?.aiTools ?? [])}</span>
             </div>
-            <Link href={`/recipes/${activeRecipe.slug}`} className="hero-recipe-preview__link" data-testid="link-hero-recipe-preview">
-              Open this recipe <ArrowRight size={15} />
+            <Link href={recipe ? `/recipes/${recipe.slug}` : '/recipes'} className="hero-recipe-preview__link" data-testid={isActive ? 'link-hero-recipe-preview' : undefined}>
+              {recipe ? 'Open this recipe' : 'Explore recipes'} <ArrowRight size={15} />
             </Link>
-            <div className="hero-preview-dots" aria-label="Featured workflow previews">
-              {recipes.slice(0, 4).map((recipe, index) => <button type="button" key={recipe.id} className={index === activeIndex ? 'is-active' : ''} aria-label={`Show preview ${index + 1}: ${recipe.title}`} aria-current={index === activeIndex ? 'true' : undefined} onClick={() => setActiveIndex(index)} />)}
-            </div>
-          </article>
-        ) : loading ? (
-          <div className="hero-recipe-preview hero-recipe-preview--loading" aria-hidden="true"><span /><span /><span /></div>
-        ) : null}
+            {recipes.length > 1 && <div className="hero-preview-dots hero-preview-dots--mobile" style={{ display: 'none' }} aria-label="Featured workflow previews">
+              {recipes.map((item, dotIndex) => <button type="button" key={item.id} className={dotIndex === selectedPreviewIndex ? 'is-active' : ''} aria-label={`Show preview ${dotIndex + 1}: ${item.title}`} aria-current={dotIndex === selectedPreviewIndex ? 'true' : undefined} onClick={() => selectPreview(dotIndex)} />)}
+            </div>}
+            </article>;
+          })}
+          {recipes.length > 1 && <div className="hero-preview-dots" aria-label="Featured workflow previews">
+            {recipes.map((recipe, index) => <button type="button" key={recipe.id} className={index === selectedPreviewIndex ? 'is-active' : ''} aria-label={`Show preview ${index + 1}: ${recipe.title}`} aria-current={index === selectedPreviewIndex ? 'true' : undefined} onClick={() => selectPreview(index)} />)}
+          </div>}
+        </div>
       </div>
     </div>
   </div>;
 }
 
-function RecipeGrid({ recipes, savedIds, onSave, recipeBasePath = '/recipes' }: { recipes: RecipeCard[]; savedIds?: Set<number>; onSave?: (r: RecipeCard) => void; recipeBasePath?: string }) {
-  if (!recipes.length) return <EmptyState title="No recipes found yet" body="Try a broader search, or tell us what workflow you need next." action={<Link href="/submit" className="button button-dark" data-testid="link-submit-empty">Suggest a workflow <ArrowRight size={16} /></Link>} />;
-  return <div className="recipe-grid">{recipes.map((recipe) => <RecipeCardView key={recipe.id} recipe={recipe} saved={savedIds?.has(recipe.id)} onSave={onSave} recipeBasePath={recipeBasePath} />)}</div>;
+function RecipeGrid({ recipes, savedIds, onSave, recipeBasePath = '/recipes', className = '' }: { recipes: RecipeCard[]; savedIds?: Set<number>; onSave?: (r: RecipeCard) => void; recipeBasePath?: string; className?: string }) {
+  if (!recipes.length) {
+    const emptyState = <EmptyState title="No recipes found yet" body="Try a broader search, or tell us what workflow you need next." action={<Link href="/submit" className="button button-dark" data-testid="link-submit-empty">Suggest a workflow <ArrowRight size={16} /></Link>} />;
+    return className ? <div className={className}>{emptyState}</div> : emptyState;
+  }
+  return <div className={`recipe-grid ${className}`}>{recipes.map((recipe) => <RecipeCardView key={recipe.id} recipe={recipe} saved={savedIds?.has(recipe.id)} onSave={onSave} recipeBasePath={recipeBasePath} />)}</div>;
 }
 
-function RecipeGridSkeleton({ count = 6 }: { count?: number }) {
-  return <div className="recipe-grid" data-testid="status-loading-grid" aria-label="Loading recipes">{Array.from({ length: count }).map((_, i) => <div className="recipe-card-skeleton" key={i}><div className="skeleton-block sk-eyebrow" /><div className="skeleton-block sk-title" /><div className="skeleton-block sk-line" /><div className="skeleton-block sk-line short" /><div className="skeleton-block sk-meta" /></div>)}</div>;
+function RecipeGridSkeleton({ count = 6, className = '' }: { count?: number; className?: string }) {
+  return <div className={`recipe-grid ${className}`} data-testid="status-loading-grid" aria-label="Loading recipes">{Array.from({ length: count }).map((_, i) => <div className="recipe-card-skeleton" key={i}><div className="skeleton-block sk-eyebrow" /><div className="skeleton-block sk-title" /><div className="skeleton-block sk-line" /><div className="skeleton-block sk-line short" /><div className="skeleton-block sk-meta" /></div>)}</div>;
 }
 
 function SaveAction({ recipe, isSaved = false }: { recipe: RecipeCard | Recipe; isSaved?: boolean }) {
@@ -534,7 +612,7 @@ function SaveAction({ recipe, isSaved = false }: { recipe: RecipeCard | Recipe; 
 function HomePage() {
   const { data, isLoading, isError, refetch } = useGetHome();
   usePageMeta(undefined, 'A trusted, Indian-first field guide to practical AI workflows you can copy, run, and make your own.');
-  if (isError) return <SiteShell><ErrorState retry={() => refetch()} /></SiteShell>;
+  if (isError) return <SiteShell className="home-page"><ErrorState retry={() => refetch()} /></SiteShell>;
   const home = data ?? { recipeOfDay: null, trending: [], popular: [], categories: [], audiences: [] };
   const heroRecipes = Array.from(new Map(
     [home.recipeOfDay, ...home.popular, ...home.trending]
@@ -542,15 +620,23 @@ function HomePage() {
       .map((recipe) => [recipe.id, recipe]),
   ).values()).slice(0, 4);
   const totalRecipes = home.categories.reduce((total, category) => total + category.recipeCount, 0);
-  const featuredRecipes = (home.popular.length ? home.popular : home.trending).slice(0, 3);
+  const featuredRecipes = Array.from(new Map(
+    (home.popular.length ? home.popular : home.trending).map((recipe) => [recipe.id, recipe]),
+  ).values()).slice(0, 3);
+  const featuredRecipeIds = new Set(featuredRecipes.map((recipe) => recipe.id));
+  const trendingMobileRecipes = Array.from(new Map(
+    home.trending.filter((recipe) => !featuredRecipeIds.has(recipe.id)).map((recipe) => [recipe.id, recipe]),
+  ).values()).slice(0, 3);
   const categoryHref = (slug: string) => {
     const category = home.categories.find((item) => item.slug === slug);
     return category ? `/categories/${category.slug}` : '/recipes';
   };
-  return <SiteShell>
-    <HomeHero recipes={heroRecipes} totalRecipes={totalRecipes} loading={isLoading} />
-    <MobileCategoryChips categories={home.categories.slice(0, 8)} loading={isLoading} />
-    <MobileBannerCarousel recipeOfDay={home.recipeOfDay} loading={isLoading} />
+  return <SiteShell className="home-page">
+    <HomeHero recipes={heroRecipes} totalRecipes={totalRecipes} />
+    <div className="home-mobile-extra-panels">
+      <MobileCategoryChips categories={home.categories.slice(0, 8)} loading={isLoading} />
+      <MobileBannerCarousel recipeOfDay={home.recipeOfDay} loading={isLoading} />
+    </div>
     <section className="shell home-discovery-section" aria-labelledby="home-discovery-title">
       <div className="home-discovery-section__heading">
         <div>
@@ -558,7 +644,7 @@ function HomePage() {
           <h2 id="home-discovery-title">Popular this week.</h2>
           <p>Real workflows for the work in front of you—choose a starting point and make it yours.</p>
         </div>
-        <Link href="/recipes" className="arrow-link" data-testid="link-home-discover-all">Browse all recipes <ArrowRight size={16} /></Link>
+        <Link href="/recipes" className="arrow-link" data-testid="link-home-discover-all"><span className="home-desktop-copy">Browse all recipes</span><span className="home-mobile-copy" style={{ display: 'none' }} aria-hidden="true">See all</span> <ArrowRight size={16} /></Link>
       </div>
       <nav className="home-discovery-links" aria-label="Browse recipes by focus">
         <Link href="/recipes" data-testid="link-home-focus-workday">Made for your workday</Link>
@@ -572,9 +658,9 @@ function HomePage() {
         : <EmptyState title="Your next workflow is on its way" body="Browse the library to find a practical recipe for the task in front of you." action={<Link href="/recipes" className="button button-dark">Explore recipes <ArrowRight size={16} /></Link>} />}
     </section>
     <section className="shell home-section feature-section">{home.recipeOfDay ? <div className="feature-card"><div className="feature-side"><span className="kicker">Recipe of the day</span><span className="feature-number">01</span><p>One thoughtful workflow, picked for the way people actually work today.</p></div><div className="feature-main"><div className="card-topline"><span className="eyebrow">{home.recipeOfDay.category}</span><span className="verified-label"><Check size={13} /> Tested workflow</span></div><Link href={`/recipes/${home.recipeOfDay.slug}`} data-testid="link-recipe-of-day"><h2>{home.recipeOfDay.title}</h2></Link><p>{home.recipeOfDay.shortDescription}</p><div className="feature-bottom"><span><Clock3 size={14} /> {home.recipeOfDay.estimatedTime}</span><Link href={`/recipes/${home.recipeOfDay.slug}`} className="arrow-link" data-testid="link-recipe-of-day-read">Read the recipe <ArrowRight size={16} /></Link></div></div></div> : isLoading ? <div className="feature-card feature-card-skeleton" aria-hidden="true" /> : null}</section>
-    <section className="shell home-section home-trending-section"><div className="section-heading"><div><span className="kicker">The shelf, refreshed</span><h2>For the thing you need to do next.</h2></div><Link href="/recipes" className="arrow-link" data-testid="link-all-recipes">Browse all recipes <ArrowRight size={16} /></Link></div>{isLoading ? <RecipeGridSkeleton count={6} /> : <RecipeGrid recipes={home.trending || []} />}</section>
-    <section className="categories-band"><div className="shell home-section"><div className="section-heading"><div><span className="kicker">Browse by context</span><h2>Start where the work lives.</h2></div></div><div className="category-list">{isLoading ? Array.from({ length: 8 }, (_, index) => <div className="category-row category-row-skeleton" key={index} aria-hidden="true" />) : home.categories.slice(0, 8).map((category) => <Link href={`/categories/${category.slug}`} className="category-row" key={category.id} data-testid={`link-category-${category.id}`}><span className="category-index">{String(category.id).padStart(2, '0')}</span><span className="category-name">{category.name}</span><span className="category-count">{category.recipeCount} recipes</span><ArrowRight size={18} /></Link>)}</div><Link href="/categories" className="arrow-link" data-testid="link-all-categories">All categories <ArrowRight size={16} /></Link></div></section>
-     <section className="creator-cta"><div className="shell creator-cta-inner"><div><span className="kicker">Make the shelf better</span><h2>Have a workflow that actually works?</h2><p>Share the problem, the prompt, and what happened. Good submissions become tested recipes for everyone.</p></div><div className="creator-cta-actions"><Link href="/submit" className="button button-light" data-testid="link-home-submit">Share your workflow <ArrowRight size={16} /></Link><div className="creator-steps"><span><b>01</b> Tell us the moment</span><span><b>02</b> Add the workflow</span><span><b>03</b> We test the result</span></div></div></div></section>
+    <section className="shell home-section home-trending-section"><div className="section-heading"><div><span className="kicker">The shelf, refreshed</span><h2><span className="home-desktop-copy">For the thing you need to do next.</span><span className="home-mobile-copy" style={{ display: 'none' }} aria-hidden="true">Up next</span></h2></div><Link href="/recipes" className="arrow-link" data-testid="link-all-recipes"><span className="home-desktop-copy">Browse all recipes</span><span className="home-mobile-copy" style={{ display: 'none' }} aria-hidden="true">See all</span> <ArrowRight size={16} /></Link></div>{isLoading ? <><RecipeGridSkeleton count={6} className="home-trending-desktop" /><div className="home-trending-mobile" style={{ display: 'none' }}><RecipeGridSkeleton count={3} /></div></> : <><RecipeGrid recipes={home.trending || []} className="home-trending-desktop" /><div className="home-trending-mobile" style={{ display: 'none' }}><RecipeGrid recipes={trendingMobileRecipes} /></div></>}</section>
+    <section className="categories-band"><div className="shell home-section"><div className="section-heading"><div><span className="kicker">Browse by context</span><h2><span className="home-desktop-copy">Start where the work lives.</span><span className="home-mobile-copy" style={{ display: 'none' }} aria-hidden="true">Browse categories</span></h2></div></div><div className="category-list">{isLoading ? Array.from({ length: 8 }, (_, index) => <div className="category-row category-row-skeleton" key={index} aria-hidden="true" />) : home.categories.slice(0, 8).map((category) => <Link href={`/categories/${category.slug}`} className="category-row" key={category.id} data-testid={`link-category-${category.id}`}><span className="category-index">{String(category.id).padStart(2, '0')}</span><span className="category-name">{category.name}</span><span className="category-count">{category.recipeCount} recipes</span><ArrowRight size={18} /></Link>)}</div><Link href="/categories" className="arrow-link" data-testid="link-all-categories">All categories <ArrowRight size={16} /></Link></div></section>
+     <section className="creator-cta"><div className="shell creator-cta-inner"><div><span className="kicker">Make the shelf better</span><h2><span className="home-desktop-copy">Have a workflow that actually works?</span><span className="home-mobile-copy" style={{ display: 'none' }} aria-hidden="true">Share a workflow</span></h2><p>Share the problem, the prompt, and what happened. Good submissions become tested recipes for everyone.</p></div><div className="creator-cta-actions"><Link href="/submit" className="button button-light" data-testid="link-home-submit">Share your workflow <ArrowRight size={16} /></Link><div className="creator-steps"><span><b>01</b> Tell us the moment</span><span><b>02</b> Add the workflow</span><span><b>03</b> We test the result</span></div></div></div></section>
   </SiteShell>;
 }
 
@@ -5301,10 +5387,10 @@ function AuthWorkflowCanvas() {
 }
 
 function SignInPage() {
-  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">A better starting point</span><h1>Keep the useful stuff close.</h1><p>Save workflows, retrace your steps, and build a shelf that knows what kind of work you do.</p><AuthWorkflowCanvas /><div className="auth-quote">“The right recipe is the one that gets you moving.”</div></div><div className="auth-card"><Suspense fallback={<LoadingState label="Loading sign in" />}><ClerkSignIn basePath={basePath} /></Suspense></div></div></SiteShell>;
+  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">A better starting point</span><h1>Keep the useful stuff close.</h1><p>Save workflows, retrace your steps, and build a shelf that knows what kind of work you do.</p><AuthWorkflowCanvas /><div className="auth-quote">“The right recipe is the one that gets you moving.”</div></div><div className="auth-card"><Suspense fallback={<LoadingState label="Loading sign in" />}><ClerkSignIn basePath={basePath} appearance={clerkAppearance} /></Suspense></div></div></SiteShell>;
 }
 function SignUpPage() {
-  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">Start with one useful thing</span><h1>Your work, a little lighter.</h1><p>Join a growing shelf of practical AI workflows made for real people doing real work.</p><AuthWorkflowCanvas /><div className="auth-quote">No prompt theatre. Just recipes you can run.</div></div><div className="auth-card"><Suspense fallback={<LoadingState label="Loading sign up" />}><ClerkSignUp basePath={basePath} /></Suspense></div></div></SiteShell>;
+  return <SiteShell><div className="auth-page"><div className="auth-aside"><AuthBrand /><span className="kicker">Start with one useful thing</span><h1>Your work, a little lighter.</h1><p>Join a growing shelf of practical AI workflows made for real people doing real work.</p><AuthWorkflowCanvas /><div className="auth-quote">No prompt theatre. Just recipes you can run.</div></div><div className="auth-card"><Suspense fallback={<LoadingState label="Loading sign up" />}><ClerkSignUp basePath={basePath} appearance={clerkAppearance} /></Suspense></div></div></SiteShell>;
 }
 
 function Router() {
@@ -5312,10 +5398,14 @@ function Router() {
   const localVybePreview = import.meta.env.DEV && !publicVybeEnabled;
   const VybeIndexRoute = () => localVybePreview
     ? <AdminShell><VybeMarketplace previewMode /></AdminShell>
-    : <SiteShell><VybeMarketplace /></SiteShell>;
+    : publicVybeEnabled
+      ? <SiteShell><VybeMarketplace /></SiteShell>
+      : <Redirect to="/" />;
   const VybeDetailRoute = () => localVybePreview
     ? <AdminShell><VybeCreationPage previewMode /></AdminShell>
-    : <SiteShell><VybeCreationPage /></SiteShell>;
+    : publicVybeEnabled
+      ? <SiteShell><VybeCreationPage /></SiteShell>
+      : <Redirect to="/" />;
   return <Switch>
     <Route path="/sign-in/*?" component={SignInPage} /><Route path="/sign-up/*?" component={SignUpPage} />
     <Route path="/login" component={() => <Redirect to="/sign-in" />} /><Route path="/signup" component={() => <Redirect to="/sign-up" />} />
