@@ -31,7 +31,6 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
 import { MobileTopHeader } from '@/components/mobile/MobileTopHeader';
 import { MobileCategoryChips } from '@/components/mobile/MobileCategoryChips';
-import { MobileBannerCarousel } from '@/components/mobile/MobileBannerCarousel';
 import { createDefaultRecipeLayout, isValidRecipeLayout } from '@/lib/recipe-layout-utils';
 import { pageTitle } from '@/lib/pageTitle';
 import type { RecipeLayoutData } from '@/components/recipe-layout';
@@ -314,6 +313,146 @@ function mobileToolSummary(tools: string[]) {
   return `${visibleTools}${remainingCount ? ` +${remainingCount}` : ''}`;
 }
 
+function MobileFeaturedCarousel({ recipes, loading }: { recipes: RecipeCard[]; loading: boolean }) {
+  const railRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    rail.scrollLeft = 0;
+    setActiveIndex(0);
+  }, [recipes.length]);
+
+  const updateActiveIndex = () => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const card = rail.querySelector<HTMLElement>('.mobile-feature-card');
+    if (!card) return;
+    const step = card.offsetWidth + 12;
+    setActiveIndex(Math.min(recipes.length - 1, Math.round(rail.scrollLeft / step)));
+  };
+
+  const selectRecipe = (index: number) => {
+    const rail = railRef.current;
+    const card = rail?.querySelector<HTMLElement>('.mobile-feature-card');
+    if (!rail || !card) return;
+    rail.scrollTo({ left: index * (card.offsetWidth + 12), behavior: 'smooth' });
+    setActiveIndex(index);
+  };
+
+  return (
+    <section className="mobile-home-featured" aria-label="Featured recipes">
+      {loading ? (
+        <div className="mobile-feature-rail mobile-feature-rail--loading" aria-hidden="true">
+          <div className="mobile-feature-skeleton" />
+          <div className="mobile-feature-skeleton" />
+        </div>
+      ) : recipes.length ? (
+        <>
+          <div
+            className="mobile-feature-rail"
+            ref={railRef}
+            onScroll={updateActiveIndex}
+            role="region"
+            aria-roledescription="carousel"
+            aria-label="Featured recipes"
+          >
+            {recipes.map((recipe) => (
+              <Link
+                key={recipe.id}
+                href={`/recipes/${recipe.slug}`}
+                className="mobile-feature-card"
+                data-testid={`mobile-feature-${recipe.id}`}
+              >
+                <span className="mobile-feature-card__topline">
+                  <span>{recipe.category}</span>
+                  <span className="mobile-feature-card__published"><i aria-hidden="true" /> Published</span>
+                </span>
+                <strong>{recipe.title}</strong>
+                <span className="mobile-feature-card__time"><Clock3 size={13} aria-hidden="true" /> {recipe.estimatedTime}</span>
+              </Link>
+            ))}
+          </div>
+          {recipes.length > 1 && (
+            <div className="mobile-feature-dots" aria-label="Choose featured recipe">
+              {recipes.map((recipe, index) => (
+                <button
+                  key={recipe.id}
+                  type="button"
+                  className={index === activeIndex ? 'is-active' : ''}
+                  onClick={() => selectRecipe(index)}
+                  aria-label={`Show featured recipe ${index + 1}`}
+                  aria-current={index === activeIndex ? 'true' : undefined}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function MobileRecipeRows({ title, recipes, loading, count, testId }: {
+  title: string;
+  recipes: RecipeCard[];
+  loading: boolean;
+  count: number;
+  testId: string;
+}) {
+  return (
+    <section className="mobile-home-list" aria-label={title}>
+      <div className="mobile-home-list__heading">
+        <h2>{title}</h2>
+        <Link href="/recipes" aria-label={`See all ${title.toLowerCase()}`}>See all <ArrowRight size={14} aria-hidden="true" /></Link>
+      </div>
+      <div className="mobile-home-list__rows" data-testid={testId}>
+        {loading
+          ? Array.from({ length: count }, (_, index) => <div className="mobile-recipe-row mobile-recipe-row--skeleton" key={index} aria-hidden="true" />)
+          : recipes.slice(0, count).map((recipe) => (
+            <Link key={recipe.id} href={`/recipes/${recipe.slug}`} className="mobile-recipe-row" data-testid={`mobile-row-recipe-${recipe.id}`}>
+              <span className="mobile-recipe-row__copy">
+                <strong>{recipe.title}</strong>
+                <span>{recipe.category} <i aria-hidden="true">·</i> {recipe.estimatedTime}</span>
+              </span>
+              <ChevronRight size={18} aria-hidden="true" />
+            </Link>
+          ))}
+      </div>
+    </section>
+  );
+}
+
+function MobileHomeContent({
+  categories,
+  featured,
+  popular,
+  latest,
+  loading,
+}: {
+  categories: Array<{ id: number; name: string; slug: string; recipeCount: number }>;
+  featured: RecipeCard[];
+  popular: RecipeCard[];
+  latest: RecipeCard[];
+  loading: boolean;
+}) {
+  return (
+    <div className="mobile-home-content" style={{ display: 'none' }}>
+      <div className="mobile-home-categories">
+        <MobileCategoryChips categories={categories} loading={loading} />
+      </div>
+      <MobileFeaturedCarousel recipes={featured} loading={loading} />
+      <MobileRecipeRows title="Popular this week" recipes={popular} loading={loading} count={4} testId="mobile-popular-recipes" />
+      <MobileRecipeRows title="Latest" recipes={latest} loading={loading} count={3} testId="mobile-latest-recipes" />
+      <section className="mobile-home-share">
+        <strong>Got a workflow that works? Share it.</strong>
+        <Link href="/submit" data-testid="mobile-link-share-workflow">Share yours <ArrowRight size={14} aria-hidden="true" /></Link>
+      </section>
+    </div>
+  );
+}
+
 function RecipeCardView({ recipe, saved = false, onSave, recipeBasePath = '/recipes' }: { recipe: RecipeCard; saved?: boolean; onSave?: (recipe: RecipeCard) => void; recipeBasePath?: string }) {
   return <article className={`recipe-card category-${recipe.categorySlug}`} data-testid={`card-recipe-${recipe.id}`}>
     <div className="card-topline"><span className="category-pill">{recipe.category}</span>{recipe.trending && <span className="trend-label"><Flame size={12} /> Trending</span>}</div>
@@ -326,7 +465,7 @@ function RecipeCardView({ recipe, saved = false, onSave, recipeBasePath = '/reci
       <span className="card-open-cta">Open Recipe <ArrowRight size={13} /></span>
       <button className={`save-button ${saved ? 'saved' : ''}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSave?.(recipe); }} aria-label={saved ? 'Remove saved recipe' : 'Save recipe'} data-testid={`button-save-${recipe.id}`}>{saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}</button>
     </div>
-  </article>;
+  </article>
 }
 
 function HomeRecipeCard({ recipe }: { recipe: RecipeCard }) {
@@ -358,8 +497,6 @@ function HomeHero({ recipes, totalRecipes }: { recipes: RecipeCard[]; totalRecip
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchPlaceholderIndex, setSearchPlaceholderIndex] = useState(0);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
   const [inView, setInView] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 768px)').matches);
@@ -370,10 +507,8 @@ function HomeHero({ recipes, totalRecipes }: { recipes: RecipeCard[]; totalRecip
   const rotatingWords = ['writing', 'studying', 'running a business', 'making things'];
   const rotatingSearches = ['Build a presentation', 'Create a LinkedIn post', 'Analyze data'];
   const motionEnabled = inView && tabVisible && !reducedMotion && !userPaused;
-  const selectedPreviewIndex = recipes.length ? activeIndex % recipes.length : 0;
-  const activeRecipe = recipes[selectedPreviewIndex];
+  const activeRecipe = recipes[0];
   const [wordIndex, setWordIndex] = useState(0);
-  const carouselRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     if (document.head.querySelector('#home-hero-font-preload')) return;
@@ -395,12 +530,6 @@ function HomeHero({ recipes, totalRecipes }: { recipes: RecipeCard[]; totalRecip
   }, []);
 
   useEffect(() => {
-    if (!isMobile) return;
-    setActiveIndex(0);
-    if (carouselRef.current) carouselRef.current.scrollLeft = 0;
-  }, [isMobile]);
-
-  useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const mobileMedia = window.matchMedia('(max-width: 768px)');
     const updateMotionPreference = () => setReducedMotion(media.matches);
@@ -415,12 +544,6 @@ function HomeHero({ recipes, totalRecipes }: { recipes: RecipeCard[]; totalRecip
       document.removeEventListener('visibilitychange', updateVisibility);
     };
   }, []);
-
-  useEffect(() => {
-    if (!motionEnabled || isMobile || paused || recipes.length < 2) return;
-    const timer = window.setInterval(() => setActiveIndex((index) => (index + 1) % recipes.length), 5000);
-    return () => window.clearInterval(timer);
-  }, [isMobile, motionEnabled, paused, recipes.length]);
 
   useEffect(() => {
     if (reducedMotion || userPaused) {
@@ -481,22 +604,6 @@ function HomeHero({ recipes, totalRecipes }: { recipes: RecipeCard[]; totalRecip
     event.currentTarget.style.setProperty('--pointer-x', `${event.clientX - rect.left}px`);
     event.currentTarget.style.setProperty('--pointer-y', `${event.clientY - rect.top}px`);
   };
-  const handlePreviewScroll = (event: React.UIEvent<HTMLDivElement>) => {
-    if (!isMobile || !event.currentTarget.clientWidth) return;
-    const index = Math.round(event.currentTarget.scrollLeft / event.currentTarget.clientWidth);
-    setActiveIndex((current) => current === index ? current : index);
-  };
-  const selectPreview = (index: number) => {
-    setActiveIndex(index);
-    if (isMobile && carouselRef.current) {
-      carouselRef.current.scrollTo({
-        left: index * carouselRef.current.clientWidth,
-        behavior: reducedMotion ? 'auto' : 'smooth',
-      });
-    }
-  };
-  const previewRecipes: (RecipeCard | null)[] = recipes.length ? recipes : [null];
-
   return <div ref={heroRef} className={`home-hero${motionEnabled ? ' is-motion-active' : ' is-motion-paused'}`} onPointerMove={handleHeroPointer}>
     <div className="hero-atmosphere" aria-hidden="true"><span className="hero-ember hero-ember--one" /><span className="hero-ember hero-ember--two" /><span className="hero-ember hero-ember--three" /><span className="hero-ember hero-ember--four" /></div>
     <div className="shell hero-grid">
@@ -508,6 +615,7 @@ function HomeHero({ recipes, totalRecipes }: { recipes: RecipeCard[]; totalRecip
           <span className="home-mobile-copy" style={{ display: 'none' }} aria-hidden="true">Practical AI workflows</span>
         </h1>
         <p className="hero-subcopy">
+          <span className="hero-mobile-subcopy" style={{ display: 'none' }}>Practical recipes for work, study, and everyday life.</span>
           <span className="hero-subcopy-static">Tested, outcome-focused recipes for writing, studying, running a business, making things, and getting through the everyday.</span>
           <span className="hero-subcopy-rotating" aria-hidden="true" aria-live="off">
             Tested, outcome-focused recipes for{' '}
@@ -540,41 +648,35 @@ function HomeHero({ recipes, totalRecipes }: { recipes: RecipeCard[]; totalRecip
       <div className="hero-art">
         <div className="hero-ghost-card hero-ghost-card--back" aria-hidden="true"><span /><strong /></div>
         <div className="hero-ghost-card hero-ghost-card--front" aria-hidden="true"><span /><strong /></div>
-        <div ref={carouselRef} className="hero-preview-carousel" onScroll={handlePreviewScroll} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false); }}>
-          {previewRecipes.map((recipe, index) => {
-            const isActive = index === selectedPreviewIndex;
-            return <article key={recipe?.id ?? 'preview-placeholder'} className={`hero-recipe-preview${isActive ? ' is-active' : ''}`} data-testid={isActive ? 'hero-recipe-preview' : undefined} aria-live="off" aria-hidden={!isActive} inert={!isActive}>
-            <div className="hero-recipe-preview__topline">
-              <span><Sparkles size={14} /> WORKFLOW PREVIEW</span>
-              <span className="hero-recipe-preview__status"><Check size={13} /> {recipe ? 'Published recipe' : 'Ready to explore'}</span>
-            </div>
+        <div className="hero-preview-carousel">
+            <article className="hero-recipe-preview is-active" data-testid="hero-recipe-preview">
             <div className="hero-recipe-preview__meta">
-              <span>{recipe?.category ?? 'A practical starting point'}</span>
-              {recipe && <span><Clock3 size={13} /> {recipe.estimatedTime}</span>}
+              <span>Others</span>
+              <span className="hero-recipe-preview__status"><i aria-hidden="true" /> Published</span>
             </div>
-            <h2>{recipe?.title ?? 'A workflow for the task ahead'}</h2>
-            <p className="hero-recipe-preview__description">{recipe?.shortDescription ?? 'Find tested steps for the work, study, or creative task in front of you.'}</p>
+            <h2>Recruiter LinkedIn message generator</h2>
+            <p className="hero-recipe-preview__description">Personalised outreach to candidates in minutes, tuned for Indian hiring.</p>
             <div className="hero-recipe-preview__flow">
-              <div><span>YOU BRING</span><p className="hero-preview-input">Your goal and a little context</p></div>
-              <span className="hero-preview-connector"><ArrowRight size={18} aria-hidden="true" /><i /></span>
-              <div><span>YOU GET</span><p className="hero-preview-result">A practical prompt, steps, and checks</p></div>
+              <div className="hero-preview-tile hero-preview-prompt">
+                <span>Your prompt</span>
+                <p><span>{'{candidate}'}</span> for <span>{'{role}'}</span>, mentioning <span>{'{one detail}'}</span>.</p>
+              </div>
+              <div className="hero-preview-tile hero-preview-time">
+                <strong>10-15 min</strong>
+                <span>To finish</span>
+              </div>
+              <div className="hero-preview-tile hero-preview-tools">
+                <span>Works with</span>
+                <ul>
+                  {['ChatGPT', 'Claude', 'Gemini'].map((tool) => <li key={tool}>{tool}</li>)}
+                </ul>
+              </div>
+              <Link href="/recipes/recruiter-linkedin-message-generator" className="hero-recipe-preview__link hero-preview-takeaway" aria-label="Open this recipe" data-testid="link-hero-recipe-preview">
+                <span><span>You get</span><strong>A ready-to-send message and a follow-up</strong></span>
+                <span className="hero-preview-arrow" aria-hidden="true"><ArrowRight size={18} /></span>
+              </Link>
             </div>
-            <div className="hero-recipe-preview__footer">
-              <span>Works with</span>
-              {(recipe?.aiTools ?? []).slice(0, 3).map((tool) => <span className="hero-recipe-preview__tool" key={tool}>{tool}</span>)}
-              <span className="hero-recipe-preview__mobile-tools" style={{ display: 'none' }}>Works with {mobileToolSummary(recipe?.aiTools ?? [])}</span>
-            </div>
-            <Link href={recipe ? `/recipes/${recipe.slug}` : '/recipes'} className="hero-recipe-preview__link" data-testid={isActive ? 'link-hero-recipe-preview' : undefined}>
-              {recipe ? 'Open this recipe' : 'Explore recipes'} <ArrowRight size={15} />
-            </Link>
-            {recipes.length > 1 && <div className="hero-preview-dots hero-preview-dots--mobile" style={{ display: 'none' }} aria-label="Featured workflow previews">
-              {recipes.map((item, dotIndex) => <button type="button" key={item.id} className={dotIndex === selectedPreviewIndex ? 'is-active' : ''} aria-label={`Show preview ${dotIndex + 1}: ${item.title}`} aria-current={dotIndex === selectedPreviewIndex ? 'true' : undefined} onClick={() => selectPreview(dotIndex)} />)}
-            </div>}
-            </article>;
-          })}
-          {recipes.length > 1 && <div className="hero-preview-dots" aria-label="Featured workflow previews">
-            {recipes.map((recipe, index) => <button type="button" key={recipe.id} className={index === selectedPreviewIndex ? 'is-active' : ''} aria-label={`Show preview ${index + 1}: ${recipe.title}`} aria-current={index === selectedPreviewIndex ? 'true' : undefined} onClick={() => selectPreview(index)} />)}
-          </div>}
+            </article>
         </div>
       </div>
     </div>
@@ -627,16 +729,22 @@ function HomePage() {
   const trendingMobileRecipes = Array.from(new Map(
     home.trending.filter((recipe) => !featuredRecipeIds.has(recipe.id)).map((recipe) => [recipe.id, recipe]),
   ).values()).slice(0, 3);
+  const mobileFeaturedRecipes = Array.from(new Map(
+    [home.recipeOfDay, ...home.popular, ...home.trending]
+      .filter((recipe): recipe is RecipeCard => Boolean(recipe))
+      .map((recipe) => [recipe.id, recipe]),
+  ).values()).slice(0, 4);
+  const mobileFeaturedIds = new Set(mobileFeaturedRecipes.map((recipe) => recipe.id));
+  const mobilePopularRecipes = home.popular.filter((recipe) => !mobileFeaturedIds.has(recipe.id));
+  const mobilePopularIds = new Set(mobilePopularRecipes.slice(0, 4).map((recipe) => recipe.id));
+  const mobileLatestRecipes = home.trending.filter((recipe) => !mobileFeaturedIds.has(recipe.id) && !mobilePopularIds.has(recipe.id));
   const categoryHref = (slug: string) => {
     const category = home.categories.find((item) => item.slug === slug);
     return category ? `/categories/${category.slug}` : '/recipes';
   };
   return <SiteShell className="home-page">
     <HomeHero recipes={heroRecipes} totalRecipes={totalRecipes} />
-    <div className="home-mobile-extra-panels">
-      <MobileCategoryChips categories={home.categories.slice(0, 8)} loading={isLoading} />
-      <MobileBannerCarousel recipeOfDay={home.recipeOfDay} loading={isLoading} />
-    </div>
+    <MobileHomeContent categories={home.categories} featured={mobileFeaturedRecipes} popular={mobilePopularRecipes} latest={mobileLatestRecipes} loading={isLoading} />
     <section className="shell home-discovery-section" aria-labelledby="home-discovery-title">
       <div className="home-discovery-section__heading">
         <div>

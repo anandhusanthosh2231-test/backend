@@ -11,7 +11,7 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
   const [location, setLocation] = useLocation();
   const { isSignedIn } = useAuth();
   const [searchValue, setSearchValue] = useState('');
-  const isSearchPage = location.startsWith('/search') || location.startsWith('/recipes');
+  const isHome = location === '/';
   const isDetailPage = location.startsWith('/recipes/') && location !== '/recipes';
 
   useEffect(() => {
@@ -74,6 +74,18 @@ export function MobileTopHeader({ onSearch }: MobileTopHeaderProps) {
           >
             <PenLine size={17} strokeWidth={2} />
           </Link>
+
+          {isHome && (
+            <Link
+              href="/search"
+              className="flipkart-mobile-header__action-btn create-btn btn-secondary home-search-btn"
+              aria-label="Search recipes"
+              data-testid="mobile-link-home-search"
+              style={{ display: 'none' }}
+            >
+              <Search size={18} strokeWidth={2} />
+            </Link>
+          )}
 
           {isSignedIn ? (
             <Link
