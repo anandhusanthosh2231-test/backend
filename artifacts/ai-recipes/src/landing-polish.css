@@ -445,8 +445,7 @@
   .home-page .home-trending-section .section-heading .kicker,
   .home-page .categories-band .kicker,
   .home-page .creator-cta .kicker,
-  .home-page .creator-steps,
-  .home-page-footer .footer-robot-track {
+  .home-page .creator-steps {
     display: none !important;
   }
 
@@ -1814,8 +1813,7 @@
     align-items: center;
   }
 
-  .home-page-footer .footer-tagline,
-  .home-page-footer .footer-robot-track {
+  .home-page-footer .footer-tagline {
     display: none !important;
   }
 

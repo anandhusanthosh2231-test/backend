@@ -506,6 +506,93 @@
   }
 }
 
+@media (max-width: 768px) {
+  .why-page section {
+    padding-block: 36px;
+  }
+
+  .why-page .hero {
+    padding: 56px 0 34px;
+  }
+
+  .why-page .hero h1 {
+    margin-block: 12px 16px;
+    font-size: clamp(36px, 8vw, 52px);
+  }
+
+  .why-page .steps {
+    gap: 10px;
+    margin-top: 28px;
+  }
+
+  .why-page .compare-section .head {
+    margin-bottom: 20px;
+  }
+
+  .why-page .tabs {
+    margin-bottom: 16px;
+  }
+
+  .why-page .cmp {
+    gap: 12px;
+  }
+
+  .why-page .card {
+    gap: 12px;
+    padding: 18px;
+  }
+
+  .why-page .card h3 {
+    font-size: 24px;
+  }
+
+  .why-page .ing {
+    gap: 10px;
+  }
+
+  .why-page .ing article {
+    padding: 18px;
+  }
+
+  .why-page .ing h3 {
+    color: #fbf9f6;
+  }
+
+  .why-page .dark-band h2,
+  .why-page .dark-band h3 {
+    color: #fbf9f6;
+  }
+
+  .why-page .dark-band .head p,
+  .why-page .ing p {
+    color: #e4d9c9;
+  }
+
+  .why-page .ing code {
+    color: #f4c085;
+  }
+
+  .why-page .take {
+    gap: 8px;
+  }
+
+  .why-page .take > div {
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .why-page .cta {
+    margin-bottom: 32px;
+    padding: 28px 18px;
+    border-radius: 20px;
+  }
+
+  .why-page .actions {
+    gap: 8px;
+    margin-top: 20px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .why-page *,
   .why-page *::before,
