@@ -35,9 +35,12 @@ import { createDefaultRecipeLayout, isValidRecipeLayout } from '@/lib/recipe-lay
 import { pageTitle } from '@/lib/pageTitle';
 import type { RecipeLayoutData } from '@/components/recipe-layout';
 import { RecipePromptInputs } from '@/components/recipe-prompt-inputs';
+import { RecipeContextInputs } from '@/components/recipe-context-inputs';
+import { buildRecipeContextInstructions, createRecipeContext } from '@/lib/recipe-context';
 import { PromptStudio } from '@/components/admin/PromptStudio';
 import { ImageKitMediaLibrary } from '@/components/admin/ImageKitMediaLibrary';
 import { RecipePromptShowcase } from '@/components/RecipePromptShowcase';
+import { IndividualRecipePage } from '@/components/individual-recipe-page';
 import { getRecipePromptFields, getRecipePromptInputErrors, resolveRecipePrompt } from '@/lib/recipe-prompt';
 import { ADMIN_PATH, getAdminPath } from '@/lib/admin-path';
 import { Footer } from '@/components/Footer';
@@ -858,12 +861,14 @@ function RecipePage() {
   const [situationSelection, setSituationSelection] = useState<{ slug: string; value: string } | null>(null);
   const [selectedRefinement, setSelectedRefinement] = useState('');
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+  const [recipeContext, setRecipeContext] = useState(() => createRecipeContext());
   const [copyError, setCopyError] = useState(false);
   const [customCopyAttempted, setCustomCopyAttempted] = useState(false);
   const selectedSituation = situationSelection?.slug === slug ? situationSelection.value : '';
   const updateSelectedSituation = (value: string) => setSituationSelection({ slug, value });
   useEffect(() => {
     setVariableValues({});
+    setRecipeContext(createRecipeContext());
     setFeedbackSent(false);
     setFeedbackError('');
     setFeedbackReasonsOpen(false);
@@ -878,6 +883,7 @@ function RecipePage() {
   useEffect(() => {
     if (!query.data || query.data.slug !== slug) return;
     const variables = query.data.guide?.promptVariables ?? [];
+    setRecipeContext(createRecipeContext(query.data.title, query.data.audience));
     setVariableValues((current) => Object.fromEntries(variables.map((variable) => {
       const name = variable.name.trim().replace(/^\{\{\s*/, '').replace(/\s*\}\}$/, '');
       return [name, current[name] ?? variable.defaultValue ?? ''];
@@ -943,9 +949,14 @@ function RecipePage() {
   const missingRequiredPromptVariables = Object.keys(promptInputErrors).length > 0;
   const chosenSituation = guide.situations?.find((item) => item.name === selectedSituation);
   const customizedPrompt = resolveRecipePrompt(recipe.prompt, variableFields, variableValues);
-  const finalPrompt = chosenSituation?.promptModifier
-    ? `${customizedPrompt}\n\nSituation-specific instructions:\n${chosenSituation.promptModifier}${selectedRefinement ? `\n\nRefinement:\n${selectedRefinement}` : ''}`
-    : `${customizedPrompt}${selectedRefinement ? `\n\nRefinement:\n${selectedRefinement}` : ''}`;
+  const finalPrompt = [
+    customizedPrompt,
+    buildRecipeContextInstructions(recipeContext),
+    chosenSituation?.promptModifier
+      ? `Situation-specific instructions:\n${chosenSituation.promptModifier}`
+      : '',
+    selectedRefinement ? `Refinement:\n${selectedRefinement}` : '',
+  ].filter(Boolean).join('\n\n');
   const trackGuideEvent = (
     type: EventInput["type"],
     metadata: NonNullable<EventInput["metadata"]> = {},
@@ -1057,28 +1068,27 @@ function RecipePage() {
       copied={copied}
     />
   );
-  if (recipe.layoutMode === 'custom' && isValidRecipeLayout(recipe.layoutConfig)) {
-    return <SiteShell>{visualShowcase}<div className="shell custom-recipe-page"><Suspense fallback={<LoadingState />}><RecipeLayoutRenderer
-      recipe={recipe}
-      config={recipe.layoutConfig}
-      related={related.data ?? []}
-      recipeBasePath="/recipes"
-      promptValues={variableValues}
-      promptInputErrors={promptInputErrors}
-      resolvedPrompt={finalPrompt}
-      onPromptValueChange={(name, value) => setVariableValues((current) => ({ ...current, [name]: value }))}
-      onCopyPrompt={(prompt) => { setCustomCopyAttempted(true); void copyPromptText(prompt ?? finalPrompt); }}
-      copied={copied}
-      copyAttempted={customCopyAttempted}
-      copyError={copyError}
-      onShare={() => { void share(); }}
-      saveAction={<SaveAction recipe={recipe} />}
-      onRefinementSelect={(prompt, index) => {
-        setSelectedRefinement(prompt);
-        trackGuideEvent("recipe_refinement_click", { refinement: String(index + 1) });
-      }}
-    /></Suspense></div></SiteShell>;
-  }
+  if ((recipe.layoutMode === 'custom' && isValidRecipeLayout(recipe.layoutConfig)) || recipe.layoutMode === 'normal') return <SiteShell><IndividualRecipePage
+    recipe={recipe}
+    fields={variableFields}
+    values={variableValues}
+    errors={promptInputErrors}
+    resolvedPrompt={finalPrompt}
+    recipeContext={recipeContext}
+    related={related.data ?? []}
+    visualShowcase={visualShowcase}
+    saveAction={<SaveAction recipe={recipe} />}
+    copied={copied}
+    copyError={copyError}
+    onRecipeContextChange={setRecipeContext}
+    onPromptValueChange={(name, value) => setVariableValues((current) => ({ ...current, [name]: value }))}
+    onCopyPrompt={(prompt) => { setCustomCopyAttempted(true); void copyPromptText(prompt); }}
+    onShare={() => { void share(); }}
+    onRefinementSelect={(prompt, index) => {
+      setSelectedRefinement(prompt);
+      trackGuideEvent("recipe_refinement_click", { refinement: String(index + 1) });
+    }}
+  /></SiteShell>;
   return (
     <SiteShell>
       <div className="recipe-hero shell">
@@ -1204,6 +1214,9 @@ function RecipePage() {
         </section>
       </div>
       {visualShowcase}
+      <div className="shell recipe-context-wrap">
+        <RecipeContextInputs value={recipeContext} onChange={setRecipeContext} />
+      </div>
       <article className="shell recipe-body">
         <div className="recipe-main">
           <section className="prompt-section recipe-prompt-experience" id="recipe-prompt">

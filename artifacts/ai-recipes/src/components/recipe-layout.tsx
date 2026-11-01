@@ -7,6 +7,8 @@ import { MediaPicker } from '@/components/admin/MediaPicker';
 import { getRecipePromptFields, getRecipePromptInputErrors, resolveRecipePrompt } from '@/lib/recipe-prompt';
 import { blockKinds, blockLabels, createDefaultRecipeLayout, newId, prioritizePromptWorkflow } from '@/lib/recipe-layout-utils';
 import { CustomRecipeExperience } from '@/components/custom-recipe-experience';
+import { RecipeContextInputs } from '@/components/recipe-context-inputs';
+import type { RecipeContext } from '@/lib/recipe-context';
 
 export { createDefaultRecipeLayout, isValidRecipeLayout } from '@/lib/recipe-layout-utils';
 
@@ -164,6 +166,8 @@ export function RecipeLayoutRenderer({
   recipe,
   config,
   related = [],
+  recipeContext,
+  onRecipeContextChange,
   promptValues: providedPromptValues,
   promptInputErrors: providedPromptInputErrors,
   resolvedPrompt: providedResolvedPrompt,
@@ -181,6 +185,8 @@ export function RecipeLayoutRenderer({
   recipe: RecipeLayoutData;
   config: RecipeLayoutConfig;
   related?: RecipeCard[];
+  recipeContext?: RecipeContext;
+  onRecipeContextChange?: (value: RecipeContext) => void;
   promptValues?: Record<string, string>;
   promptInputErrors?: Record<string, string>;
   resolvedPrompt?: string;
@@ -234,6 +240,8 @@ export function RecipeLayoutRenderer({
       promptValues={promptValues}
       promptInputErrors={promptInputErrors}
       resolvedPrompt={resolvedPrompt}
+      recipeContext={recipeContext}
+      onRecipeContextChange={onRecipeContextChange}
       onPromptValueChange={updatePromptValue}
       onCopyPrompt={onCopyPrompt ?? ((text) => void copyPrompt('main', text))}
       copied={copied || copiedId === 'main'}
@@ -280,6 +288,7 @@ export function RecipeLayoutRenderer({
       case 'prompt':
         if (!recipe.prompt.trim()) break;
         content = <div className="layout-prompt">
+          {recipeContext && onRecipeContextChange && <RecipeContextInputs value={recipeContext} onChange={onRecipeContextChange} />}
           {!!promptVariables.length && <RecipePromptInputs fields={promptVariables} values={promptValues} errors={promptInputErrors} onChange={updatePromptValue} idPrefix={`layout-${block.id}`} nativeRequired={!editorPreview} />}
           {Object.keys(promptInputErrors).length > 0 && <p className="form-error" role="alert">Complete the required fields and correct invalid values before copying.</p>}
           <div className="layout-prompt-toolbar">

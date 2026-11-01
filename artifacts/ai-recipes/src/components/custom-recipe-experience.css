@@ -368,7 +368,7 @@
 .custom-primary-button { display: inline-flex; min-height: 37px; gap: 7px; align-items: center; justify-content: center; border: 1px solid var(--bake-amber); border-radius: 999px; padding: 8px 13px; color: var(--ink); background: var(--bake-amber); font-size: 10px; font-weight: 700; cursor: pointer; transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
 .custom-primary-button:hover:not(:disabled) { transform: translateY(-1px); background: var(--brand-tint); box-shadow: 0 5px 20px rgb(var(--brand-rgb) / 0.22); }
 .custom-primary-button:disabled { border-color: var(--brand-dark); color: var(--muted); background: rgb(var(--brand-rgb) / 0.08); cursor: not-allowed; }
-.custom-recipe-experience .custom-prompt-code pre { position: relative; display: grid; gap: 0; max-height: 520px; overflow: auto; margin: 0; border-radius: 0 0 14px 14px; padding: 18px 18px 18px 57px; color: var(--muted); background: var(--ink); font: 11px/1.9 var(--app-font-mono, "Space Mono", monospace); white-space: pre-wrap; overflow-wrap: anywhere; counter-reset: prompt-line; }
+.custom-recipe-experience .custom-prompt-code pre { position: relative; display: grid; gap: 0; max-height: 520px; overflow: auto; -webkit-overflow-scrolling: touch; margin: 0; border-radius: 0 0 14px 14px; padding: 18px 18px 18px 57px; color: var(--muted); background: var(--ink); font: 11px/1.9 var(--app-font-mono, "Space Mono", monospace); white-space: pre-wrap; overflow-wrap: anywhere; counter-reset: prompt-line; }
 .custom-prompt-line { display: block; min-height: 1.9em; }
 .custom-prompt-line::before { position: absolute; left: 18px; width: 25px; color: var(--muted); text-align: right; counter-increment: prompt-line; content: counter(prompt-line, decimal-leading-zero); }
 .custom-prompt-value { display: inline; margin: 0; border-radius: 3px; color: var(--brand-dark); background: rgb(var(--brand-rgb) / 0.08); transition: background .2s ease, box-shadow .2s ease; }
@@ -914,6 +914,151 @@
   .custom-progress-rail a.is-active::before,
   .custom-progress-rail a.is-done::before {
     background: var(--brand-tint);
+  }
+}
+
+.custom-recipe-experience .custom-segment-field > legend {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 9px;
+  color: var(--text-primary);
+}
+
+.custom-pantry-progress {
+  display: inline-flex;
+  min-height: 36px;
+  gap: 9px;
+  align-items: center;
+}
+
+.custom-pantry-progress svg {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.custom-pantry-ring-track,
+.custom-pantry-ring-fill {
+  fill: none;
+  stroke-width: 3;
+}
+
+.custom-pantry-ring-track { stroke: var(--border); }
+.custom-pantry-ring-fill {
+  stroke: var(--brand-dark);
+  stroke-linecap: round;
+  transition: stroke-dashoffset .35s ease;
+}
+.custom-pantry-ring-fill.is-complete { animation: custom-ring-complete .55s ease-out; }
+
+.custom-chipbox {
+  min-height: 64px;
+  max-height: 128px;
+  align-content: flex-start;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.custom-chipbox > input { min-width: 90px; }
+
+.custom-prompt-preview-details > summary {
+  display: flex;
+  min-height: 44px;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: var(--text-primary);
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.custom-prompt-preview-details > summary::-webkit-details-marker { display: none; }
+.custom-prompt-preview-details > summary svg { transition: transform .2s ease; }
+.custom-prompt-preview-details[open] > summary { margin-bottom: 10px; }
+.custom-prompt-preview-details[open] > summary svg { transform: rotate(180deg); }
+.custom-prompt-preview-details[open] .custom-prompt-code { animation: custom-preview-fade .24s ease both; }
+
+.custom-authored-steps {
+  position: relative;
+  padding-left: 18px;
+}
+
+.custom-authored-steps::before,
+.custom-authored-steps::after {
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  left: 3px;
+  width: 2px;
+  border-radius: 2px;
+  content: "";
+}
+
+.custom-authored-steps::before { background: var(--border); }
+.custom-authored-steps::after {
+  bottom: auto;
+  height: var(--step-progress, 0%);
+  max-height: calc(100% - 14px);
+  background: var(--brand-dark);
+  transition: height .16s linear;
+}
+
+.custom-authored-steps li { position: relative; z-index: 1; }
+.custom-copied-check { animation: custom-copy-tick .28s ease-out both; }
+.custom-mobile-copy-bar { transition: opacity .18s ease, visibility .18s ease, transform .18s ease; }
+.custom-mobile-copy-bar.is-hidden { visibility: hidden; opacity: 0; pointer-events: none; transform: translateY(8px); }
+
+.custom-ingredients :focus-visible,
+.custom-related :focus-visible,
+.custom-troubleshooting :focus-visible,
+.custom-refinements :focus-visible,
+.custom-prompt-studio :focus-visible {
+  outline-color: var(--brand-dark);
+}
+
+.custom-prompt-studio .custom-prompt-code :focus-visible,
+.custom-safety :focus-visible {
+  outline-color: #F4C085;
+}
+
+.custom-mobile-copy-bar button:focus-visible { outline-color: var(--ink); }
+
+@keyframes custom-ring-complete {
+  50% { filter: drop-shadow(0 0 5px rgb(var(--brand-rgb) / .55)); }
+}
+
+@keyframes custom-copy-tick {
+  from { opacity: 0; transform: scale(.65) rotate(-18deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+@keyframes custom-preview-fade {
+  from { opacity: .35; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 960px) {
+  .custom-prompt-preview-details:not([open]) .custom-prompt-code { display: none; }
+  .custom-mobile-copy-bar.is-hidden { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .custom-recipe-experience *,
+  .custom-recipe-experience *::before,
+  .custom-recipe-experience *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
   }
 }
 
@@ -1856,4 +2001,52 @@
     width: 100%;
     padding-inline: 10px;
   }
+}
+
+@media (max-width: 768px) {
+  .custom-progress-rail {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 4px;
+    margin: -16px -16px 18px;
+    padding: 6px 10px;
+  }
+
+  .custom-progress-title {
+    display: none;
+  }
+
+  .custom-progress-rail a {
+    min-width: 44px;
+    min-height: 44px;
+    flex: 1 1 0;
+    justify-content: center;
+    border-radius: 12px;
+    padding: 2px;
+    font-size: 0;
+  }
+
+  .custom-progress-rail a > span {
+    width: 32px;
+    height: 32px;
+    border-color: #e8d6bf;
+    color: #785638;
+    background: #fffaf3;
+    font-size: 10px;
+  }
+
+  .custom-progress-rail a.is-active {
+    border-color: #d7b38c;
+    background: #fbf2e7;
+  }
+
+  .custom-progress-rail a.is-active > span {
+    border-color: #9a5b2e;
+    color: #fff;
+    background: #9a5b2e;
+  }
+}
+
+@media (max-width: 960px) {
+  .custom-mobile-copy-bar.is-hidden { display: none; }
 }

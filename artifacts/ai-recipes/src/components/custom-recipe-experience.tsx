@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import {
-  ArrowRight, ArrowUpRight, BookOpen, CalendarDays, Check, CheckCircle2, ChevronDown, ClipboardCheck,
-  Copy, Flame, ListFilter, MessageSquareText, NotebookPen, RotateCcw, Share2, Sparkles,
+  ArrowRight, BookOpen, CalendarDays, Check, CheckCircle2, ChevronDown, ClipboardCheck,
+  Copy, Flame, RotateCcw, Share2, Sparkles,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { RecipeCard, RecipeGuidePromptVariablesItem, RecipeLayoutBlock, RecipeLayoutConfig } from "@workspace/api-client-react";
 import { RecipePromptInputs } from "@/components/recipe-prompt-inputs";
+import { RecipeContextInputs } from "@/components/recipe-context-inputs";
+import type { RecipeContext } from "@/lib/recipe-context";
 import { getRecipePromptFields } from "@/lib/recipe-prompt";
 import type { RecipeLayoutData } from "@/components/recipe-layout";
 import "./custom-recipe-experience.css";
@@ -18,6 +20,8 @@ type CustomRecipeExperienceProps = {
   promptValues: Record<string, string>;
   promptInputErrors: Record<string, string>;
   resolvedPrompt: string;
+  recipeContext?: RecipeContext;
+  onRecipeContextChange?: (value: RecipeContext) => void;
   onPromptValueChange: (name: string, value: string) => void;
   onCopyPrompt?: (prompt?: string) => void;
   copied?: boolean;
@@ -32,11 +36,44 @@ type IngredientKind = "sources" | "keywords" | "date" | "notion" | "schedule" | 
 type ModelTab = "Claude" | "ChatGPT" | "Gemini" | "Perplexity";
 
 const modelTabs: ModelTab[] = ["Claude", "ChatGPT", "Gemini", "Perplexity"];
-const modelTips: Record<ModelTab, string> = {
-  Claude: "Give Claude your source material first, then ask it to separate evidence from interpretation.",
-  ChatGPT: "Ask ChatGPT to keep the digest structured and make each recommendation actionable.",
-  Gemini: "Ask Gemini to connect recurring themes while preserving source context.",
-  Perplexity: "Ask Perplexity to prioritize citations and distinguish verified facts from discussion.",
+const sharedModelGuidance: Record<ModelTab, string> = {
+  Claude: "Work carefully from the supplied context. Separate observed facts from interpretation.",
+  ChatGPT: "Follow the requested structure. Be concise, specific, and actionable.",
+  Gemini: "Connect relevant details while retaining the supplied context.",
+  Perplexity: "Prioritize verifiable claims and make uncertainty and source limits explicit.",
+};
+const sharedModelTips: Record<ModelTab, string> = {
+  Claude: "Give Claude the relevant source material and ask it to separate evidence from interpretation.",
+  ChatGPT: "Ask ChatGPT to follow the requested structure and make each recommendation actionable.",
+  Gemini: "Ask Gemini to connect relevant details while preserving the original context.",
+  Perplexity: "Ask Perplexity to prioritize reliable sources and flag claims that need checking.",
+};
+const defaultChecklist = [
+  "The result answers the original task.",
+  "Important dates, figures, and names are checked.",
+  "Claims and sources are independently verified.",
+  "Sensitive or confidential details are removed.",
+  "Links, quotations, and attributions are accurate.",
+  "A person has reviewed the result before sharing.",
+];
+
+type CustomRecipeConfig = {
+  title: string;
+  description: string;
+  category: string;
+  time: string;
+  difficulty: string;
+  language: string;
+  audience: string;
+  fields: RecipeGuidePromptVariablesItem[];
+  promptLines: string;
+  modelTips: Record<ModelTab, string>;
+  modelGuidance: Record<ModelTab, string>;
+  steps: string[];
+  refinements: string[];
+  troubleshooting: Array<{ question: string; answer: string }>;
+  checklist: string[];
+  related: Array<{ title: string; description: string; url: string }>;
 };
 
 function classifyIngredient(field: RecipeGuidePromptVariablesItem): IngredientKind {
@@ -59,19 +96,8 @@ function excerpt(value: string, limit = 170) {
   return normalized.length > limit ? `${normalized.slice(0, limit).trimEnd()}…` : normalized;
 }
 
-function titleFromTroubleshooting(value: string, index: number) {
-  const question = value.match(/^(.{1,72}?\?)/);
-  return question?.[1] ?? ["A little too broad?", "Missing an ingredient?", "The result feels underdone?"][index % 3];
-}
-
-function modelAdaptation(prompt: string, model: ModelTab) {
-  const instruction: Record<ModelTab, string> = {
-    Claude: "Work carefully from the supplied context. Separate observed facts from interpretation.",
-    ChatGPT: "Follow the requested structure. Be concise, specific, and actionable.",
-    Gemini: "Connect recurring themes while retaining the source context for each insight.",
-    Perplexity: "Prioritize verifiable claims and make uncertainty and source limits explicit.",
-  };
-  return `${prompt.trim()}\n\n${model} guidance:\n${instruction[model]}`;
+function modelAdaptation(prompt: string, model: ModelTab, guidance: Record<ModelTab, string>) {
+  return `${prompt.trim()}\n\n${model} guidance:\n${guidance[model]}`;
 }
 
 function SectionHeading({ kicker, title, accent }: { kicker: string; title: string; accent?: string }) {
@@ -211,15 +237,35 @@ function IngredientTray({
   tags: string[];
   tools: string[];
 }) {
-  const ready = fields.filter((field) => Boolean((values[field.name] ?? field.defaultValue ?? "").trim())).length;
+  const requiredFields = fields.filter((field) => field.required === true);
+  const ready = requiredFields.filter((field) => Boolean((values[field.name] ?? field.defaultValue ?? "").trim())).length;
+  const readyRatio = requiredFields.length ? ready / requiredFields.length : 1;
+  const ringCircumference = 2 * Math.PI * 15;
+  const [pulseComplete, setPulseComplete] = useState(false);
+  const hasPulsed = useRef(false);
+  useEffect(() => {
+    if (requiredFields.length && ready === requiredFields.length && !hasPulsed.current) {
+      hasPulsed.current = true;
+      setPulseComplete(true);
+    }
+  }, [ready, requiredFields.length]);
   const groups = fields.map((field) => ({ field, kind: classifyIngredient(field) }));
   const ordinary = groups.filter(({ kind }) => kind === "standard").map(({ field }) => field);
   return <section className="custom-bake-section custom-ingredients" id="custom-ingredients" aria-labelledby="custom-ingredients-title">
     <SectionHeading kicker="01 / Ingredients tray" title="Gather your" accent="ingredients." />
     <div className="custom-pantry">
-      <div className="custom-pantry-copy"><span>Pantry check</span><strong>{ready}/{fields.length} ready</strong></div>
-      <div className="custom-pantry-track" role="progressbar" aria-label="Ingredients ready" aria-valuemin={0} aria-valuemax={fields.length} aria-valuenow={ready}><span style={{ width: `${fields.length ? ready / fields.length * 100 : 100}%` }} /></div>
-      <p>{fields.length ? "A few details help the AI make this recipe yours." : "This recipe is ready to copy as-is."}</p>
+      <div className="custom-pantry-copy">
+        <span>Pantry check</span>
+        <span className="custom-pantry-progress">
+          <svg viewBox="0 0 34 34" aria-hidden="true">
+            <circle className="custom-pantry-ring-track" cx="17" cy="17" r="15" style={{ strokeDasharray: ringCircumference }} />
+            <circle className={`custom-pantry-ring-fill${pulseComplete ? " is-complete" : ""}`} cx="17" cy="17" r="15" style={{ strokeDasharray: ringCircumference, strokeDashoffset: `${ringCircumference * (1 - readyRatio)}` }} />
+          </svg>
+          <strong aria-live="polite" aria-atomic="true">{requiredFields.length ? `${ready}/${requiredFields.length} required ready` : "No required inputs"}</strong>
+        </span>
+      </div>
+      <div className="custom-pantry-track" role="progressbar" aria-label="Required ingredients ready" aria-valuemin={0} aria-valuemax={requiredFields.length} aria-valuenow={ready}><span style={{ width: `${readyRatio * 100}%` }} /></div>
+      <p>{requiredFields.length ? "A few details help the AI make this recipe yours." : "This recipe is ready to copy as-is."}</p>
     </div>
     {!!ordinary.length && <RecipePromptInputs fields={ordinary} values={values} errors={errors} onChange={onChange} idPrefix="custom-ingredient" nativeRequired={false} deferErrors />}
     {groups.filter(({ kind }) => kind !== "standard").map(({ field, kind }) => {
@@ -239,6 +285,7 @@ function IngredientTray({
 
 function PromptStudio({
   prompt, fields, values, errors, onCopy, copied, attempted, onAttempt, valid, copyError,
+  model, onModelChange, modelTips, modelGuidance,
 }: {
   prompt: string;
   fields: RecipeGuidePromptVariablesItem[];
@@ -250,11 +297,17 @@ function PromptStudio({
   onAttempt: () => void;
   valid: boolean;
   copyError: boolean;
+  model: ModelTab;
+  onModelChange: (model: ModelTab) => void;
+  modelTips: Record<ModelTab, string>;
+  modelGuidance: Record<ModelTab, string>;
 }) {
-  const [model, setModel] = useState<ModelTab>("Claude");
   const [changedValues, setChangedValues] = useState<string[]>([]);
+  const [previewOpen, setPreviewOpen] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 961px)").matches);
   const previousValues = useRef(values);
-  const adapted = useMemo(() => modelAdaptation(prompt, model), [prompt, model]);
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const adapted = useMemo(() => modelAdaptation(prompt, model, modelGuidance), [prompt, model, modelGuidance]);
   useEffect(() => {
     const changed = fields.filter((field) => previousValues.current[field.name] !== values[field.name] && values[field.name]?.trim()).map((field) => field.name);
     if (changed.length) {
@@ -273,96 +326,111 @@ function PromptStudio({
   const tooltip = Object.keys(errors).length
     ? `Add: ${fields.filter((field) => errors[field.name]).map((field) => field.label).join(", ")}`
     : undefined;
+  const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let nextIndex: number | undefined;
+    if (event.key === "ArrowRight") nextIndex = (index + 1) % modelTabs.length;
+    else if (event.key === "ArrowLeft") nextIndex = (index - 1 + modelTabs.length) % modelTabs.length;
+    else if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = modelTabs.length - 1;
+    if (nextIndex === undefined) return;
+    event.preventDefault();
+    const nextModel = modelTabs[nextIndex];
+    if (!nextModel) return;
+    onModelChange(nextModel);
+    tabRefs.current[nextIndex]?.focus();
+  };
+  const panelId = `${id}-panel`;
 
   return <section className="custom-bake-section custom-prompt-studio" id="custom-prompt" aria-labelledby="custom-prompt-title">
     <SectionHeading kicker="02 / The oven" title="Your prompt is" accent="cooking." />
     <div className="custom-model-tabs" role="tablist" aria-label="Adapt the prompt for an AI model">
-      {modelTabs.map((tab) => <button key={tab} type="button" role="tab" id={`custom-model-tab-${tab.toLowerCase()}`} aria-selected={model === tab} aria-controls="custom-model-panel" onClick={() => setModel(tab)}>{tab}</button>)}
+      {modelTabs.map((tab, index) => <button
+        key={tab}
+        ref={(element) => { tabRefs.current[index] = element; }}
+        type="button"
+        role="tab"
+        id={`${id}-tab-${tab.toLowerCase()}`}
+        aria-selected={model === tab}
+        aria-controls={panelId}
+        tabIndex={model === tab ? 0 : -1}
+        onClick={() => onModelChange(tab)}
+        onKeyDown={(event) => onTabKeyDown(event, index)}
+      >{tab}</button>)}
     </div>
     <p className="custom-model-tip"><Sparkles size={14} />{modelTips[model]}</p>
-    <div className={`layout-prompt custom-prompt-code${copied ? " is-baked" : ""}`} id="custom-model-panel" role="tabpanel" aria-labelledby={`custom-model-tab-${model.toLowerCase()}`}>
-      <div className="layout-prompt-toolbar custom-prompt-toolbar"><span><span className="custom-live-dot" /> LIVE PROMPT PREVIEW · {model}</span>
-        <button type="button" className="custom-primary-button" disabled={!valid} title={!valid ? tooltip : undefined} aria-describedby={!valid && tooltip ? "custom-copy-requirements" : undefined} onClick={() => { onAttempt(); if (valid) onCopy(adapted); }}>{copied ? <><Check size={15} />Copied</> : <><Copy size={15} />{valid ? "Bake it" : "Copy prompt"}</>}</button>
+    <details className="custom-prompt-preview-details" open={previewOpen} onToggle={(event) => setPreviewOpen(event.currentTarget.open)}>
+      <summary>Preview prompt <ChevronDown size={16} aria-hidden="true" /></summary>
+      <div key={model} className={`layout-prompt custom-prompt-code${copied ? " is-baked" : ""}`} id={panelId} role="tabpanel" aria-labelledby={`${id}-tab-${model.toLowerCase()}`} tabIndex={0}>
+        <div className="layout-prompt-toolbar custom-prompt-toolbar"><span><span className="custom-live-dot" /> LIVE PROMPT PREVIEW · {model}</span>
+          <button type="button" className="custom-primary-button" disabled={!valid} title={!valid ? tooltip : undefined} aria-describedby={!valid && tooltip ? `${id}-copy-requirements` : undefined} onClick={() => { onAttempt(); if (valid) onCopy(adapted); }}>{copied ? <><Check className="custom-copied-check" size={15} />Copied</> : <><Copy size={15} />{valid ? "Bake it" : "Copy prompt"}</>}</button>
+        </div>
+        {!valid && tooltip && <span className="custom-sr-only" id={`${id}-copy-requirements`}>{tooltip}</span>}
+        <pre key={model} aria-label="Live prompt text">{adapted.split(/\r?\n/).map((line, lineIndex) => <span className="custom-prompt-line" key={`${lineIndex}-${line}`}>{(valuePattern ? line.split(valuePattern) : [line]).map((part, index) => activeValues.includes(part) ? <mark className={`custom-prompt-value${changedValues.some((name) => values[name]?.trim() === part) ? " is-new" : ""}`} key={`${index}-${part}`}>{part}</mark> : part)}</span>)}</pre>
       </div>
-      {!valid && tooltip && <span className="custom-sr-only" id="custom-copy-requirements">{tooltip}</span>}
-      <pre aria-label="Live prompt text">{adapted.split(/\r?\n/).map((line, lineIndex) => <span className="custom-prompt-line" key={`${lineIndex}-${line}`}>{(valuePattern ? line.split(valuePattern) : [line]).map((part, index) => activeValues.includes(part) ? <mark className={`custom-prompt-value${changedValues.some((name) => values[name]?.trim() === part) ? " is-new" : ""}`} key={`${index}-${part}`}>{part}</mark> : part)}</span>)}</pre>
-    </div>
+    </details>
     <p className="custom-privacy-note"><ClipboardCheck size={15} /> Remove confidential or personal information before pasting into an AI tool.</p>
     {attempted && Object.keys(errors).length > 0 && <p className="custom-form-error" role="alert" aria-live="polite">Complete the required ingredients before copying your prompt.</p>}
     {copyError && <p className="custom-form-error" role="alert" aria-live="polite">Clipboard access failed. Select and copy the prompt text above.</p>}
-    <div className="custom-copy-toast" role="status" aria-live="polite">{copied && <><span aria-hidden="true">✦</span> Fresh from the oven — prompt copied.</>}</div>
+    <div className="custom-copy-toast" role="status" aria-live="polite" aria-atomic="true">{copied && <><span aria-hidden="true">✦</span> Prompt copied.</>}</div>
   </section>;
 }
 
-function SampleBake({ recipe, fields, values }: { recipe: RecipeLayoutData; fields: RecipeGuidePromptVariablesItem[]; values: Record<string, string> }) {
-  const examples = recipe.guide?.examples ?? [];
-  const exampleOutput = examples[0]?.output || recipe.exampleOutput;
-  const exampleInput = examples[0]?.input || recipe.exampleInput;
-  const expected = recipe.guide?.expectedOutput?.description || recipe.guide?.snapshot?.output || recipe.verificationNotes;
-  const summaryCards = [
-    { title: "Top theme", value: excerpt(exampleOutput) || "Add an authored example output to preview this bake." },
-    { title: "Most-discussed topic", value: excerpt(recipe.title || recipe.category) },
-    { title: "Notable shift", value: excerpt(expected) || "The finished output is shaped by the prompt and your ingredients." },
-  ];
-  const posts = examples.length ? examples.slice(0, 3) : exampleInput || exampleOutput
-    ? [{ scenario: "Authored recipe example", input: exampleInput, output: exampleOutput }]
-    : [];
-  const dateField = fields.find((field) => classifyIngredient(field) === "date");
-  const dateRange = dateField ? values[dateField.name] || dateField.defaultValue : "";
+function SampleBake({ recipe }: { recipe: RecipeLayoutData }) {
+  const examples = recipe.guide?.examples?.length
+    ? recipe.guide.examples
+    : recipe.exampleInput || recipe.exampleOutput
+      ? [{ scenario: "Recipe example", input: recipe.exampleInput, output: recipe.exampleOutput, whyItWorks: [] }]
+      : [];
+  if (!examples.length) return null;
   return <section className="custom-bake-section custom-sample-bake" id="custom-sample" aria-labelledby="custom-sample-title">
     <details className="custom-sample-details">
       <summary><span className="custom-sample-icon"><BookOpen size={18} /></span><span><small>EXAMPLE OUTPUT · NOT LIVE DATA</small><strong id="custom-sample-title">See a finished bake</strong></span><ChevronDown size={18} /></summary>
-      <div className="custom-notion-mock">
-        <header className="custom-notion-header"><span><BookOpen size={17} /> Example workspace / Marketing insights</span><small>Illustrative preview · not live data</small></header>
-        <div className="custom-notion-page"><span className="custom-bake-kicker">WEEKLY DIGEST / EXAMPLE</span><h3>{recipe.title}</h3><p className="custom-notion-range">{dateRange || recipe.guide?.timeToResult || recipe.estimatedTime} · {recipe.category}</p>
-          <div className="custom-summary-grid">{summaryCards.map((card) => <article key={card.title}><span>{card.title}</span><p>{card.value}</p></article>)}</div>
-          <div className="custom-trending-row"><strong>Trending keywords</strong><div>{(recipe.tags.length ? recipe.tags : [recipe.category]).slice(0, 6).map((tag) => <span key={tag}>{tag}</span>)}</div></div>
-          <div className="custom-top-posts"><h4>Top posts <small>from authored example material</small></h4>{posts.length ? posts.map((post, index) => <article key={`${post.scenario}-${index}`}><span className="custom-post-source">{post.scenario || "Example"}</span><p>{excerpt(post.input, 180) || excerpt(post.output, 180)}</p><span className="custom-post-summary">{excerpt(post.output, 210)}</span><ArrowUpRight size={14} aria-hidden="true" /></article>) : <p className="custom-empty-example">No authored sample output is attached to this recipe yet.</p>}</div>
-        </div>
+      <div className="custom-example-list">
+        {examples.map((example, index) => <article className="custom-example-card" key={`${example.scenario}-${index}`}>
+          <span className="custom-bake-kicker">{example.scenario || `Example ${index + 1}`}</span>
+          {example.input && <div><h3>Input</h3><p>{example.input}</p></div>}
+          <div><h3>Output</h3><p>{example.output}</p></div>
+          {!!example.whyItWorks?.length && <div><h3>Why it works</h3><ul>{example.whyItWorks.map((item, itemIndex) => <li key={`${itemIndex}-${item}`}>{item}</li>)}</ul></div>}
+        </article>)}
       </div>
     </details>
   </section>;
 }
 
-const pipelineIcons = [MessageSquareText, ListFilter, Sparkles, NotebookPen, BookOpen];
-const pipelineNames = ["Collect", "Filter", "Summarize", "Digest", "Notion"];
-function WorkflowPipeline({ recipe }: { recipe: RecipeLayoutData }) {
-  const [openStage, setOpenStage] = useState<number | null>(null);
-  const steps = recipe.steps.map((step) => step.replace(/^\s*\d+\s*[.)]\s*/, ""));
-  const tools = recipe.guide?.tools?.length ? recipe.guide.tools.map((tool) => tool.name) : recipe.aiTools;
-  const failures = recipe.guide?.customContent?.troubleshooting?.length
-    ? recipe.guide.customContent.troubleshooting
-    : recipe.guide?.commonMistakes ?? [];
+function WorkflowPipeline({ config }: { config: CustomRecipeConfig }) {
+  const timelineRef = useRef<HTMLOListElement>(null);
+  const steps = config.steps;
+  useEffect(() => {
+    const timeline = timelineRef.current;
+    if (!timeline) return;
+    let frame = 0;
+    const updateProgress = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const bounds = timeline.getBoundingClientRect();
+        const progress = Math.max(0, Math.min(1, (window.innerHeight * 0.72 - bounds.top) / Math.max(bounds.height, 1)));
+        timeline.style.setProperty("--step-progress", `${progress * 100}%`);
+      });
+    };
+    updateProgress();
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    window.addEventListener("resize", updateProgress);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", updateProgress);
+      window.removeEventListener("resize", updateProgress);
+    };
+  }, [steps.length]);
+  if (!steps.length) return null;
   return <section className="custom-bake-section custom-pipeline-section" id="custom-workflow" aria-labelledby="custom-workflow-title">
     <SectionHeading kicker="03 / The method" title="How this recipe" accent="comes together." />
-    <div className="custom-pipeline-intro"><span className="custom-bake-kicker">Execution Steps &amp; Workflow Guide</span><p>{recipe.guide?.snapshot?.worksBestWhen || recipe.shortDescription}</p></div>
-    <div className="custom-pipeline" aria-label="Recipe workflow">
-      {pipelineNames.map((name, index) => {
-        const Icon = pipelineIcons[index];
-        const detail = steps[index] || [
-          `Gather the ingredients needed for ${recipe.title}.`,
-          "Remove noise and keep details relevant to the goal.",
-          "Ask the selected AI tool to identify useful patterns.",
-          "Shape the response into the recipe's intended output.",
-          tools.some((tool) => tool.toLowerCase().includes("notion")) ? "Send the reviewed digest to the chosen Notion database." : "Review and place the finished output in your chosen workspace.",
-        ][index];
-        const failure = failures[index] || recipe.verificationNotes || "Review this step's output before continuing.";
-        return <article className={`custom-pipeline-stage${openStage === index ? " is-open" : ""}`} key={name}>
-          <button type="button" aria-expanded={openStage === index} aria-controls={`pipeline-stage-${index}`} onClick={() => setOpenStage(openStage === index ? null : index)}>
-            <span className="custom-pipeline-icon"><Icon size={19} /></span><span className="custom-pipeline-number">{String(index + 1).padStart(2, "0")}</span><strong>{name}</strong><ChevronDown size={15} />
-          </button>
-          {openStage === index && <div className="custom-pipeline-detail" id={`pipeline-stage-${index}`}><p>{detail}</p><dl><div><dt>Needs</dt><dd>{index === 0 ? (recipe.requiredInputs[0] || "Recipe ingredients") : tools.join(", ") || "The previous step's output"}</dd></div><div><dt>Watch for</dt><dd>{failure}</dd></div></dl></div>}
-        </article>;
-      })}
-    </div>
-    <div className="custom-pipeline-line" aria-hidden="true"><span /></div>
-    {steps.length > 0 && <ol className="custom-authored-steps">{steps.map((step, index) => <li key={`${step}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><p>{step}</p></li>)}</ol>}
+    <div className="custom-pipeline-intro"><span className="custom-bake-kicker">Execution steps</span><p>{config.description}</p></div>
+    <ol className="custom-authored-steps" ref={timelineRef}>{steps.map((step, index) => <li key={`${step}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><p>{step}</p></li>)}</ol>
   </section>;
 }
 
-function RefinementPills({ recipe, onSelect }: { recipe: RecipeLayoutData; onSelect?: (prompt: string, index: number) => void }) {
+function RefinementPills({ prompts, onSelect }: { prompts: string[]; onSelect?: (prompt: string, index: number) => void }) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const prompts = recipe.refinementPrompts;
   if (!prompts.length) return null;
   const categoryFor = (prompt: string) => {
     const value = prompt.toLowerCase();
@@ -387,38 +455,27 @@ function RefinementPills({ recipe, onSelect }: { recipe: RecipeLayoutData; onSel
   </section>;
 }
 
-function TroubleshootAccordion({ recipe }: { recipe: RecipeLayoutData }) {
+function TroubleshootAccordion({ items, betterApproach }: { items: CustomRecipeConfig["troubleshooting"]; betterApproach?: string }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const items = recipe.guide?.customContent?.troubleshooting?.length
-    ? recipe.guide.customContent.troubleshooting
-    : recipe.guide?.commonMistakes ?? [];
-  if (!items.length && !recipe.guide?.betterApproach) return null;
+  if (!items.length && !betterApproach) return null;
   return <section className="custom-bake-section custom-troubleshooting" id="custom-troubleshoot" aria-labelledby="custom-troubleshoot-title">
     <SectionHeading kicker="05 / If the batch is off" title="It didn’t" accent="rise?" />
-    {recipe.guide?.betterApproach && <p className="custom-better-approach">{recipe.guide.betterApproach}</p>}
-    <div className="custom-troubleshoot-list">{items.map((item, index) => <article key={`${index}-${item}`} className={openIndex === index ? "is-open" : ""}><button type="button" aria-expanded={openIndex === index} onClick={() => setOpenIndex(openIndex === index ? null : index)}><span>{titleFromTroubleshooting(item, index)}</span><ChevronDown size={17} /></button>{openIndex === index && <p>{item}</p>}</article>)}</div>
+    {betterApproach && <p className="custom-better-approach">{betterApproach}</p>}
+    <div className="custom-troubleshoot-list">{items.map((item, index) => <article key={`${index}-${item.question}`} className={openIndex === index ? "is-open" : ""}><button type="button" aria-expanded={openIndex === index} aria-controls={`custom-troubleshooting-${index}`} onClick={() => setOpenIndex(openIndex === index ? null : index)}><span>{item.question}</span><ChevronDown size={17} /></button>{openIndex === index && <p id={`custom-troubleshooting-${index}`}>{item.answer}</p>}</article>)}</div>
   </section>;
 }
 
-const safetyDefaults = [
-  "The result answers the original task.",
-  "Important dates, figures, and names are checked.",
-  "Claims and sources are independently verified.",
-  "Sensitive or confidential details are removed.",
-  "Links, quotations, and attributions are accurate.",
-  "A person has reviewed the result before sharing.",
-];
-function SafetyChecklist({ recipe, onCompleteChange }: { recipe: RecipeLayoutData; onCompleteChange: (complete: boolean) => void }) {
-  const [checked, setChecked] = useState<boolean[]>(() => safetyDefaults.map(() => false));
+function SafetyChecklist({ recipe, checklist, onCompleteChange }: { recipe: RecipeLayoutData; checklist: string[]; onCompleteChange: (complete: boolean) => void }) {
+  const [checked, setChecked] = useState<boolean[]>(() => checklist.map(() => false));
   const complete = checked.filter(Boolean).length;
   const progress = (index: number, value: boolean) => setChecked((current) => {
     const next = current.map((item, itemIndex) => itemIndex === index ? value : item);
-    onCompleteChange(next.every(Boolean));
+    onCompleteChange(next.length > 0 && next.every(Boolean));
     return next;
   });
   return <section className="custom-bake-section custom-safety" id="custom-review" aria-labelledby="custom-review-title">
     <SectionHeading kicker="06 / Taste test" title="Review before you" accent="serve." />
-    <div className="custom-safety-card"><p>{recipe.verificationNotes || "A quick human review helps catch details AI can miss."}</p><div className="custom-safety-list">{safetyDefaults.map((item, index) => <label key={item} className={checked[index] ? "is-checked" : ""}><input type="checkbox" checked={checked[index]} onChange={(event) => progress(index, event.target.checked)} /><span className="custom-checkmark"><Check size={14} /></span><span>{item}</span></label>)}</div><div className="custom-safety-state" role="status" aria-live="polite"><span>{complete}/{safetyDefaults.length} checked</span><strong>{complete === safetyDefaults.length ? "Safe to apply" : "A little review goes a long way"}</strong></div></div>
+    <div className="custom-safety-card"><p>{recipe.verificationNotes || "A quick human review helps catch details AI can miss."}</p><div className="custom-safety-list">{checklist.map((item, index) => <label key={`${index}-${item}`} className={checked[index] ? "is-checked" : ""}><input type="checkbox" checked={checked[index] ?? false} onChange={(event) => progress(index, event.target.checked)} /><span className="custom-checkmark"><Check size={14} /></span><span>{item}</span></label>)}</div><div className="custom-safety-state"><span aria-live="polite" aria-atomic="true">{complete}/{checklist.length} checked</span><strong>{complete === checklist.length ? "Safe to apply" : "A little review goes a long way"}</strong></div></div>
     {!!recipe.guide?.safetyNotes?.length && <ul className="custom-safety-notes">{recipe.guide.safetyNotes.map((note) => <li key={note}>{note}</li>)}</ul>}
   </section>;
 }
@@ -452,33 +509,103 @@ function ProgressRail({ fields, values, copied, safetyComplete }: { fields: Reci
     };
   }, [fields.length, copied, safetyComplete, values]);
   return <nav className="custom-progress-rail" aria-label="Recipe progress">
-    <span className="custom-progress-title">YOUR BAKE</span>{entries.map((entry, index) => <a key={entry.id} href={`#${entry.id}`} className={`${active === entry.id ? "is-active" : ""}${entry.done ? " is-done" : ""}`}><span>{entry.done ? <Check size={13} /> : String(index + 1).padStart(2, "0")}</span>{entry.label}</a>)}
+    <span className="custom-progress-title">YOUR BAKE</span>{entries.map((entry, index) => <a key={entry.id} href={`#${entry.id}`} aria-label={`${entry.label}${entry.done ? ", complete" : ""}`} aria-current={active === entry.id ? "step" : undefined} className={`${active === entry.id ? "is-active" : ""}${entry.done ? " is-done" : ""}`}><span>{entry.done ? <Check size={13} /> : String(index + 1).padStart(2, "0")}</span>{entry.label}</a>)}
   </nav>;
 }
 
-function RelatedRecipes({ recipes }: { recipes: RecipeCard[] }) {
+function RelatedRecipes({ recipes }: { recipes: CustomRecipeConfig["related"] }) {
   if (!recipes.length) return null;
   return <section className="custom-bake-section custom-related" id="custom-related" aria-labelledby="custom-related-title">
     <SectionHeading kicker="07 / Keep the oven warm" title="Bake this" accent="next." />
-    <div className="custom-related-grid">{recipes.slice(0, 3).map((item) => <Link key={item.id} href={`/recipes/${item.slug}`} className="custom-related-card"><Sparkles size={18} /><strong>{item.title}</strong><span>{item.shortDescription}</span><i>Bake this next <ArrowRight size={15} /></i></Link>)}</div>
+    <div className="custom-related-grid">{recipes.slice(0, 3).map((item) => <Link key={item.url} href={item.url} className="custom-related-card"><Sparkles size={18} /><strong>{item.title}</strong><span>{item.description}</span><i>Bake this next <ArrowRight size={15} /></i></Link>)}</div>
   </section>;
 }
 
+function createCustomRecipeConfig(
+  recipe: RecipeLayoutData,
+  promptLines: string,
+  fields: RecipeGuidePromptVariablesItem[],
+  related: RecipeCard[],
+): CustomRecipeConfig {
+  const rawTroubleshooting = recipe.guide?.customContent?.troubleshooting?.length
+    ? recipe.guide.customContent.troubleshooting
+    : recipe.guide?.commonMistakes ?? [];
+  const troubleshooting = rawTroubleshooting.map((item, index) => {
+    const separator = item.indexOf("?");
+    return separator >= 0
+      ? { question: item.slice(0, separator + 1).trim(), answer: item.slice(separator + 1).trim() || item }
+      : { question: `Troubleshooting note ${index + 1}`, answer: item };
+  });
+  return {
+    title: recipe.title,
+    description: recipe.shortDescription,
+    category: recipe.category,
+    time: recipe.guide?.timeToResult || recipe.estimatedTime,
+    difficulty: recipe.guide?.snapshot?.skillLevel || recipe.difficulty,
+    language: recipe.language,
+    audience: recipe.audience,
+    fields,
+    promptLines,
+    modelTips: sharedModelTips,
+    modelGuidance: sharedModelGuidance,
+    steps: recipe.steps.map((step) => step.replace(/^\s*\d+\s*[.)]\s*/, "")),
+    refinements: recipe.refinementPrompts,
+    troubleshooting,
+    checklist: recipe.guide?.customContent?.verificationChecklist?.length
+      ? recipe.guide.customContent.verificationChecklist
+      : defaultChecklist,
+    related: related.map((item) => ({
+      title: item.title,
+      description: item.shortDescription,
+      url: `/recipes/${item.slug}`,
+    })),
+  };
+}
+
 export function CustomRecipeExperience({
-  recipe, config, related, promptValues, promptInputErrors, resolvedPrompt, onPromptValueChange,
+  recipe, config, related, promptValues, promptInputErrors, resolvedPrompt, recipeContext, onRecipeContextChange, onPromptValueChange,
   onCopyPrompt, copied = false, copyAttempted = false, onShare, saveAction, onRefinementSelect,
   copyError = false,
 }: CustomRecipeExperienceProps) {
   const [safetyComplete, setSafetyComplete] = useState(false);
   const [attemptedCopy, setAttemptedCopy] = useState(copyAttempted);
+  const [hideMobileCopy, setHideMobileCopy] = useState(false);
+  const [model, setModel] = useState<ModelTab>("Claude");
   const promptFields = useMemo(() => getRecipePromptFields(recipe.prompt, recipe.guide?.promptVariables ?? []), [recipe.prompt, recipe.guide?.promptVariables]);
   const hasErrors = Object.keys(promptInputErrors).length > 0;
   const basePrompt = resolvedPrompt || recipe.prompt;
+  const RECIPE = useMemo(
+    () => createCustomRecipeConfig(recipe, basePrompt, promptFields, related),
+    [recipe, basePrompt, promptFields, related],
+  );
+  const checklistKey = RECIPE.checklist.join("\u0000");
   const visible = new Set(config.blocks.filter((block: RecipeLayoutBlock) => block.visible).map((block) => block.type));
+  const verificationVisible = visible.has("verification");
   useEffect(() => setAttemptedCopy(copyAttempted), [copyAttempted]);
   useEffect(() => {
-    if (!visible.has("verification")) setSafetyComplete(false);
-  }, [config]);
+    if (!verificationVisible) setSafetyComplete(false);
+  }, [verificationVisible]);
+  useEffect(() => setSafetyComplete(false), [checklistKey]);
+  useEffect(() => {
+    const targets = [
+      document.querySelector("#custom-review"),
+      document.querySelector(".custom-troubleshooting"),
+      document.querySelector(".site-footer"),
+    ].filter(
+      (target): target is Element => target !== null,
+    );
+    if (!targets.length || !("IntersectionObserver" in window)) return;
+    const visibleTargets = new Set<Element>();
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) visibleTargets.add(entry.target);
+        else visibleTargets.delete(entry.target);
+      }
+      setHideMobileCopy(visibleTargets.size > 0);
+    }, { threshold: 0.02 });
+    targets.forEach((target) => observer.observe(target));
+    return () => observer.disconnect();
+  }, [recipe.title, visible.has("verification")]);
 
   return <div className="custom-recipe-experience">
     <ProgressRail fields={promptFields} values={promptValues} copied={copied} safetyComplete={safetyComplete} />
@@ -487,18 +614,19 @@ export function CustomRecipeExperience({
         <div className="custom-oven-copy"><div className="custom-crumb"><Link href="/recipes">Recipes</Link><span>/</span><span>{recipe.category}</span></div><span className="custom-bake-kicker">{recipe.category} / THE DAILY BAKE</span><h1>{recipe.title}</h1><p>{recipe.shortDescription}</p>      </div>
         <aside className="custom-oven-card" aria-label="Recipe details"><div className="custom-oven-glow" /><div className="custom-oven-status"><span /> Preheating…</div><div className="custom-oven-time"><small>TIME TO BAKE</small><strong>{recipe.estimatedTime || recipe.guide?.timeToResult || "10–20 min"}</strong></div><div className="custom-oven-detail"><span>Difficulty</span><strong className="custom-flames" aria-label={recipe.difficulty}>{Array.from({ length: 3 }, (_, index) => <Flame key={index} size={16} fill={index < (recipe.difficulty.toLowerCase().includes("beginner") ? 1 : recipe.difficulty.toLowerCase().includes("intermediate") ? 2 : 3) ? "currentColor" : "none"} className={index < (recipe.difficulty.toLowerCase().includes("beginner") ? 1 : recipe.difficulty.toLowerCase().includes("intermediate") ? 2 : 3) ? "is-lit" : ""} />)}<small>{recipe.difficulty}</small></strong></div><div className="custom-oven-detail"><span>Language</span><strong>{recipe.language || "English"}</strong></div><div className="custom-oven-detail"><span>Serves</span><strong>{recipe.audience || "Marketing professionals"}</strong></div></aside>
       </section>
+      {recipeContext && onRecipeContextChange && <div className="custom-bake-context"><RecipeContextInputs value={recipeContext} onChange={onRecipeContextChange} /></div>}
       <div className="custom-bake-toolbar" aria-label="Recipe actions"><span><CheckCircle2 size={16} /> A practical recipe, ready to make your own</span><div className="custom-actions-inline"><button type="button" className="custom-ghost-button" onClick={onShare}><Share2 size={15} />Share link</button>{saveAction}<button type="button" className="custom-ghost-button" onClick={() => document.getElementById("custom-ingredients")?.scrollIntoView({ behavior: "smooth", block: "start" })}><RotateCcw size={15} />Remix with my inputs</button><a href="#custom-ingredients">Start baking <ArrowRight size={15} /></a></div></div>
         <div className="custom-bake-content">
-          <IngredientTray fields={promptFields} values={promptValues} errors={promptInputErrors} onChange={onPromptValueChange} attempted={attemptedCopy || copyAttempted} tags={recipe.tags} tools={recipe.aiTools} />
-        <PromptStudio prompt={basePrompt} fields={promptFields} values={promptValues} errors={promptInputErrors} onCopy={(value) => onCopyPrompt?.(value)} copied={copied} attempted={attemptedCopy || copyAttempted} onAttempt={() => setAttemptedCopy(true)} valid={!hasErrors} copyError={copyError} />
-          <SampleBake recipe={recipe} fields={promptFields} values={promptValues} />
-        {visible.has("workflow") && <WorkflowPipeline recipe={recipe} />}
-        {visible.has("refinements") && <RefinementPills recipe={recipe} onSelect={onRefinementSelect} />}
-        {visible.has("troubleshooting") && <TroubleshootAccordion recipe={recipe} />}
-        {visible.has("verification") && <SafetyChecklist recipe={recipe} onCompleteChange={setSafetyComplete} />}
-        <RelatedRecipes recipes={related} />
+          <IngredientTray fields={RECIPE.fields} values={promptValues} errors={promptInputErrors} onChange={onPromptValueChange} attempted={attemptedCopy || copyAttempted} tags={recipe.tags} tools={recipe.aiTools} />
+        <PromptStudio prompt={RECIPE.promptLines} fields={RECIPE.fields} values={promptValues} errors={promptInputErrors} onCopy={(value) => onCopyPrompt?.(value)} copied={copied} attempted={attemptedCopy || copyAttempted} onAttempt={() => setAttemptedCopy(true)} valid={!hasErrors} copyError={copyError} model={model} onModelChange={setModel} modelTips={RECIPE.modelTips} modelGuidance={RECIPE.modelGuidance} />
+          <SampleBake recipe={recipe} />
+        {visible.has("workflow") && <WorkflowPipeline config={RECIPE} />}
+        {visible.has("refinements") && <RefinementPills prompts={RECIPE.refinements} onSelect={onRefinementSelect} />}
+        {visible.has("troubleshooting") && <TroubleshootAccordion items={RECIPE.troubleshooting} betterApproach={recipe.guide?.betterApproach} />}
+        {verificationVisible && <SafetyChecklist key={checklistKey} recipe={recipe} checklist={RECIPE.checklist} onCompleteChange={setSafetyComplete} />}
+        <RelatedRecipes recipes={RECIPE.related} />
       </div>
     </main>
-    <div className="custom-mobile-copy-bar"><button type="button" disabled={hasErrors} onClick={() => { setAttemptedCopy(true); if (!hasErrors) onCopyPrompt?.(modelAdaptation(basePrompt, "Claude")); }}>{copied ? <><Check size={16} /> Copied</> : <><Copy size={16} />{hasErrors ? "Add ingredients first" : "Bake it"}</>}</button></div>
+    <div className={`custom-mobile-copy-bar${hideMobileCopy ? " is-hidden" : ""}`} aria-hidden={hideMobileCopy}><button type="button" disabled={hasErrors} tabIndex={hideMobileCopy ? -1 : 0} onClick={() => { setAttemptedCopy(true); if (!hasErrors) onCopyPrompt?.(modelAdaptation(basePrompt, model, RECIPE.modelGuidance)); }}>{copied ? <><Check className="custom-copied-check" size={16} /> Copied</> : <><Copy size={16} />{hasErrors ? "Add ingredients first" : "Copy prompt"}</>}</button></div>
   </div>;
 }
