@@ -1,3 +1,10 @@
+.recipe-context-inputs,
+.recipe-context-wrap,
+.ir-context,
+.custom-bake-context {
+  display: none !important;
+}
+
 .recipe-context-inputs {
   position: relative;
   margin: 0 0 24px;
