@@ -89,6 +89,16 @@
   font-weight: 700;
 }
 
+.recipe-context-language-field {
+  display: grid;
+  min-width: 0;
+  gap: 0;
+}
+
+.recipe-context-language-field .language-suggestion-list {
+  margin-top: 8px;
+}
+
 .recipe-context-fields input,
 .recipe-context-fields textarea,
 .recipe-context-fields select {
@@ -117,6 +127,36 @@
   border-color: #c98b4b;
   outline: 3px solid rgb(201 139 75 / 20%);
   outline-offset: 1px;
+}
+
+.language-suggestion-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.language-suggestion-list button {
+  min-height: 34px;
+  border: 1px solid #e6ddd1;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #fffdfa;
+  color: #5e574e;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.language-suggestion-list button[aria-pressed="true"] {
+  border-color: #c98b4b;
+  background: #f3eee6;
+  color: #5e574e;
+}
+
+.language-suggestion-list button:focus-visible {
+  outline: 3px solid rgb(201 139 75 / 20%);
+  outline-offset: 2px;
 }
 
 .recipe-context-wrap {

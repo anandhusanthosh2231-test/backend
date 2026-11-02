@@ -3,6 +3,7 @@ import type { RecipeGuidePromptVariablesItem } from "@workspace/api-client-react
 import type { ReactNode } from "react";
 import { validateRecipeInputValue } from "@/lib/recipe-prompt";
 import { getRecipePromptFieldPresentation } from "@/lib/recipe-prompt-presentation";
+import { languageSuggestions } from "@/lib/language-suggestions";
 
 export function RecipePromptInputs({
   fields,
@@ -51,16 +52,20 @@ export function RecipePromptInputs({
       const error = errors[field.name];
       const visibleError = deferErrors && !touched[field.name] ? undefined : error;
       const value = values[field.name] ?? field.defaultValue ?? "";
+      const isLanguageField = /\b(language|locale|dialect)\b/i.test(`${field.name} ${presentation.label}`);
       const commonProps = {
         id,
         required: nativeRequired && (field.required ?? false),
         placeholder: presentation.placeholder,
         "aria-invalid": Boolean(visibleError),
-        "aria-describedby": [presentation.helpText ? `${id}-help` : "", visibleError ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined,
+        "aria-describedby": [
+          presentation.helpText ? `${id}-help` : "",
+          visibleError ? `${id}-error` : "",
+        ].filter(Boolean).join(" ") || undefined,
         onBlur: () => setTouched((current) => ({ ...current, [field.name]: true })),
       };
       let control: ReactNode;
-      switch (presentation.type ?? "text") {
+      switch (isLanguageField ? "text" : presentation.type ?? "text") {
         case "textarea":
           control = <textarea {...commonProps} value={value} onChange={(event) => onChange(field.name, event.target.value)} rows={3} minLength={field.validation?.minLength} maxLength={field.validation?.maxLength} />;
           break;
@@ -86,12 +91,38 @@ export function RecipePromptInputs({
         default:
           control = <input {...commonProps} type={presentation.type === "url" || presentation.type === "date" ? presentation.type : "text"} value={value} pattern={field.validation?.pattern} minLength={field.validation?.minLength} maxLength={field.validation?.maxLength} onChange={(event) => onChange(field.name, event.target.value)} />;
       }
+      const fieldLabel = <span className="prompt-input-label">{presentation.label}{field.required === true && <span className="required-mark">Required</span>}{field.required === false && <span className="optional-mark">Optional</span>}</span>;
+      const fieldHelp = presentation.helpText && <small id={`${id}-help`}>{presentation.helpText}</small>;
+      const fileHelp = presentation.type === "file" && !presentation.helpText && <small id={`${id}-help`}>The selected file name is added to the prompt; the file is not uploaded.</small>;
+      const fieldError = visibleError && <small id={`${id}-error`} className="form-error">{visibleError}</small>;
+
+      if (isLanguageField) {
+        return <div key={field.name} className="prompt-language-field">
+          <label htmlFor={id}>{fieldLabel}</label>
+          {control}
+          <div id={`${id}-suggestions`} className="language-suggestion-list" aria-label={`Suggested languages for ${presentation.label}`}>
+            {languageSuggestions.map((suggestion) => (
+              <button
+                type="button"
+                key={suggestion}
+                aria-pressed={value === suggestion}
+                onClick={() => onChange(field.name, suggestion)}
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+          {fieldHelp}
+          {fieldError}
+        </div>;
+      }
+
       return <label key={field.name} htmlFor={id}>
-        <span className="prompt-input-label">{presentation.label}{field.required === true && <span className="required-mark">Required</span>}{field.required === false && <span className="optional-mark">Optional</span>}</span>
+        {fieldLabel}
         {control}
-        {presentation.helpText && <small id={`${id}-help`}>{presentation.helpText}</small>}
-        {presentation.type === "file" && !presentation.helpText && <small id={`${id}-help`}>The selected file name is added to the prompt; the file is not uploaded.</small>}
-        {visibleError && <small id={`${id}-error`} className="form-error">{visibleError}</small>}
+        {fieldHelp}
+        {fileHelp}
+        {fieldError}
       </label>;
     })}
     </div>

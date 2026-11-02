@@ -1,7 +1,7 @@
 kind = "web"
 previewPath = "/"
 title = "AI Recipes"
-description = "An Indian-first library of practical, tested AI workflows for work, study, business, creativity, and everyday life."
+description = "An international library of practical, tested AI workflows for work, study, business, creativity, and everyday life."
 version = "1.0.0"
 id = "artifacts/ai-recipes"
 router = "path"

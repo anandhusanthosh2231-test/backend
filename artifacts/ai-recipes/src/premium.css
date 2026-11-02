@@ -1387,6 +1387,13 @@ body { background: var(--bg); }
 .prompt-inputs-reset:disabled { opacity: .55; cursor: not-allowed; }
 .prompt-variable-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
 .prompt-variable-form label { display: flex; flex-direction: column; gap: 6px; color: var(--ink); font-size: 12px; font-weight: 700; }
+.prompt-language-field { display: grid; min-width: 0; gap: 7px; }
+.prompt-language-field > label { display: flex; flex-direction: column; gap: 6px; color: var(--ink); font-size: 12px; font-weight: 700; }
+.prompt-language-field > input { width: 100%; min-width: 0; box-sizing: border-box; min-height: 42px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 400; }
+.prompt-language-field > input:focus-visible { outline: 2px solid var(--cool-tint); border-color: var(--muted); }
+.prompt-language-field .language-suggestion-list { margin-top: 0; }
+.prompt-language-field .language-suggestion-list button { border-color: var(--border); background: var(--surface); color: var(--text-secondary); }
+.prompt-language-field .language-suggestion-list button[aria-pressed="true"] { border-color: var(--brand-dark); background: var(--brand-tint); color: var(--brand-dark); }
 .prompt-variable-form textarea { width: 100%; box-sizing: border-box; min-height: 60px; resize: vertical; padding: 11px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 400; }
 .prompt-variable-form input:not([type="checkbox"]):not([type="file"]), .prompt-variable-form select { width: 100%; box-sizing: border-box; min-height: 42px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 400; }
 .prompt-variable-form input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: var(--muted); }

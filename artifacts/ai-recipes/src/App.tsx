@@ -716,7 +716,7 @@ function SaveAction({ recipe, isSaved = false }: { recipe: RecipeCard | Recipe; 
 
 function HomePage() {
   const { data, isLoading, isError, refetch } = useGetHome();
-  usePageMeta(undefined, 'A trusted, Indian-first field guide to practical AI workflows you can copy, run, and make your own.');
+  usePageMeta(undefined, 'A trusted, international field guide to practical AI workflows you can copy, run, and make your own.');
   if (isError) return <SiteShell className="home-page"><ErrorState retry={() => refetch()} /></SiteShell>;
   const home = data ?? { recipeOfDay: null, trending: [], popular: [], categories: [], audiences: [] };
   const heroRecipes = Array.from(new Map(
@@ -5255,7 +5255,7 @@ function AdminAnalytics() {
   );
 }
 
-function AboutPage() { usePageMeta('About', 'Why TaskBakeAI exists: practical, tested AI workflows for real work.'); return <SiteShell><div className="prose-page shell"><span className="kicker">About the field guide</span><h1>Less prompt theatre.<br /><em>More useful work.</em></h1><p className="lead">TaskBakeAI is an Indian-first library of practical workflows for people who have something real to do.</p><div className="prose-columns"><div><h2>Why this exists</h2><p>The internet is full of impressive prompts. We wanted the other thing: instructions you can copy on a Tuesday morning, with the context, caveats, and checks that make them actually work.</p><p>Recipes begin with the problem, not the model. Each one is tested, edited, and written to be useful whether you are running a small business in Jaipur, studying in Kochi, or making your next thing from a shared desk.</p></div><div><h2>Our standard</h2><p>A good recipe tells you what to bring, what to ask, what a decent result looks like, and how to improve it. It leaves you with a skill, not a dependency.</p><p>Have a workflow that deserves a place here? <Link href="/submit" data-testid="link-about-submit">Send it in.</Link></p></div></div></div></SiteShell>; }
+function AboutPage() { usePageMeta('About', 'Why TaskBakeAI exists: practical, tested AI workflows for real work.'); return <SiteShell><div className="prose-page shell"><span className="kicker">About the field guide</span><h1>Less prompt theatre.<br /><em>More useful work.</em></h1><p className="lead">TaskBakeAI is an international library of practical workflows for people who have something real to do.</p><div className="prose-columns"><div><h2>Why this exists</h2><p>The internet is full of impressive prompts. We wanted the other thing: instructions you can copy on a Tuesday morning, with the context, caveats, and checks that make them actually work.</p><p>Recipes begin with the problem, not the model. Each one is tested, edited, and written to be useful whether you are running a small business, studying for an exam, or making your next thing from a shared desk.</p></div><div><h2>Our standard</h2><p>A good recipe tells you what to bring, what to ask, what a decent result looks like, and how to improve it. It leaves you with a skill, not a dependency.</p><p>Have a workflow that deserves a place here? <Link href="/submit" data-testid="link-about-submit">Send it in.</Link></p></div></div></div></SiteShell>; }
 
 const whyDesignExamples = [
   {

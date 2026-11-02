@@ -1,13 +1,7 @@
 import type { RecipeContext } from "@/lib/recipe-context";
+import { languageSuggestions } from "@/lib/language-suggestions";
 import { Sparkles } from "lucide-react";
 import "./recipe-context-inputs.css";
-
-const toneOptions = [
-  "English Professional",
-  "Malayalam-English Mix",
-  "Hinglish",
-  "Funny & Casual",
-];
 
 export function RecipeContextInputs({
   value,
@@ -62,17 +56,31 @@ export function RecipeContextInputs({
             autoComplete="off"
           />
         </label>
-        <label>
-          <span>Tone</span>
-          <select
-            value={value.tone}
-            onChange={(event) => update("tone", event.target.value)}
-          >
-            {toneOptions.map((tone) => (
-              <option key={tone} value={tone}>{tone}</option>
+        <div className="recipe-context-language-field">
+          <label htmlFor="recipe-context-language">
+            <span>Language &amp; tone</span>
+            <input
+              id="recipe-context-language"
+              type="text"
+              value={value.tone}
+              onChange={(event) => update("tone", event.target.value)}
+              placeholder="Choose a suggestion or enter any language"
+              autoComplete="off"
+            />
+          </label>
+          <div className="language-suggestion-list" aria-label="Suggested languages and styles">
+            {languageSuggestions.map((suggestion) => (
+              <button
+                type="button"
+                key={suggestion}
+                aria-pressed={value.tone === suggestion}
+                onClick={() => update("tone", suggestion)}
+              >
+                {suggestion}
+              </button>
             ))}
-          </select>
-        </label>
+          </div>
+        </div>
       </div>
     </section>
   );
