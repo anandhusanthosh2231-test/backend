@@ -493,7 +493,21 @@ function HomeRecipeCard({ recipe }: { recipe: RecipeCard }) {
   );
 }
 
-function HomeHero({ recipes, totalRecipes }: { recipes: RecipeCard[]; totalRecipes: number }) {
+function HomeHero({
+  recipes,
+  totalRecipes,
+  featuredRecipe,
+  featuredLoading,
+  featuredError,
+  retryFeatured,
+}: {
+  recipes: RecipeCard[];
+  totalRecipes: number;
+  featuredRecipe?: RecipeCard;
+  featuredLoading: boolean;
+  featuredError: boolean;
+  retryFeatured: () => void;
+}) {
   const [, setLocation] = useLocation();
   const heroRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -652,34 +666,49 @@ function HomeHero({ recipes, totalRecipes }: { recipes: RecipeCard[]; totalRecip
         <div className="hero-ghost-card hero-ghost-card--back" aria-hidden="true"><span /><strong /></div>
         <div className="hero-ghost-card hero-ghost-card--front" aria-hidden="true"><span /><strong /></div>
         <div className="hero-preview-carousel">
+          {featuredRecipe ? (
             <article className="hero-recipe-preview is-active" data-testid="hero-recipe-preview">
-            <div className="hero-recipe-preview__meta">
-              <span>Others</span>
-              <span className="hero-recipe-preview__status"><i aria-hidden="true" /> Published</span>
-            </div>
-            <h2>Recruiter LinkedIn message generator</h2>
-            <p className="hero-recipe-preview__description">Personalised outreach to candidates in minutes, tuned for Indian hiring.</p>
-            <div className="hero-recipe-preview__flow">
-              <div className="hero-preview-tile hero-preview-prompt">
-                <span>Your prompt</span>
-                <p><span>{'{candidate}'}</span> for <span>{'{role}'}</span>, mentioning <span>{'{one detail}'}</span>.</p>
+              <div className="hero-recipe-preview__meta">
+                <span>{featuredRecipe.category}</span>
+                <span className="hero-recipe-preview__status"><i aria-hidden="true" /> Published</span>
               </div>
-              <div className="hero-preview-tile hero-preview-time">
-                <strong>10-15 min</strong>
-                <span>To finish</span>
+              <h2>{featuredRecipe.title}</h2>
+              <p className="hero-recipe-preview__description">{featuredRecipe.shortDescription}</p>
+              <div className="hero-recipe-preview__flow">
+                <div className="hero-preview-tile hero-preview-prompt">
+                  <span>Featured workflow</span>
+                  <p>Add your task and context to personalize this recipe.</p>
+                </div>
+                <div className="hero-preview-tile hero-preview-time">
+                  <strong>{featuredRecipe.estimatedTime}</strong>
+                  <span>To finish</span>
+                </div>
+                <div className="hero-preview-tile hero-preview-tools">
+                  <span>Works with</span>
+                  <ul>
+                    {(featuredRecipe.aiTools.length ? featuredRecipe.aiTools.slice(0, 3) : ["Any AI assistant"]).map((tool) => <li key={tool}>{tool}</li>)}
+                  </ul>
+                </div>
+                <Link href={`/recipes/${featuredRecipe.slug}`} className="hero-recipe-preview__link hero-preview-takeaway" aria-label="Open this recipe" data-testid="link-hero-recipe-preview">
+                  <span><span>Featured in the library</span><strong>{featuredRecipe.category} workflow, ready to make your own</strong></span>
+                  <span className="hero-preview-arrow" aria-hidden="true"><ArrowRight size={18} /></span>
+                </Link>
               </div>
-              <div className="hero-preview-tile hero-preview-tools">
-                <span>Works with</span>
-                <ul>
-                  {['ChatGPT', 'Claude', 'Gemini'].map((tool) => <li key={tool}>{tool}</li>)}
-                </ul>
-              </div>
-              <Link href="/recipes/recruiter-linkedin-message-generator" className="hero-recipe-preview__link hero-preview-takeaway" aria-label="Open this recipe" data-testid="link-hero-recipe-preview">
-                <span><span>You get</span><strong>A ready-to-send message and a follow-up</strong></span>
-                <span className="hero-preview-arrow" aria-hidden="true"><ArrowRight size={18} /></span>
-              </Link>
-            </div>
             </article>
+          ) : featuredLoading ? (
+            <article className="hero-recipe-preview hero-recipe-preview--loading" aria-label="Loading featured recipe" data-testid="hero-recipe-preview-loading">
+              <span /><span /><span /><span />
+            </article>
+          ) : (
+            <article className="hero-recipe-preview is-active" data-testid="hero-recipe-preview">
+              <div className="hero-recipe-preview__meta"><span>Featured workflow</span></div>
+              <h2>{featuredError ? "Featured workflow unavailable" : "No featured workflow yet"}</h2>
+              <p className="hero-recipe-preview__description">
+                {featuredError ? "We couldn't load the recipes marked for the home shelf." : "Mark a published recipe as featured to show it here."}
+              </p>
+              {featuredError && <button type="button" className="hero-recipe-preview__retry" onClick={retryFeatured}>Try again</button>}
+            </article>
+          )}
         </div>
       </div>
     </div>
@@ -716,6 +745,7 @@ function SaveAction({ recipe, isSaved = false }: { recipe: RecipeCard | Recipe; 
 
 function HomePage() {
   const { data, isLoading, isError, refetch } = useGetHome();
+  const featuredShelfQuery = useListRecipes({ featured: true, sort: "featured", page: 1, pageSize: 1 });
   usePageMeta(undefined, 'A trusted, international field guide to practical AI workflows you can copy, run, and make your own.');
   if (isError) return <SiteShell className="home-page"><ErrorState retry={() => refetch()} /></SiteShell>;
   const home = data ?? { recipeOfDay: null, trending: [], popular: [], categories: [], audiences: [] };
@@ -746,7 +776,14 @@ function HomePage() {
     return category ? `/categories/${category.slug}` : '/recipes';
   };
   return <SiteShell className="home-page">
-    <HomeHero recipes={heroRecipes} totalRecipes={totalRecipes} />
+    <HomeHero
+      recipes={heroRecipes}
+      totalRecipes={totalRecipes}
+      featuredRecipe={featuredShelfQuery.data?.items[0]}
+      featuredLoading={featuredShelfQuery.isLoading}
+      featuredError={featuredShelfQuery.isError}
+      retryFeatured={() => { void featuredShelfQuery.refetch(); }}
+    />
     <MobileHomeContent categories={home.categories} featured={mobileFeaturedRecipes} popular={mobilePopularRecipes} latest={mobileLatestRecipes} loading={isLoading} />
     <section className="shell home-discovery-section" aria-labelledby="home-discovery-title">
       <div className="home-discovery-section__heading">

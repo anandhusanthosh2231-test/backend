@@ -14,6 +14,10 @@ audience?: string;
 difficulty?: string;
 tool?: string;
 language?: string;
+/**
+ * Return only recipes marked as featured on shelves
+ */
+featured?: boolean;
 sort?: ListRecipesSort;
 /**
  * @minimum 1

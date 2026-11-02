@@ -194,6 +194,8 @@ router.get("/recipes", async (req, res): Promise<void> => {
   const difficulty = typeof req.query.difficulty === "string" ? req.query.difficulty : undefined;
   const tool = typeof req.query.tool === "string" ? req.query.tool : undefined;
   const language = typeof req.query.language === "string" ? req.query.language : undefined;
+  const featuredParam = typeof req.query.featured === "string" ? req.query.featured : undefined;
+  const featured = featuredParam === "true" ? true : featuredParam === "false" ? false : undefined;
   const sort = typeof req.query.sort === "string" ? req.query.sort : "relevance";
   void parsed;
 
@@ -211,6 +213,7 @@ router.get("/recipes", async (req, res): Promise<void> => {
     difficulty ? eq(recipesTable.difficulty, difficulty) : undefined,
     tool ? sql`${recipesTable.aiTools}::text ILIKE ${`%${tool}%`}` : undefined,
     language ? eq(recipesTable.language, language) : undefined,
+    featured === undefined ? undefined : eq(recipesTable.featured, featured),
     query
       ? or(
           ilike(recipesTable.title, `%${query}%`),
@@ -227,6 +230,8 @@ router.get("/recipes", async (req, res): Promise<void> => {
       ? desc(recipesTable.publishedAt)
       : sort === "popular"
         ? desc(sql`${recipesTable.viewCount} + ${recipesTable.copyCount} * 3 + ${recipesTable.saveCount} * 4`)
+        : sort === "featured"
+          ? desc(recipesTable.featured)
         : desc(recipesTable.featured);
   const [items, totalRows] = await Promise.all([
     fetchCards({ where, orderBy, limit: pageSize, offset: (page - 1) * pageSize }),

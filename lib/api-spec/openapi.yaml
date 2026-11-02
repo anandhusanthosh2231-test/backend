@@ -42,7 +42,8 @@ paths:
         - { name: difficulty, in: query, schema: { type: string } }
         - { name: tool, in: query, schema: { type: string } }
         - { name: language, in: query, schema: { type: string } }
-        - { name: sort, in: query, schema: { type: string, enum: [relevance, popular, newest] } }
+        - { name: featured, in: query, schema: { type: boolean, description: Return only recipes marked as featured on shelves } }
+        - { name: sort, in: query, schema: { type: string, enum: [relevance, popular, newest, featured] } }
         - { name: page, in: query, schema: { type: number, minimum: 1, default: 1 } }
         - { name: pageSize, in: query, schema: { type: number, minimum: 1, maximum: 50, default: 12 } }
       responses:

@@ -34,7 +34,8 @@ export const ListRecipesQueryParams = zod.object({
   "difficulty": zod.coerce.string().optional(),
   "tool": zod.coerce.string().optional(),
   "language": zod.coerce.string().optional(),
-  "sort": zod.enum(['relevance', 'popular', 'newest']).optional(),
+  "featured": zod.coerce.boolean().optional(),
+  "sort": zod.enum(['relevance', 'popular', 'newest', 'featured']).optional(),
   "page": zod.coerce.number().min(1).default(listRecipesQueryPageDefault),
   "pageSize": zod.coerce.number().min(1).max(listRecipesQueryPageSizeMax).default(listRecipesQueryPageSizeDefault)
 })

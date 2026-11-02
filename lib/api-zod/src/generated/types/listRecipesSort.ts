@@ -13,4 +13,5 @@ export const ListRecipesSort = {
   relevance: 'relevance',
   popular: 'popular',
   newest: 'newest',
+  featured: 'featured',
 } as const;
