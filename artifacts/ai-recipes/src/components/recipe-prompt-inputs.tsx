@@ -97,7 +97,7 @@ export function RecipePromptInputs({
       const fieldError = visibleError && <small id={`${id}-error`} className="form-error">{visibleError}</small>;
 
       if (isLanguageField) {
-        return <div key={field.name} className="prompt-language-field">
+        return <div key={field.name} className={`prompt-language-field${field.required === false ? " prompt-language-field--optional" : ""}`}>
           <label htmlFor={id}>{fieldLabel}</label>
           {control}
           <div id={`${id}-suggestions`} className="language-suggestion-list" aria-label={`Suggested languages for ${presentation.label}`}>
