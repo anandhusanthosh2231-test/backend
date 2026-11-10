@@ -137,6 +137,7 @@ interface MockApiOptions {
   adminAuthenticated?: boolean;
   feedbackStatus?: number;
   dynamicRecipe?: boolean;
+  fourRequiredFields?: boolean;
   bookClubRecipe?: boolean;
   customLayoutRecipe?: boolean;
   legacyCustomLayoutRecipe?: boolean;
@@ -659,6 +660,22 @@ export async function mockApi(
               { name: 'focus', label: 'focus', required: false },
               { name: 'reading_stage', label: 'reading_stage', required: false },
               { name: 'tone', label: 'tone', required: false },
+            ],
+          },
+        } : options.fourRequiredFields ? {
+          ...recipe,
+          prompt: [
+            "Main Topic: {{main_topic}}",
+            "Context: {{context}}",
+            "Audience: {{audience}}",
+            "Tone: {{tone}}",
+          ].join("\n"),
+          guide: {
+            promptVariables: [
+              { name: 'main_topic', label: 'Main Topic', type: 'text', required: true },
+              { name: 'context', label: 'Context', type: 'text', required: true },
+              { name: 'audience', label: 'Audience', type: 'text', required: true },
+              { name: 'tone', label: 'Tone', type: 'text', required: true },
             ],
           },
         } : options.dynamicRecipe ? {

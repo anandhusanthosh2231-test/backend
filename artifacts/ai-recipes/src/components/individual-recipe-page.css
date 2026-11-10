@@ -94,6 +94,7 @@
 .ir-field textarea { min-height: 86px; resize: vertical; }
 .ir-field input::placeholder, .ir-field textarea::placeholder { color: #9A9187; opacity: 1; }
 .ir-field input:focus, .ir-field textarea:focus, .ir-field select:focus { border-color: var(--ir-orange); outline: 0; box-shadow: 0 0 0 3px rgb(217 84 30 / 12%); }
+.ir-ingredients .prompt-variable-form .is-committing :is(input, textarea, select) { animation: ir-field-border-highlight .65s ease-out both; }
 .ir-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .ir-suggestions button { min-height: 32px; border: 1px solid #EAD9C9; border-radius: 999px; padding: 5px 9px; color: #82502F; background: #FFF7EF; font-size: 9px; cursor: pointer; }
 .ir-suggestions button:hover { border-color: var(--ir-orange); color: var(--ir-orange-dark); background: #FFF0E5; }
@@ -105,10 +106,13 @@
 .ir-tabs button[aria-selected="true"] { border-color: var(--ir-ink); color: white; background: var(--ir-ink); }
 .ir-model-tip { min-height: 42px; margin: 11px 0; color: var(--ir-muted); font-size: 10px; line-height: 1.5; }
 .ir-prompt-frame { border: 1px solid transparent; border-radius: 14px; padding: 1px; background: linear-gradient(135deg, #F7A468, var(--ir-orange), #F2C582, var(--ir-orange)); background-size: 300% 300%; animation: ir-border-drift 9s linear infinite; }
-.ir-prompt-frame > div { background: #201C18; }
+.ir-prompt-frame > div { background: #1C1815; }
 .ir-prompt-frame > div:first-child { display: flex; min-height: 41px; align-items: center; justify-content: space-between; gap: 8px; border-radius: 13px 13px 0 0; border-bottom: 1px solid rgb(255 255 255 / 10%); padding: 0 12px; color: #C4B9AC; font: 500 8px/1.3 var(--app-font-mono, "Space Mono", monospace); }
 .ir-prompt-frame > div:first-child span:first-child { color: #F0A27C; }
-.ir-prompt-frame pre { max-height: 420px; overflow: auto; -webkit-overflow-scrolling: touch; margin: 0; padding: 14px; color: #F6EEE5; background: #201C18; font: 10px/1.75 var(--app-font-mono, "Space Mono", monospace); white-space: pre-wrap; overflow-wrap: anywhere; animation: ir-prompt-refresh .28s ease both; }
+.ir-prompt-frame pre { max-height: 420px; overflow: auto; -webkit-overflow-scrolling: touch; margin: 0; padding: 14px; color: #F3E9DC; background: #1C1815; scrollbar-color: #756B62 #1C1815; scrollbar-width: thin; font: 10px/1.75 var(--app-font-mono, "Space Mono", monospace); white-space: pre-wrap; overflow-wrap: anywhere; animation: ir-prompt-refresh .28s ease both; }
+.ir-prompt-frame pre::-webkit-scrollbar { width: 8px; height: 8px; }
+.ir-prompt-frame pre::-webkit-scrollbar-track { background: #1C1815; }
+.ir-prompt-frame pre::-webkit-scrollbar-thumb { border: 2px solid #1C1815; border-radius: 8px; background: #756B62; }
 .ir-prompt-actions { display: flex; justify-content: flex-end; border-radius: 0 0 13px 13px; padding: 0 11px 11px; }
 .ir-prompt-actions button { display: inline-flex; min-height: 39px; align-items: center; gap: 7px; border: 0; border-radius: 999px; padding: 0 13px; color: white; background: var(--ir-orange); font-size: 10px; font-weight: 600; cursor: pointer; }
 .ir-prompt-actions button:hover:not(:disabled) { background: #E86630; }
@@ -185,6 +189,231 @@
 @keyframes ir-copy-pop { 45% { transform: scale(1.07); } 100% { transform: scale(1); } }
 @keyframes ir-prompt-refresh { from { filter: blur(3px); opacity: .55; } to { filter: blur(0); opacity: 1; } }
 
+@property --clear {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+
+.ir-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.ir-prompt-stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0 0 8px 8px;
+  isolation: isolate;
+}
+.ir-prompt-stage > pre {
+  position: relative;
+  z-index: 0;
+  max-height: 420px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  background: #1C1815;
+}
+.ir-prompt-line {
+  display: inline;
+  border-radius: 3px;
+  transition: background-color .6s ease, box-shadow .6s ease;
+}
+.ir-prompt-line.is-field-updated { background: rgb(232 105 48 / 40%); box-shadow: 0 0 0 2px rgb(232 105 48 / 40%); }
+.ir-prompt-line.is-different { background: rgb(232 105 48 / 33%); box-shadow: 0 0 0 2px rgb(232 105 48 / 33%); }
+.ir-grease-glass {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity .25s ease, visibility 0s;
+  visibility: visible;
+}
+.ir-glass-region {
+  --clear: 0%;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: rgb(255 255 255 / 8%);
+  -webkit-backdrop-filter: blur(4px) brightness(1.05);
+  backdrop-filter: blur(4px) brightness(1.05);
+  -webkit-mask-image: linear-gradient(168deg, transparent 0, transparent calc(var(--clear) - 48px), #000 calc(var(--clear) + 48px), #000 100%);
+  mask-image: linear-gradient(168deg, transparent 0, transparent calc(var(--clear) - 48px), #000 calc(var(--clear) + 48px), #000 100%);
+  opacity: 1;
+  transition: --clear 1s ease-in, opacity 1s ease-in;
+}
+.ir-glass-region::before {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 8% 18%, rgb(255 255 255 / 17%) 0 1px, rgb(255 255 255 / 7%) 1.5px, transparent 2.5px),
+    radial-gradient(circle at 35% 64%, rgb(255 255 255 / 15%) 0 1.2px, rgb(255 255 255 / 6%) 1.8px, transparent 2.8px),
+    radial-gradient(circle at 61% 27%, rgb(255 255 255 / 16%) 0 1px, rgb(255 255 255 / 7%) 1.6px, transparent 2.7px),
+    radial-gradient(circle at 89% 73%, rgb(255 255 255 / 15%) 0 1.2px, rgb(255 255 255 / 6%) 1.8px, transparent 3px),
+    radial-gradient(circle at 19% 84%, rgb(255 255 255 / 15%) 0 1px, rgb(255 255 255 / 6%) 1.7px, transparent 2.6px),
+    radial-gradient(circle at 77% 12%, rgb(255 255 255 / 16%) 0 1px, rgb(255 255 255 / 7%) 1.6px, transparent 2.8px),
+    radial-gradient(circle at 47% 42%, rgb(255 255 255 / 15%) 0 1.1px, rgb(255 255 255 / 6%) 1.8px, transparent 2.8px),
+    radial-gradient(circle at 95% 38%, rgb(255 255 255 / 15%) 0 1px, rgb(255 255 255 / 6%) 1.7px, transparent 2.7px),
+    radial-gradient(circle at 25% 35%, rgb(255 255 255 / 15%) 0 1px, rgb(255 255 255 / 6%) 1.6px, transparent 2.6px),
+    radial-gradient(circle at 69% 88%, rgb(255 255 255 / 16%) 0 1px, rgb(255 255 255 / 6%) 1.7px, transparent 2.8px);
+  content: "";
+  pointer-events: none;
+}
+.ir-glass-region::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, transparent, rgb(255 255 255 / 7%) 25%, rgb(255 255 255 / 3%) 80%, transparent) 22% 0 / 1px 52px no-repeat,
+    linear-gradient(180deg, transparent, rgb(255 255 255 / 6%) 22%, rgb(255 255 255 / 3%) 78%, transparent) 57% 13% / 1px 43px no-repeat,
+    linear-gradient(180deg, transparent, rgb(255 255 255 / 7%) 28%, rgb(255 255 255 / 3%) 83%, transparent) 84% 3% / 1px 58px no-repeat;
+  content: "";
+  pointer-events: none;
+}
+.ir-glass-region.is-wiping::before {
+  animation: ir-condensation-slide .65s ease-out both;
+}
+.ir-glass-region.is-wiping::after { opacity: .8; }
+.ir-glass-region.is-wiping {
+  transition: --clear .65s cubic-bezier(.18,.72,.24,1), opacity .65s ease-out;
+}
+.ir-water-drops {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+}
+.ir-water-drops i { position: absolute; top: 18%; left: 29%; width: 3px; height: 4px; border-radius: 60% 60% 65% 35%; background: radial-gradient(circle at 28% 22%, rgb(255 255 255 / 26%), rgb(255 255 255 / 12%) 72%); animation: ir-drop-slide .58s ease-in both; }
+.ir-water-drops i:nth-child(2) { top: 37%; left: 58%; width: 4px; height: 5px; --ir-drop-distance: 35px; animation-delay: .06s; }
+.ir-water-drops i:nth-child(3) { top: 61%; left: 78%; --ir-drop-distance: 40px; animation-delay: .12s; }
+.ir-prompt-stage.has-glint::after {
+  position: absolute;
+  z-index: 3;
+  inset: -20% auto -20% -35%;
+  width: 24%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 15%), transparent);
+  content: "";
+  pointer-events: none;
+  transform: skewX(-20deg);
+  animation: ir-glass-glint .5s .65s ease-out both;
+}
+.ir-prompt-stage.is-low-power .ir-glass-region { background: rgb(255 255 255 / 12%); -webkit-backdrop-filter: none; backdrop-filter: none; -webkit-mask-image: none; mask-image: none; opacity: var(--ir-fog-opacity); transition: opacity .65s ease-out; }
+.ir-prompt-stage.is-low-power.has-glint::after { display: none; }
+.ir-grease-glass.is-complete { opacity: 0; transition: opacity .25s 1.15s ease, visibility 0s 1.4s; visibility: hidden; }
+.ir-prompt-stage.is-pulsing .ir-grease-glass { animation: ir-grease-pulse .36s ease-in-out; }
+.ir-prompt-stage.is-transitioning > pre { animation: ir-model-slide .32s ease both; }
+.ir-ingredients.is-validating .prompt-variable-form .is-missing-required { animation: ir-field-shake .3s ease-in-out; }
+.ir-ingredients.has-missing-fields .prompt-variable-form .is-missing-required :is(input, textarea, select) {
+  border-color: var(--ir-orange);
+  box-shadow: 0 0 0 3px rgb(217 84 30 / 15%);
+}
+.ir-flight-chip {
+  position: fixed;
+  z-index: 1000;
+  max-width: 220px;
+  overflow: hidden;
+  border: 1px solid #E7A47D;
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #67381F;
+  background: #FFF4E8;
+  box-shadow: 0 7px 19px rgb(52 37 22 / 16%);
+  font: 600 11px/1.2 var(--app-font-sans, "DM Sans", sans-serif);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.ir-glass-progress { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.ir-copy-next {
+  display: flex;
+  min-height: 42px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 9px;
+  border: 1px solid #EBD9C8;
+  border-radius: 11px;
+  padding: 7px 9px;
+  color: #5D4A3A;
+  background: #FFF9F2;
+  font-size: 10px;
+  animation: ir-next-steps-in .28s ease-out both;
+}
+.ir-copy-step { display: inline-flex; align-items: center; gap: 4px; color: #286B46; font-weight: 700; }
+.ir-copy-step svg { width: 16px; height: 16px; overflow: visible; }
+.ir-copy-step path { fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; animation: ir-check-draw .38s .08s ease-out forwards; }
+.ir-copy-arrow { color: var(--ir-orange); animation: ir-arrow-nudge .55s .2s ease-out both; }
+.ir-copy-open { color: var(--ir-orange-dark); font-weight: 700; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.ir-keycap { display: inline-block; border: 1px solid #D9CABB; border-bottom-width: 3px; border-radius: 5px; padding: 2px 5px; color: #46372B; background: white; font: 600 9px/1.3 var(--app-font-mono, "Space Mono", monospace); animation: ir-key-press .4s .35s ease both; }
+.ir-steam-puff { position: absolute; top: -10px; left: 17px; display: flex; gap: 4px; }
+.ir-steam-puff i { width: 5px; height: 12px; border: 1px solid rgb(255 255 255 / 65%); border-color: rgb(255 255 255 / 65%) transparent transparent; border-radius: 50%; opacity: 0; animation: ir-steam .48s ease-out both; }
+.ir-steam-puff i:nth-child(2) { animation-delay: .06s; }
+.ir-steam-puff i:nth-child(3) { animation-delay: .12s; }
+.ir-floating-copy { animation: none; transition: box-shadow .2s ease, transform .2s ease; }
+.ir-floating-copy.is-ready { box-shadow: 0 0 0 4px rgb(217 84 30 / 12%), 0 9px 25px rgb(137 57 25 / 25%); }
+.ir-floating-copy.is-ready:hover { box-shadow: 0 0 0 5px rgb(217 84 30 / 16%), 0 12px 30px rgb(137 57 25 / 34%); }
+.ir-floating-copy.is-popping { animation: ir-copy-pop .32s ease-out; }
+.ir-floating-copy.has-missing { border-color: #F7C59E; }
+.ir-floating-copy:focus-visible { outline: 3px solid rgb(217 84 30 / 65%); outline-offset: 3px; }
+.ir-see-preview { display: none; }
+
+@supports not ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  .ir-glass-region { background: rgb(255 255 255 / 12%); }
+}
+
+.ir-prompt-stage.is-low-power .ir-glass-region::before,
+.ir-prompt-stage.is-low-power .ir-glass-region::after,
+.ir-prompt-stage.is-low-power .ir-water-drops { display: none; }
+
+@keyframes ir-condensation-slide { to { transform: translateY(30px); opacity: .18; } }
+@keyframes ir-drop-slide { 0% { opacity: 0; transform: translateY(-2px); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(var(--ir-drop-distance, 30px)); } }
+@keyframes ir-glass-glint { from { transform: translateX(0) skewX(-20deg); opacity: 0; } 25% { opacity: 1; } to { transform: translateX(650%) skewX(-20deg); opacity: 0; } }
+@keyframes ir-field-border-highlight {
+  0%, 100% { border-color: var(--ir-line); box-shadow: 0 0 0 0 rgb(217 84 30 / 0%); }
+  35% { border-color: #E88A5C; box-shadow: 0 0 0 3px rgb(217 84 30 / 14%); }
+}
+@keyframes ir-grease-pulse { 50% { opacity: .48; } }
+@keyframes ir-field-shake { 25% { transform: translateX(-4px); } 55% { transform: translateX(4px); } 80% { transform: translateX(-2px); } }
+@keyframes ir-model-slide { 50% { opacity: .72; transform: translateX(6px); } }
+@keyframes ir-check-draw { to { stroke-dashoffset: 0; } }
+@keyframes ir-arrow-nudge { 50% { transform: translateX(3px); } }
+@keyframes ir-key-press { 50% { transform: translateY(2px); border-bottom-width: 1px; } }
+@keyframes ir-steam { 20% { opacity: .7; } to { opacity: 0; transform: translateY(-13px) scale(1.15); } }
+@keyframes ir-next-steps-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 768px) {
+  .ir-see-preview {
+    position: fixed;
+    z-index: 18;
+    right: max(14px, env(safe-area-inset-right));
+    bottom: calc(var(--mobile-nav-height, 65px) + var(--safe-bottom, 0px) + 68px);
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid #EAC5AA;
+    border-radius: 999px;
+    padding: 0 13px;
+    color: #6C3D21;
+    background: #FFF8F0;
+    box-shadow: 0 7px 20px rgb(52 37 22 / 13%);
+    font-size: 12px;
+    font-weight: 700;
+    animation: ir-hint-bounce .5s ease-in-out 2;
+  }
+  .ir-see-preview svg { width: 15px; height: 15px; transform: rotate(90deg); }
+}
+@keyframes ir-hint-bounce { 50% { transform: translateY(-5px); } }
+
 @media (max-width: 900px) {
   .ir-workspace { grid-template-columns: minmax(0, 1fr); gap: 13px; }
   .ir-oven { position: static; }
@@ -193,6 +422,14 @@
 }
 
 @media (max-width: 768px) {
+  .ir-oven { position: sticky; z-index: 6; top: 78px; }
+  .ir-glass-region { -webkit-backdrop-filter: blur(3px) brightness(1.05); backdrop-filter: blur(3px) brightness(1.05); }
+  .ir-glass-region::before {
+    background:
+      radial-gradient(circle at 8% 18%, rgb(255 255 255 / 17%) 0 1px, rgb(255 255 255 / 7%) 1.5px, transparent 2.5px),
+      radial-gradient(circle at 61% 27%, rgb(255 255 255 / 16%) 0 1px, rgb(255 255 255 / 7%) 1.6px, transparent 2.7px),
+      radial-gradient(circle at 89% 73%, rgb(255 255 255 / 15%) 0 1.2px, rgb(255 255 255 / 6%) 1.8px, transparent 3px);
+  }
   .ir-floating-copy { bottom: calc(var(--mobile-nav-height, 65px) + var(--safe-bottom, 0px) + 10px); }
 }
 
@@ -341,4 +578,13 @@
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
+  .ir-glass-region { -webkit-mask-image: none; mask-image: none; opacity: var(--ir-fog-opacity); transition: opacity .2s ease !important; }
+  .ir-water-drops,
+  .ir-glass-region.is-wiping::before,
+  .ir-glass-region.is-wiping::after,
+  .ir-prompt-stage.has-glint::after,
+  .ir-steam-puff { display: none; }
+  .ir-ingredients .prompt-variable-form .is-committing :is(input, textarea, select) { animation: none !important; }
+  .ir-grease-glass.is-complete { opacity: 0; transition: opacity .2s ease, visibility 0s .2s !important; visibility: hidden; }
+  .ir-see-preview { animation: none !important; }
 }

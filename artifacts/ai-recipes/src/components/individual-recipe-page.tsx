@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   ArrowRight, Check, ChevronDown, Copy, RotateCcw, Share2, ShieldCheck, X,
 } from "lucide-react";
@@ -14,6 +14,12 @@ import "./individual-recipe-page.css";
 type Model = "Claude" | "ChatGPT" | "Gemini" | "Perplexity";
 
 const models: Model[] = ["Claude", "ChatGPT", "Gemini", "Perplexity"];
+const modelUrls: Record<Model, string> = {
+  Claude: "https://claude.ai/new",
+  ChatGPT: "https://chatgpt.com/",
+  Gemini: "https://gemini.google.com/app",
+  Perplexity: "https://www.perplexity.ai/",
+};
 const modelCopy: Record<Model, { tip: string; guidance: string }> = {
   Claude: {
     tip: "Separate facts from assumptions and stay grounded in the supplied context.",
@@ -84,13 +90,37 @@ export function IndividualRecipePage({
   visualShowcase, copied, copyError, onRecipeContextChange, onPromptValueChange, onCopyPrompt, onShare,
   onRefinementSelect,
 }: IndividualRecipePageProps) {
+  const requiredFields = fields.filter((field) => field.required);
   const [model, setModel] = useState<Model>("Claude");
   const [checked, setChecked] = useState<boolean[]>([]);
+  const [attemptedCopy, setAttemptedCopy] = useState(false);
+  const [validationPulse, setValidationPulse] = useState(false);
+  const [wipingField, setWipingField] = useState<string | null>(null);
+  const [changedFields, setChangedFields] = useState<string[]>([]);
+  const [changedLines, setChangedLines] = useState<number[]>([]);
+  const [transitioningModel, setTransitioningModel] = useState(false);
+  const [showMobilePreviewHint, setShowMobilePreviewHint] = useState(false);
+  const [readyPop, setReadyPop] = useState(false);
+  const [lowPowerDevice, setLowPowerDevice] = useState(false);
+  const [clearedFields, setClearedFields] = useState<Set<string>>(() => new Set(
+    requiredFields.filter((field) => isFieldReady(field, values)).map((field) => field.name),
+  ));
+  const hasShownPreviewHint = useRef(false);
+  const previousValues = useRef(values);
+  const pendingCommitTimers = useRef(new Map<string, number>());
+  const previewRef = useRef<HTMLPreElement>(null);
+  const lineRefs = useRef(new Map<number, HTMLSpanElement>());
+  const rootRef = useRef<HTMLDivElement>(null);
   const checklistItems = useMemo(() => getChecklist(recipe), [recipe]);
-  const requiredFields = fields.filter((field) => field.required);
   const readyCount = requiredFields.filter((field) => isFieldReady(field, values)).length;
   const ready = readyCount === requiredFields.length;
-  const canCopy = ready && Object.keys(errors).length === 0;
+  const clearCount = requiredFields.filter((field) => clearedFields.has(field.name)).length;
+  const previewReady = clearCount === requiredFields.length;
+  const previousReady = useRef(previewReady);
+  const missingFields = fields.filter((field) =>
+    (field.required === true && !isFieldReady(field, values)) || Boolean(errors[field.name]),
+  );
+  const canCopy = missingFields.length === 0;
   const completedChecklist = checked.filter(Boolean).length;
   const prompt = useMemo(
     () => `${resolvedPrompt.trim()}\n\n${model} guidance:\n${modelCopy[model].guidance}`,
@@ -103,13 +133,168 @@ export function IndividualRecipePage({
   const refinements = recipe.refinementPrompts ?? [];
   const steps = recipe.steps ?? [];
   const copyPrompt = () => onCopyPrompt(prompt);
+  const promptLines = (prompt || recipe.prompt).split(/\r?\n/);
+  const fieldsForLines = promptLines.map((line) => fields.find((field) => {
+    const value = values[field.name]?.trim();
+    return value && line.includes(value);
+  })?.name);
+
+  const scrollPreviewToLine = (lineIndex: number) => {
+    const preview = previewRef.current;
+    const line = lineRefs.current.get(lineIndex);
+    if (!preview || !line) return;
+    const previewRect = preview.getBoundingClientRect();
+    const lineRect = line.getBoundingClientRect();
+    preview.scrollTo({
+      top: Math.max(0, preview.scrollTop + lineRect.top - previewRect.top - 16),
+      behavior: "smooth",
+    });
+  };
+
+  const animateFieldFlight = (fieldName: string) => {
+    const fieldIndex = fields.findIndex((field) => field.name === fieldName);
+    const field = fields[fieldIndex];
+    const value = values[fieldName]?.trim();
+    if (!field || !value || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const source = document.getElementById(`ir-input-${fieldIndex}`);
+    const lineIndex = fieldsForLines.findIndex((lineField) => lineField === fieldName);
+    const fallbackLine = Math.min(promptLines.length - 1, Math.floor(fieldIndex / Math.max(fields.length, 1) * promptLines.length));
+    const target = lineRefs.current.get(lineIndex >= 0 ? lineIndex : fallbackLine);
+    if (!source || !target || !rootRef.current) return;
+    const from = source.getBoundingClientRect();
+    const to = target.getBoundingClientRect();
+    const ghost = document.createElement("span");
+    ghost.className = "ir-flight-chip";
+    ghost.textContent = value.length > 34 ? `${value.slice(0, 31)}…` : value;
+    ghost.style.left = `${from.left}px`;
+    ghost.style.top = `${from.top}px`;
+    document.body.append(ghost);
+    const dx = to.left - from.left;
+    const dy = to.top - from.top;
+    const animation = ghost.animate(
+      [
+        { transform: "translate(0, 0) scale(1)", opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) scale(.88)`, opacity: 0 },
+      ],
+      { duration: 520, easing: "cubic-bezier(.2,.8,.25,1)" },
+    );
+    animation.onfinish = () => ghost.remove();
+    setWipingField(fieldName);
+    setChangedFields((current) => [...new Set([...current, fieldName])]);
+    scrollPreviewToLine(lineIndex >= 0 ? lineIndex : fallbackLine);
+    window.setTimeout(() => {
+      setWipingField((current) => current === fieldName ? null : current);
+      setChangedFields((current) => current.filter((name) => name !== fieldName));
+    }, 650);
+  };
+
+  const commitField = (fieldName: string) => {
+    const pendingTimer = pendingCommitTimers.current.get(fieldName);
+    if (pendingTimer !== undefined) {
+      window.clearTimeout(pendingTimer);
+      pendingCommitTimers.current.delete(fieldName);
+    }
+    const field = fields.find((item) => item.name === fieldName);
+    if (!field || field.required !== true) return;
+    if (!isFieldReady(field, values)) {
+      setClearedFields((current) => {
+        const next = new Set(current);
+        next.delete(fieldName);
+        return next;
+      });
+      return;
+    }
+    setClearedFields((current) => new Set(current).add(fieldName));
+    animateFieldFlight(fieldName);
+  };
+
+  const handleCopy = () => {
+    setAttemptedCopy(true);
+    if (!canCopy) {
+      setValidationPulse(true);
+      const firstMissing = missingFields[0];
+      const firstIndex = firstMissing ? fields.findIndex((field) => field.name === firstMissing.name) : -1;
+      if (firstIndex >= 0) {
+        const input = document.getElementById(`ir-input-${firstIndex}`);
+        input?.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (input instanceof HTMLElement) window.setTimeout(() => input.focus(), 300);
+      }
+      window.setTimeout(() => setValidationPulse(false), 350);
+      return;
+    }
+    requiredFields.forEach((field) => commitField(field.name));
+    copyPrompt();
+  };
+
+  const selectModel = (nextModel: Model) => {
+    if (nextModel === model) return;
+    const nextPrompt = `${resolvedPrompt.trim()}\n\n${nextModel} guidance:\n${modelCopy[nextModel].guidance}`;
+    const priorLines = prompt.split(/\r?\n/);
+    const nextLines = nextPrompt.split(/\r?\n/);
+    const differing = nextLines.flatMap((line, index) => line !== priorLines[index] ? [index] : []);
+    setChangedLines(differing);
+    setTransitioningModel(true);
+    setModel(nextModel);
+    window.setTimeout(() => {
+      setTransitioningModel(false);
+      setChangedLines([]);
+    }, 650);
+  };
 
   useEffect(() => {
     setChecked(checklistItems.map(() => false));
   }, [checklistItems]);
 
+  useEffect(() => {
+    setLowPowerDevice(
+      window.matchMedia("(max-width: 767px)").matches
+      && navigator.hardwareConcurrency > 0
+      && navigator.hardwareConcurrency <= 4,
+    );
+  }, []);
+
+  useEffect(() => {
+    const changed = fields.filter((field) => previousValues.current[field.name] !== values[field.name]);
+    const hadEmptyChangedField = changed.some((field) => !previousValues.current[field.name]?.trim() && values[field.name]?.trim());
+    previousValues.current = values;
+    if (!changed.length) return;
+    setClearedFields((current) => {
+      const next = new Set(current);
+      changed.filter((field) => field.required === true).forEach((field) => next.delete(field.name));
+      return next;
+    });
+    const timers = changed.map((field) => {
+      const timer = window.setTimeout(() => {
+        pendingCommitTimers.current.delete(field.name);
+        if (values[field.name]?.trim()) commitField(field.name);
+      }, 600);
+      pendingCommitTimers.current.set(field.name, timer);
+      return timer;
+    });
+    if (hadEmptyChangedField && !hasShownPreviewHint.current) {
+      hasShownPreviewHint.current = true;
+      setShowMobilePreviewHint(true);
+    }
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [fields, values]);
+
+  useEffect(() => {
+    if (previewReady && !previousReady.current) {
+      setReadyPop(true);
+      window.setTimeout(() => setReadyPop(false), 1350);
+    }
+    previousReady.current = previewReady;
+  }, [previewReady]);
+
+  useEffect(() => {
+    const firstChangedLine = changedLines[0];
+    if (transitioningModel && firstChangedLine !== undefined) {
+      window.setTimeout(() => scrollPreviewToLine(firstChangedLine), 0);
+    }
+  }, [prompt, changedLines, transitioningModel]);
+
   return (
-    <div className="individual-recipe-page">
+    <div className="individual-recipe-page" ref={rootRef}>
       <header className="ir-hero ir-shell">
         <div className="ir-hero-meta">
           <span className={`ir-status${ready ? " is-ready" : ""}`} role="status" aria-live="polite">
@@ -169,7 +354,7 @@ export function IndividualRecipePage({
       </section>
 
       <section className="ir-workspace ir-shell" aria-label="Recipe workspace">
-        <section className="ir-card ir-ingredients" id="ir-ingredients" aria-labelledby="ir-ingredients-title">
+        <section className={`ir-card ir-ingredients${attemptedCopy && missingFields.length ? " has-missing-fields" : ""}${validationPulse ? " is-validating" : ""}`} id="ir-ingredients" aria-labelledby="ir-ingredients-title">
           <div className="ir-section-head">
             <div><small>01 / INGREDIENTS</small><h2 id="ir-ingredients-title">Set the scene</h2></div>
             <span className="ir-ready-count" aria-live="polite">{readyCount}/{requiredFields.length} ready</span>
@@ -179,17 +364,18 @@ export function IndividualRecipePage({
             <div className="ir-progress" role="progressbar" aria-label="Required ingredients ready" aria-valuemin={0} aria-valuemax={requiredFields.length} aria-valuenow={readyCount}>
               <span style={{ width: `${requiredFields.length ? readyCount / requiredFields.length * 100 : 100}%` }} />
             </div>
+            <span className="ir-sr-only" aria-live="polite">{readyCount} of {requiredFields.length} ready</span>
           </div>
           {fields.length > 0
-            ? <RecipePromptInputs fields={fields} values={values} errors={errors} onChange={onPromptValueChange} idPrefix="ir-input" nativeRequired={false} deferErrors />
+            ? <RecipePromptInputs fields={fields} values={values} errors={errors} onChange={onPromptValueChange} idPrefix="ir-input" nativeRequired={false} deferErrors highlightMissingFields={attemptedCopy ? missingFields.map((field) => field.name) : []} highlightCommittedFields={changedFields} onFieldCommit={commitField} />
             : <p className="ir-empty-fields">This recipe has no additional inputs. Review the prompt and copy it when ready.</p>}
         </section>
 
-        <aside className="ir-card ir-oven" aria-labelledby="ir-oven-title">
+        <aside className="ir-card ir-oven" id="ir-oven" aria-labelledby="ir-oven-title">
           <div className="ir-section-head"><div><small>02 / THE OVEN</small><h2 id="ir-oven-title">Your prompt is cooking</h2></div></div>
           <div className="ir-tabs" role="tablist" aria-label="Choose an AI model">
             {models.map((item, index) => (
-              <button key={item} role="tab" id={`ir-tab-${item.toLowerCase()}`} aria-controls="ir-prompt" aria-selected={model === item} tabIndex={model === item ? 0 : -1} type="button" onClick={() => setModel(item)} onKeyDown={(event) => {
+              <button key={item} role="tab" id={`ir-tab-${item.toLowerCase()}`}               aria-controls="ir-prompt" aria-selected={model === item} tabIndex={model === item ? 0 : -1} type="button" onClick={() => selectModel(item)} onKeyDown={(event) => {
                 let next = index;
                 if (event.key === "ArrowRight") next = (index + 1) % models.length;
                 else if (event.key === "ArrowLeft") next = (index - 1 + models.length) % models.length;
@@ -197,7 +383,7 @@ export function IndividualRecipePage({
                 else if (event.key === "End") next = models.length - 1;
                 else return;
                 event.preventDefault();
-                setModel(models[next]);
+                selectModel(models[next]);
                 document.getElementById(`ir-tab-${models[next].toLowerCase()}`)?.focus();
               }}>{item}</button>
             ))}
@@ -205,12 +391,41 @@ export function IndividualRecipePage({
           <p className="ir-model-tip" aria-live="polite">{modelCopy[model].tip}</p>
           <div className="ir-prompt-frame">
             <div className="ir-terminal-head"><span>● ● ● &nbsp; LIVE PROMPT PREVIEW</span><span>{model.toUpperCase()}</span></div>
-            <pre id="ir-prompt" role="tabpanel" aria-labelledby={`ir-tab-${model.toLowerCase()}`} tabIndex={0}>{prompt || recipe.prompt}</pre>
+            <div className={`ir-prompt-stage${previewReady ? " is-ready" : ""}${validationPulse ? " is-pulsing" : ""}${transitioningModel ? " is-transitioning" : ""}${readyPop ? " has-glint" : ""}${lowPowerDevice ? " is-low-power" : ""}`} style={{ "--ir-field-count": Math.max(requiredFields.length, 1) } as CSSProperties}>
+              <pre id="ir-prompt" ref={previewRef} role="tabpanel" aria-labelledby={`ir-tab-${model.toLowerCase()}`} tabIndex={0}>
+                {promptLines.map((line, lineIndex) => <span
+                  className={`ir-prompt-line${changedLines.includes(lineIndex) ? " is-different" : ""}${fieldsForLines[lineIndex] && changedFields.includes(fieldsForLines[lineIndex] ?? "") ? " is-field-updated" : ""}`}
+                  key={`${lineIndex}-${line}`}
+                  data-field={fieldsForLines[lineIndex]}
+                  ref={(element) => { if (element) lineRefs.current.set(lineIndex, element); else lineRefs.current.delete(lineIndex); }}
+                >{line || "\u00a0"}{"\n"}</span>)}
+              </pre>
+              <div className={`ir-grease-glass${previewReady ? " is-complete" : ""}`} aria-hidden="true">
+                <span
+                  className={`ir-glass-region${wipingField ? " is-wiping" : ""}`}
+                  style={{
+                    "--clear": `${requiredFields.length ? clearCount / requiredFields.length * 100 : 100}%`,
+                    "--ir-fog-opacity": `${requiredFields.length ? 1 - clearCount / requiredFields.length : 0}`,
+                  } as CSSProperties}
+                >
+                  {wipingField && <span className="ir-water-drops"><i /><i /><i /></span>}
+                </span>
+              </div>
+            </div>
             <div className="ir-prompt-actions">
-              <button type="button" disabled={!canCopy} onClick={copyPrompt}><Copy />{copied ? "Copied" : "Copy prompt"}</button>
+              <button type="button" onClick={handleCopy}><Copy />{copied ? "Copied" : "Copy prompt"}</button>
             </div>
           </div>
           {copyError && <p className="ir-copy-error" role="alert">Prompt could not be copied. Please try again.</p>}
+          {attemptedCopy && missingFields.length > 0 && <p className="ir-copy-error" role="alert" aria-live="polite">Complete {missingFields.map((field) => field.label).join(", ")} to clear the preview and copy.</p>}
+          <p className="ir-glass-progress" aria-live="polite">{readyCount} of {requiredFields.length} ready</p>
+          {copied && <div className="ir-copy-next" role="status" aria-live="polite">
+            <span className="ir-copy-step is-done"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>Copied</span>
+            <span className="ir-copy-arrow" aria-hidden="true">→</span>
+            <a className="ir-copy-open" href={modelUrls[model]} target="_blank" rel="noreferrer">Open {model}</a>
+            <span className="ir-copy-arrow" aria-hidden="true">→</span>
+            <span>Paste <kbd className="ir-keycap">Ctrl+V</kbd></span>
+          </div>}
           <p className="ir-privacy"><ShieldCheck />Keep personal, confidential, and company-sensitive details out of prompts.</p>
         </aside>
       </section>
@@ -269,8 +484,13 @@ export function IndividualRecipePage({
         </div>
       </section>}
 
-      <button className={`ir-floating-copy${copied ? " is-copied" : ""}`} type="button" disabled={!canCopy} onClick={copyPrompt} aria-label={canCopy ? "Copy prompt" : "Complete valid required ingredients before copying"}>
-        {ready ? <Copy /> : <RotateCcw />}{ready ? copied ? "Copied" : "Copy prompt" : "Add ingredients"}
+      {showMobilePreviewHint && !copied && <button className="ir-see-preview" type="button" onClick={() => {
+        document.getElementById("ir-oven")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        setShowMobilePreviewHint(false);
+      }}>See your prompt <ArrowRight /></button>}
+      <button className={`ir-floating-copy${ready ? " is-ready" : ""}${readyPop ? " is-popping" : ""}${copied ? " is-copied" : ""}${attemptedCopy && missingFields.length ? " has-missing" : ""}`} type="button" onClick={handleCopy} aria-label={canCopy ? (copied ? "Prompt copied" : "Copy prompt") : `Complete ${missingFields.map((field) => field.label).join(", ")} before copying`}>
+        {ready ? <Copy /> : <RotateCcw />}{ready ? copied ? "Copied" : "Copy prompt" : "Complete fields"}
+        {copied && <span className="ir-steam-puff" aria-hidden="true"><i /><i /><i /></span>}
       </button>
     </div>
   );

@@ -593,6 +593,101 @@ test('visual prompts show a visual gallery and subtype metadata without replacin
   await expect(page.getByTestId('button-share-recipe')).toBeVisible();
 });
 
+test('individual recipe prompt builder clears glass, validates missing fields, and guides the copy flow', async ({ page }) => {
+  await mockApi(page, { dynamicRecipe: true });
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/recipes/brief-to-project-plan');
+
+  const prompt = page.locator('#ir-prompt');
+  const floatingCopy = page.locator('.ir-floating-copy');
+  const audience = page.locator('#ir-input-0');
+  const glass = page.locator('.ir-glass-region');
+  await expect(prompt).toContainText('Write for');
+  await expect(floatingCopy).toBeEnabled();
+
+  await floatingCopy.click();
+  await expect(page.getByRole('alert')).toContainText('Complete Target audience');
+  await expect(page.locator('.ir-ingredients .is-missing-required')).toHaveCount(1);
+  await expect(audience).toBeFocused();
+
+  await audience.fill('A neighborhood bakery');
+  await audience.blur();
+  await expect(audience.locator('xpath=..')).toHaveClass(/is-committing/);
+  await expect.poll(() => audience.evaluate((element) => getComputedStyle(element).animationName)).toBe('ir-field-border-highlight');
+  await expect(page.getByRole('button', { name: 'See your prompt' })).toBeVisible();
+  await expect.poll(() => glass.evaluate((element) => getComputedStyle(element).getPropertyValue('--clear'))).toBe('100%');
+  await expect(page.locator('.ir-grease-glass')).toHaveClass(/is-complete/);
+  await expect(prompt).toContainText('A neighborhood bakery');
+
+  await floatingCopy.click();
+  await expect(page.locator('.ir-copy-next')).toContainText('Copied');
+  await expect(page.locator('.ir-copy-next').getByRole('link', { name: 'Open Claude' })).toHaveAttribute('href', 'https://claude.ai/new');
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('A neighborhood bakery');
+
+  await page.getByRole('tab', { name: 'ChatGPT' }).click();
+  await expect(page.locator('.ir-prompt-line.is-different').first()).toBeVisible();
+  await expect(prompt).toContainText('ChatGPT guidance');
+  await expect(page.locator('.ir-grease-glass')).toHaveClass(/is-complete/);
+});
+
+test('individual recipe fog clears top-to-bottom for each required field', async ({ page }) => {
+  await mockApi(page, { fourRequiredFields: true });
+  await page.addInitScript(() => Object.defineProperty(navigator, 'hardwareConcurrency', { configurable: true, value: 8 }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/recipes/brief-to-project-plan');
+
+  const glass = page.locator('.ir-glass-region');
+  const overlay = page.locator('.ir-grease-glass');
+  const clearProgress = () => glass.evaluate((element) => getComputedStyle(element).getPropertyValue('--clear'));
+
+  await expect(glass).toHaveCSS('backdrop-filter', 'blur(3px) brightness(1.05)');
+  await expect(glass).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.08)');
+  await expect(glass).toHaveCSS('mask-image', /linear-gradient/);
+  await expect.poll(clearProgress).toBe('0%');
+  await expect(page.locator('.ir-oven')).toHaveCSS('position', 'sticky');
+
+  await page.locator('#ir-input-0').fill('Main topic');
+  await expect.poll(clearProgress).toBe('25%');
+  await page.locator('#ir-input-1').fill('Context');
+  await expect.poll(clearProgress).toBe('50%');
+  await expect(page.locator('.ir-glass-progress')).toHaveText('2 of 4 ready');
+
+  await page.locator('#ir-input-2').fill('Audience');
+  await expect.poll(clearProgress).toBe('75%');
+  await page.locator('#ir-input-3').fill('Tone');
+  await expect.poll(clearProgress).toBe('100%');
+  await expect(overlay).toHaveCSS('visibility', 'hidden');
+
+  await page.locator('#ir-input-0').fill('');
+  await expect.poll(clearProgress).toBe('75%');
+  await expect(overlay).toHaveCSS('visibility', 'visible');
+});
+
+test('individual recipe fog uses a reduced-motion fallback on low-power mobile', async ({ page }) => {
+  await mockApi(page, { fourRequiredFields: true });
+  await page.addInitScript(() => Object.defineProperty(navigator, 'hardwareConcurrency', { configurable: true, value: 4 }));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/recipes/brief-to-project-plan');
+
+  const stage = page.locator('.ir-prompt-stage');
+  const glass = page.locator('.ir-glass-region');
+  await expect(stage).toHaveClass(/is-low-power/);
+  await expect(glass).toHaveCSS('backdrop-filter', 'none');
+  await expect(glass).toHaveCSS('mask-image', 'none');
+
+  await page.locator('#ir-input-0').fill('Main topic');
+  await expect.poll(() => glass.evaluate((element) => getComputedStyle(element).opacity)).toBe('0.75');
+  await expect(glass).toHaveCSS('transition-duration', '0.2s');
+  for (const [index, value] of ['Context', 'Audience', 'Tone'].entries()) {
+    await page.locator(`#ir-input-${index + 1}`).fill(value);
+  }
+  await expect(stage).toHaveClass(/has-glint/);
+  await expect.poll(() => stage.evaluate((element) => getComputedStyle(element, '::after').display)).toBe('none');
+});
+
 test('dynamic recipe inputs validate, resolve safely, and preserve unknown prompt variables', async ({ page }) => {
   await mockApi(page, { dynamicRecipe: true });
   await page.goto('/recipes/brief-to-project-plan');

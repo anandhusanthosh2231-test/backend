@@ -14,6 +14,9 @@ export function RecipePromptInputs({
   nativeRequired = true,
   allowReset = true,
   deferErrors = false,
+  highlightMissingFields = [],
+  highlightCommittedFields = [],
+  onFieldCommit,
 }: {
   fields: RecipeGuidePromptVariablesItem[];
   values: Record<string, string>;
@@ -23,6 +26,9 @@ export function RecipePromptInputs({
   nativeRequired?: boolean;
   allowReset?: boolean;
   deferErrors?: boolean;
+  highlightMissingFields?: string[];
+  highlightCommittedFields?: string[];
+  onFieldCommit?: (name: string) => void;
 }) {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const hasChanges = fields.some((field) =>
@@ -51,6 +57,8 @@ export function RecipePromptInputs({
       const id = `${idPrefix}-${index}`;
       const error = errors[field.name];
       const visibleError = deferErrors && !touched[field.name] ? undefined : error;
+      const missingClass = highlightMissingFields.includes(field.name) ? " is-missing-required" : "";
+      const committedClass = highlightCommittedFields.includes(field.name) ? " is-committing" : "";
       const value = values[field.name] ?? field.defaultValue ?? "";
       const isLanguageField = /\b(language|locale|dialect)\b/i.test(`${field.name} ${presentation.label}`);
       const commonProps = {
@@ -62,7 +70,10 @@ export function RecipePromptInputs({
           presentation.helpText ? `${id}-help` : "",
           visibleError ? `${id}-error` : "",
         ].filter(Boolean).join(" ") || undefined,
-        onBlur: () => setTouched((current) => ({ ...current, [field.name]: true })),
+        onBlur: () => {
+          setTouched((current) => ({ ...current, [field.name]: true }));
+          onFieldCommit?.(field.name);
+        },
       };
       let control: ReactNode;
       switch (isLanguageField ? "text" : presentation.type ?? "text") {
@@ -97,7 +108,7 @@ export function RecipePromptInputs({
       const fieldError = visibleError && <small id={`${id}-error`} className="form-error">{visibleError}</small>;
 
       if (isLanguageField) {
-        return <div key={field.name} className={`prompt-language-field${field.required === false ? " prompt-language-field--optional" : ""}`}>
+        return <div key={field.name} className={`prompt-language-field${field.required === false ? " prompt-language-field--optional" : ""}${missingClass}${committedClass}`}>
           <label htmlFor={id}>{fieldLabel}</label>
           {control}
           <div id={`${id}-suggestions`} className="language-suggestion-list" aria-label={`Suggested languages for ${presentation.label}`}>
@@ -117,7 +128,7 @@ export function RecipePromptInputs({
         </div>;
       }
 
-      return <label key={field.name} htmlFor={id}>
+      return <label key={field.name} htmlFor={id} className={`${missingClass}${committedClass}`.trim()}>
         {fieldLabel}
         {control}
         {fieldHelp}
