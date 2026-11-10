@@ -63,7 +63,70 @@ test('serves cached homepage data while refreshing stale data in the background'
   assert.equal(backendCalls, 2);
 });
 
-test('preloads homepage data from the root HTML response', async () => {
+test('deduplicates concurrent cold homepage requests', async () => {
+  const storedResponses = new Map<string, Response>();
+  const cache = {
+    async match(request: Request): Promise<Response | undefined> {
+      return storedResponses.get(request.url)?.clone();
+    },
+    async put(request: Request, response: Response): Promise<void> {
+      storedResponses.set(request.url, response.clone());
+    },
+  };
+  Object.defineProperty(globalThis, 'caches', {
+    configurable: true,
+    value: { default: cache },
+  });
+
+  let backendCalls = 0;
+  globalThis.fetch = async () => {
+    backendCalls += 1;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    return new Response(JSON.stringify({ version: backendCalls }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+
+  const env = {
+    ASSETS: { fetch: async () => new Response('asset', { status: 200 }) },
+    API_URL: 'https://backend.test',
+  };
+  const request = new Request('https://site.test/api/home');
+  const [first, second] = await Promise.all([
+    worker.fetch(request, env),
+    worker.fetch(request, env),
+  ]);
+
+  assert.deepEqual(await first.json(), { version: 1 });
+  assert.deepEqual(await second.json(), { version: 1 });
+  assert.equal(backendCalls, 1);
+});
+
+test('preserves rate-limit errors and supplies a retry delay when missing', async () => {
+  const cache = {
+    async match(): Promise<Response | undefined> {
+      return undefined;
+    },
+    async put(): Promise<void> {},
+  };
+  Object.defineProperty(globalThis, 'caches', {
+    configurable: true,
+    value: { default: cache },
+  });
+  globalThis.fetch = async () => new Response('Too many requests', { status: 429 });
+
+  const response = await worker.fetch(new Request('https://site.test/api/home'), {
+    ASSETS: { fetch: async () => new Response('asset', { status: 200 }) },
+    API_URL: 'https://backend.test',
+  });
+
+  assert.equal(response.status, 429);
+  assert.equal(response.headers.get('Retry-After'), '30');
+  assert.equal(await response.text(), 'Too many requests');
+});
+
+test('does not inject a duplicate homepage data preload in root HTML', async () => {
   const env = {
     ASSETS: {
       fetch: async () => new Response('<html><head></head><body></body></html>', {
@@ -79,10 +142,11 @@ test('preloads homepage data from the root HTML response', async () => {
 
   const response = await worker.fetch(new Request('https://site.test/'), env);
   const html = await response.text();
-  assert.match(html, /<link rel="preload" href="\/api\/home" as="fetch" crossorigin="anonymous" \/>/);
+  assert.doesNotMatch(html, /<link rel="preload" href="\/api\/home"/);
+  assert.match(html, /<html><head><\/head><body><\/body><\/html>/);
   assert.equal(response.headers.get('Content-Type'), 'text/html; charset=utf-8');
-  assert.equal(response.headers.get('Content-Length'), null);
-  assert.equal(response.headers.get('ETag'), null);
+  assert.equal(response.headers.get('Content-Length'), '38');
+  assert.equal(response.headers.get('ETag'), 'old-etag');
 });
 
 test('serves SPA fallback HTML with UTF-8 content type', async () => {

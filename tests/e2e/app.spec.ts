@@ -102,6 +102,7 @@ test('homepage previews a real recipe and puts popular workflows directly below 
   await expect(discovery.getByTestId('home-recipe-2')).toBeVisible();
   await expect(discovery.getByTestId('home-recipe-3')).toBeVisible();
   await expect(discovery.getByTestId('home-recipe-1').getByText('ChatGPT', { exact: true })).toBeVisible();
+  await expect(discovery.getByTestId('home-recipe-1').getByText('Recipe of the day')).toBeVisible();
   await expect(discovery.getByTestId('home-recipe-2').getByText('Claude', { exact: true })).toBeVisible();
   await expect(discovery.getByTestId('home-recipe-3').getByText('Gemini', { exact: true })).toBeVisible();
   for (const linkName of [
@@ -116,7 +117,28 @@ test('homepage previews a real recipe and puts popular workflows directly below 
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(discovery.getByTestId('home-recipe-1')).toBeVisible();
+  await expect(page.getByTestId('mobile-popular-recipes').getByTestId('mobile-row-recipe-1')).toContainText('Recipe of the day');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
+test('homepage surfaces the recipe of the day in the popular recipe cards on desktop and mobile', async ({ page }) => {
+  const apiState = await mockApi(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/');
+
+  const heroPreview = page.getByTestId('hero-recipe-preview');
+  await expect(heroPreview).toContainText(recipeCard.title);
+  expect(apiState.recipeListRequests.filter((url) => url.searchParams.get('featured') === 'true')).toHaveLength(0);
+
+  const discovery = page.getByRole('region', { name: 'Popular this week.' });
+  const recipeOfDayCard = discovery.getByTestId(`home-recipe-${recipeCard.id}`);
+  await expect(recipeOfDayCard).toBeVisible();
+  await expect(recipeOfDayCard.getByText('Recipe of the day')).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobilePopular = page.getByTestId('mobile-popular-recipes');
+  await expect(mobilePopular.getByTestId(`mobile-row-recipe-${recipeCard.id}`)).toContainText('Recipe of the day');
+  await expect(page.getByTestId(`mobile-feature-${recipeCard.id}`)).toHaveCount(0);
 });
 
 test('root ARD manifest is valid JSON with the required discovery fields', async ({ request }) => {

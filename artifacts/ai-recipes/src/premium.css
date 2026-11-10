@@ -1001,6 +1001,30 @@ body { background: var(--bg); }
   }
 }
 
+@media (max-width: 767px) {
+  .collection-hero {
+    padding-top: 16px;
+    padding-bottom: 24px;
+  }
+
+  .collection-hero h1 {
+    margin: 8px 0;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .collection-hero p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .collection-hero .collection-count {
+    margin-top: 8px;
+  }
+}
+
 .audience-pill:hover { border-color: var(--muted); box-shadow: var(--shadow-soft); }
 
 .creator-cta {
@@ -3108,6 +3132,15 @@ body { background: var(--bg); }
   color: var(--muted);
   font-weight: 600;
   white-space: nowrap;
+}
+
+.home-recipe-card__day {
+  border-radius: 999px;
+  padding: 4px 7px;
+  color: var(--brand-dark);
+  background: var(--brand-tint);
+  font-size: 9px;
+  font-weight: 700;
 }
 
 .home-recipe-card__title {

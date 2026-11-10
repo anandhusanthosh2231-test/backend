@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
-  ArrowRight, Check, ChevronDown, Copy, RotateCcw, Share2, ShieldCheck,
+  ArrowRight, Check, ChevronDown, Copy, RotateCcw, Share2, ShieldCheck, X,
 } from "lucide-react";
 import { Link } from "wouter";
+import * as SheetPrimitive from "@radix-ui/react-dialog";
 import type { Recipe, RecipeCard, RecipeGuidePromptVariablesItem } from "@workspace/api-client-react";
 import { RecipeContextInputs } from "@/components/recipe-context-inputs";
 import { RecipePromptInputs } from "@/components/recipe-prompt-inputs";
@@ -119,6 +120,34 @@ export function IndividualRecipePage({
             <Link href={`/categories/${recipe.categorySlug}`}>{recipe.category}</Link><span aria-hidden="true">/</span>
             <span>{recipe.title}</span>
           </nav>
+          <SheetPrimitive.Root>
+            <SheetPrimitive.Trigger asChild>
+              <button className="ir-location-trigger" type="button" aria-label={`Show recipe location: ${recipe.category}`}>
+                <span>{recipe.category}</span><ChevronDown aria-hidden="true" />
+              </button>
+            </SheetPrimitive.Trigger>
+            <SheetPrimitive.Portal>
+              <SheetPrimitive.Overlay className="ir-location-overlay" />
+              <SheetPrimitive.Content className="ir-location-sheet">
+                <SheetPrimitive.Title className="ir-location-title">Recipe location</SheetPrimitive.Title>
+                <SheetPrimitive.Description className="ir-location-description">
+                  Browse the recipe hierarchy.
+                </SheetPrimitive.Description>
+                <SheetPrimitive.Close className="ir-location-close" aria-label="Close recipe location">
+                  <X aria-hidden="true" />
+                </SheetPrimitive.Close>
+                <nav aria-label="Recipe location">
+                  <ol className="ir-location-list">
+                    <li><SheetPrimitive.Close asChild><Link href="/recipes">Recipes</Link></SheetPrimitive.Close></li>
+                    <li><SheetPrimitive.Close asChild><Link href={`/categories/${recipe.categorySlug}`}>{recipe.category}</Link></SheetPrimitive.Close></li>
+                    <li aria-current="page">
+                      <span>{recipe.title}</span><span className="ir-location-current">Current page</span>
+                    </li>
+                  </ol>
+                </nav>
+              </SheetPrimitive.Content>
+            </SheetPrimitive.Portal>
+          </SheetPrimitive.Root>
         </div>
         <h1>{recipe.title}</h1>
         <p className="ir-lede">{recipe.shortDescription}</p>

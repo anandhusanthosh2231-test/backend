@@ -5,6 +5,51 @@ export interface Env {
 
 const HOME_CACHE_FRESH_MS = 5 * 60 * 1000;
 const HOME_CACHE_RETENTION_SECONDS = 24 * 60 * 60;
+const homeRequestsInFlight = new Map<string, Promise<Response>>();
+
+async function fetchAndCacheHome(
+  cacheKey: Request,
+  proxyRequest: Request,
+  edgeCache: Cache,
+  context?: { waitUntil(promise: Promise<unknown>): void },
+): Promise<Response> {
+  const key = cacheKey.url;
+  const pendingRequest = homeRequestsInFlight.get(key);
+  if (pendingRequest) return (await pendingRequest).clone();
+
+  const requestPromise = (async () => {
+    const response = await fetch(proxyRequest);
+    const headers = new Headers(response.headers);
+    if (response.ok && !headers.has('Set-Cookie')) {
+      headers.set('Access-Control-Allow-Origin', '*');
+      headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+      headers.set('X-Home-Cache-Timestamp', Date.now().toString());
+      headers.set('Cache-Control', `public, max-age=${HOME_CACHE_RETENTION_SECONDS}`);
+      const cacheableResponse = new Response(response.clone().body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
+      const cacheWrite = edgeCache.put(cacheKey, cacheableResponse.clone())
+        .catch((error: unknown) => {
+          console.error('Failed to cache /api/home response', error);
+        });
+      if (context) context.waitUntil(cacheWrite);
+      await cacheWrite;
+    }
+    return response;
+  })();
+  homeRequestsInFlight.set(key, requestPromise);
+
+  try {
+    return (await requestPromise).clone();
+  } finally {
+    if (homeRequestsInFlight.get(key) === requestPromise) {
+      homeRequestsInFlight.delete(key);
+    }
+  }
+}
 
 export default {
   async fetch(
@@ -52,22 +97,7 @@ export default {
       });
 
       if (cachedResponse && cacheKey && edgeCache) {
-        const refresh = fetch(proxyRequest)
-          .then(async (response) => {
-            const headers = new Headers(response.headers);
-            if (!response.ok || headers.has('Set-Cookie')) return;
-            headers.set('Access-Control-Allow-Origin', '*');
-            headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-            headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-            headers.set('X-Home-Cache-Timestamp', Date.now().toString());
-            headers.set('Cache-Control', `public, max-age=${HOME_CACHE_RETENTION_SECONDS}`);
-            const refreshedResponse = new Response(response.body, {
-              status: response.status,
-              statusText: response.statusText,
-              headers,
-            });
-            await edgeCache.put(cacheKey, refreshedResponse);
-          })
+        const refresh = fetchAndCacheHome(cacheKey, proxyRequest, edgeCache, context)
           .catch((error: unknown) => {
             console.error('Failed to refresh cached /api/home response', error);
           });
@@ -84,37 +114,23 @@ export default {
         });
       }
 
-      const response = await fetch(proxyRequest);
+      const response = cacheKey && edgeCache
+        ? await fetchAndCacheHome(cacheKey, proxyRequest, edgeCache, context)
+        : await fetch(proxyRequest);
       const headers = new Headers(response.headers);
       headers.set('Access-Control-Allow-Origin', '*');
       headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
       headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+      if (response.status === 429 && !headers.has('Retry-After')) {
+        headers.set('Retry-After', '30');
+      }
 
       if (request.method === 'OPTIONS') {
         return new Response(null, { status: 204, headers });
       }
 
       if (cacheKey && edgeCache && response.ok && !headers.has('Set-Cookie')) {
-        headers.set('X-Home-Cache-Timestamp', Date.now().toString());
-        headers.set('Cache-Control', `public, max-age=${HOME_CACHE_RETENTION_SECONDS}`);
-        const cacheableResponse = new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers,
-        });
-        const cacheWrite = edgeCache.put(cacheKey, cacheableResponse.clone())
-          .catch((error: unknown) => {
-            console.error('Failed to cache /api/home response', error);
-          });
-        if (context) context.waitUntil(cacheWrite);
-        else await cacheWrite;
-        headers.delete('X-Home-Cache-Timestamp');
         headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
-        return new Response(cacheableResponse.body, {
-          status: cacheableResponse.status,
-          statusText: cacheableResponse.statusText,
-          headers,
-        });
       }
 
       return new Response(response.body, {
@@ -141,25 +157,12 @@ export default {
     }
     if (assetResponse.status !== 404) {
       const headers = new Headers(assetResponse.headers);
-      let body: BodyInit | null = assetResponse.body;
+      const body: BodyInit | null = assetResponse.body;
       if (/\/assets\/[^/]+-[A-Za-z0-9_-]{8,}\.[^/]+$/.test(url.pathname)) {
         headers.set('Cache-Control', 'public, max-age=31536000, immutable');
       } else if (headers.get('Content-Type')?.includes('text/html')) {
         headers.set('Content-Type', 'text/html; charset=utf-8');
         headers.set('Cache-Control', 'no-cache, must-revalidate');
-        if (request.method === 'GET' && url.pathname === '/') {
-          const html = await assetResponse.text();
-          const headClose = html.lastIndexOf('</head>');
-          const preload = '<link rel="preload" href="/api/home" as="fetch" crossorigin="anonymous" />';
-          if (headClose !== -1 && !html.includes('href="/api/home"')) {
-            body = `${html.slice(0, headClose)}${preload}${html.slice(headClose)}`;
-            headers.delete('Content-Length');
-            headers.delete('Content-Encoding');
-            headers.delete('ETag');
-          } else {
-            body = html;
-          }
-        }
       }
       return new Response(body, {
         status: assetResponse.status,

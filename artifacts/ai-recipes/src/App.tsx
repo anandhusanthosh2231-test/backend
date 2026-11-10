@@ -397,12 +397,13 @@ function MobileFeaturedCarousel({ recipes, loading }: { recipes: RecipeCard[]; l
   );
 }
 
-function MobileRecipeRows({ title, recipes, loading, count, testId }: {
+function MobileRecipeRows({ title, recipes, loading, count, testId, recipeOfDayId }: {
   title: string;
   recipes: RecipeCard[];
   loading: boolean;
   count: number;
   testId: string;
+  recipeOfDayId?: number;
 }) {
   return (
     <section className="mobile-home-list" aria-label={title}>
@@ -417,7 +418,7 @@ function MobileRecipeRows({ title, recipes, loading, count, testId }: {
             <Link key={recipe.id} href={`/recipes/${recipe.slug}`} className="mobile-recipe-row" data-testid={`mobile-row-recipe-${recipe.id}`}>
               <span className="mobile-recipe-row__copy">
                 <strong>{recipe.title}</strong>
-                <span>{recipe.category} <i aria-hidden="true">·</i> {recipe.estimatedTime}</span>
+                <span>{recipe.id === recipeOfDayId ? 'Recipe of the day · ' : ''}{recipe.category} <i aria-hidden="true">·</i> {recipe.estimatedTime}</span>
               </span>
               <ChevronRight size={18} aria-hidden="true" />
             </Link>
@@ -433,12 +434,14 @@ function MobileHomeContent({
   popular,
   latest,
   loading,
+  recipeOfDayId,
 }: {
   categories: Array<{ id: number; name: string; slug: string; recipeCount: number }>;
   featured: RecipeCard[];
   popular: RecipeCard[];
   latest: RecipeCard[];
   loading: boolean;
+  recipeOfDayId?: number;
 }) {
   return (
     <div className="mobile-home-content" style={{ display: 'none' }}>
@@ -446,7 +449,7 @@ function MobileHomeContent({
         <MobileCategoryChips categories={categories} loading={loading} />
       </div>
       <MobileFeaturedCarousel recipes={featured} loading={loading} />
-      <MobileRecipeRows title="Popular this week" recipes={popular} loading={loading} count={4} testId="mobile-popular-recipes" />
+      <MobileRecipeRows title="Popular this week" recipes={popular} loading={loading} count={4} testId="mobile-popular-recipes" recipeOfDayId={recipeOfDayId} />
       <MobileRecipeRows title="Latest" recipes={latest} loading={loading} count={3} testId="mobile-latest-recipes" />
       <section className="mobile-home-share">
         <strong>Got a workflow that works? Share it.</strong>
@@ -471,12 +474,12 @@ function RecipeCardView({ recipe, saved = false, onSave, recipeBasePath = '/reci
   </article>
 }
 
-function HomeRecipeCard({ recipe }: { recipe: RecipeCard }) {
+function HomeRecipeCard({ recipe, isRecipeOfDay = false }: { recipe: RecipeCard; isRecipeOfDay?: boolean }) {
   return (
     <article className="home-recipe-card" data-testid={`home-recipe-${recipe.id}`}>
       <div className="home-recipe-card__topline">
         <span>{recipe.category}</span>
-        <span><Clock3 size={13} /> {recipe.estimatedTime}</span>
+        <span>{isRecipeOfDay && <b className="home-recipe-card__day">Recipe of the day</b>}<Clock3 size={13} /> {recipe.estimatedTime}</span>
       </div>
       <Link href={`/recipes/${recipe.slug}`} className="home-recipe-card__title">
         <h3>{recipe.title}</h3>
@@ -498,15 +501,11 @@ function HomeHero({
   totalRecipes,
   featuredRecipe,
   featuredLoading,
-  featuredError,
-  retryFeatured,
 }: {
   recipes: RecipeCard[];
   totalRecipes: number;
   featuredRecipe?: RecipeCard;
   featuredLoading: boolean;
-  featuredError: boolean;
-  retryFeatured: () => void;
 }) {
   const [, setLocation] = useLocation();
   const heroRef = useRef<HTMLDivElement>(null);
@@ -702,11 +701,10 @@ function HomeHero({
           ) : (
             <article className="hero-recipe-preview is-active" data-testid="hero-recipe-preview">
               <div className="hero-recipe-preview__meta"><span>Featured workflow</span></div>
-              <h2>{featuredError ? "Featured workflow unavailable" : "No featured workflow yet"}</h2>
+              <h2>No recipe of the day yet</h2>
               <p className="hero-recipe-preview__description">
-                {featuredError ? "We couldn't load the recipes marked for the home shelf." : "Mark a published recipe as featured to show it here."}
+                Mark a published recipe as the recipe of the day to show it here.
               </p>
-              {featuredError && <button type="button" className="hero-recipe-preview__retry" onClick={retryFeatured}>Try again</button>}
             </article>
           )}
         </div>
@@ -744,8 +742,17 @@ function SaveAction({ recipe, isSaved = false }: { recipe: RecipeCard | Recipe; 
 }
 
 function HomePage() {
-  const { data, isLoading, isError, refetch } = useGetHome();
-  const featuredShelfQuery = useListRecipes({ featured: true, sort: "featured", page: 1, pageSize: 1 });
+  const { data, isLoading, isError, refetch } = useGetHome({
+    query: {
+      queryKey: getGetHomeQueryKey(),
+      retry: (failureCount, error) => {
+        if (typeof error === 'object' && error !== null && 'status' in error && error.status === 429) {
+          return false;
+        }
+        return failureCount < 1;
+      },
+    },
+  });
   usePageMeta(undefined, 'A trusted, international field guide to practical AI workflows you can copy, run, and make your own.');
   if (isError) return <SiteShell className="home-page"><ErrorState retry={() => refetch()} /></SiteShell>;
   const home = data ?? { recipeOfDay: null, trending: [], popular: [], categories: [], audiences: [] };
@@ -756,21 +763,27 @@ function HomePage() {
   ).values()).slice(0, 4);
   const totalRecipes = home.categories.reduce((total, category) => total + category.recipeCount, 0);
   const featuredRecipes = Array.from(new Map(
-    (home.popular.length ? home.popular : home.trending).map((recipe) => [recipe.id, recipe]),
+    [home.recipeOfDay, ...(home.popular.length ? home.popular : home.trending)]
+      .filter((recipe): recipe is RecipeCard => Boolean(recipe))
+      .map((recipe) => [recipe.id, recipe]),
   ).values()).slice(0, 3);
   const featuredRecipeIds = new Set(featuredRecipes.map((recipe) => recipe.id));
   const trendingMobileRecipes = Array.from(new Map(
     home.trending.filter((recipe) => !featuredRecipeIds.has(recipe.id)).map((recipe) => [recipe.id, recipe]),
   ).values()).slice(0, 3);
-  const mobileFeaturedRecipes = Array.from(new Map(
-    [home.recipeOfDay, ...home.popular, ...home.trending]
+  const mobilePopularRecipes = Array.from(new Map(
+    [home.recipeOfDay, ...home.popular]
       .filter((recipe): recipe is RecipeCard => Boolean(recipe))
       .map((recipe) => [recipe.id, recipe]),
   ).values()).slice(0, 4);
-  const mobileFeaturedIds = new Set(mobileFeaturedRecipes.map((recipe) => recipe.id));
-  const mobilePopularRecipes = home.popular.filter((recipe) => !mobileFeaturedIds.has(recipe.id));
-  const mobilePopularIds = new Set(mobilePopularRecipes.slice(0, 4).map((recipe) => recipe.id));
-  const mobileLatestRecipes = home.trending.filter((recipe) => !mobileFeaturedIds.has(recipe.id) && !mobilePopularIds.has(recipe.id));
+  const mobilePopularIds = new Set(mobilePopularRecipes.map((recipe) => recipe.id));
+  const mobileFeaturedRecipes = Array.from(new Map(
+    [...home.popular, ...home.trending]
+      .filter((recipe) => !mobilePopularIds.has(recipe.id))
+      .map((recipe) => [recipe.id, recipe]),
+  ).values()).slice(0, 4);
+  const mobileFeaturedIds = new Set([...mobileFeaturedRecipes, ...mobilePopularIds]);
+  const mobileLatestRecipes = home.trending.filter((recipe) => !mobileFeaturedIds.has(recipe.id));
   const categoryHref = (slug: string) => {
     const category = home.categories.find((item) => item.slug === slug);
     return category ? `/categories/${category.slug}` : '/recipes';
@@ -779,12 +792,10 @@ function HomePage() {
     <HomeHero
       recipes={heroRecipes}
       totalRecipes={totalRecipes}
-      featuredRecipe={featuredShelfQuery.data?.items[0]}
-      featuredLoading={featuredShelfQuery.isLoading}
-      featuredError={featuredShelfQuery.isError}
-      retryFeatured={() => { void featuredShelfQuery.refetch(); }}
+      featuredRecipe={home.recipeOfDay ?? undefined}
+      featuredLoading={isLoading}
     />
-    <MobileHomeContent categories={home.categories} featured={mobileFeaturedRecipes} popular={mobilePopularRecipes} latest={mobileLatestRecipes} loading={isLoading} />
+    <MobileHomeContent categories={home.categories} featured={mobileFeaturedRecipes} popular={mobilePopularRecipes} latest={mobileLatestRecipes} loading={isLoading} recipeOfDayId={home.recipeOfDay?.id} />
     <section className="shell home-discovery-section" aria-labelledby="home-discovery-title">
       <div className="home-discovery-section__heading">
         <div>
@@ -802,10 +813,9 @@ function HomePage() {
         <Link href={categoryHref('productivity')} data-testid="link-home-focus-productivity">Productivity</Link>
       </nav>
       {isLoading ? <RecipeGridSkeleton count={3} /> : featuredRecipes.length
-        ? <div className="home-recipe-grid">{featuredRecipes.map((recipe) => <HomeRecipeCard key={recipe.id} recipe={recipe} />)}</div>
+        ? <div className="home-recipe-grid">{featuredRecipes.map((recipe) => <HomeRecipeCard key={recipe.id} recipe={recipe} isRecipeOfDay={recipe.id === home.recipeOfDay?.id} />)}</div>
         : <EmptyState title="Your next workflow is on its way" body="Browse the library to find a practical recipe for the task in front of you." action={<Link href="/recipes" className="button button-dark">Explore recipes <ArrowRight size={16} /></Link>} />}
     </section>
-    <section className="shell home-section feature-section">{home.recipeOfDay ? <div className="feature-card"><div className="feature-side"><span className="kicker">Recipe of the day</span><span className="feature-number">01</span><p>One thoughtful workflow, picked for the way people actually work today.</p></div><div className="feature-main"><div className="card-topline"><span className="eyebrow">{home.recipeOfDay.category}</span><span className="verified-label"><Check size={13} /> Tested workflow</span></div><Link href={`/recipes/${home.recipeOfDay.slug}`} data-testid="link-recipe-of-day"><h2>{home.recipeOfDay.title}</h2></Link><p>{home.recipeOfDay.shortDescription}</p><div className="feature-bottom"><span><Clock3 size={14} /> {home.recipeOfDay.estimatedTime}</span><Link href={`/recipes/${home.recipeOfDay.slug}`} className="arrow-link" data-testid="link-recipe-of-day-read">Read the recipe <ArrowRight size={16} /></Link></div></div></div> : isLoading ? <div className="feature-card feature-card-skeleton" aria-hidden="true" /> : null}</section>
     <section className="shell home-section home-trending-section"><div className="section-heading"><div><span className="kicker">The shelf, refreshed</span><h2><span className="home-desktop-copy">For the thing you need to do next.</span><span className="home-mobile-copy" style={{ display: 'none' }} aria-hidden="true">Up next</span></h2></div><Link href="/recipes" className="arrow-link" data-testid="link-all-recipes"><span className="home-desktop-copy">Browse all recipes</span><span className="home-mobile-copy" style={{ display: 'none' }} aria-hidden="true">See all</span> <ArrowRight size={16} /></Link></div>{isLoading ? <><RecipeGridSkeleton count={6} className="home-trending-desktop" /><div className="home-trending-mobile" style={{ display: 'none' }}><RecipeGridSkeleton count={3} /></div></> : <><RecipeGrid recipes={home.trending || []} className="home-trending-desktop" /><div className="home-trending-mobile" style={{ display: 'none' }}><RecipeGrid recipes={trendingMobileRecipes} /></div></>}</section>
     <section className="categories-band"><div className="shell home-section"><div className="section-heading"><div><span className="kicker">Browse by context</span><h2><span className="home-desktop-copy">Start where the work lives.</span><span className="home-mobile-copy" style={{ display: 'none' }} aria-hidden="true">Browse categories</span></h2></div></div><div className="category-list">{isLoading ? Array.from({ length: 8 }, (_, index) => <div className="category-row category-row-skeleton" key={index} aria-hidden="true" />) : home.categories.slice(0, 8).map((category) => <Link href={`/categories/${category.slug}`} className="category-row" key={category.id} data-testid={`link-category-${category.id}`}><span className="category-index">{String(category.id).padStart(2, '0')}</span><span className="category-name">{category.name}</span><span className="category-count">{category.recipeCount} recipes</span><ArrowRight size={18} /></Link>)}</div><Link href="/categories" className="arrow-link" data-testid="link-all-categories">All categories <ArrowRight size={16} /></Link></div></section>
      <section className="creator-cta"><div className="shell creator-cta-inner"><div><span className="kicker">Make the shelf better</span><h2><span className="home-desktop-copy">Have a workflow that actually works?</span><span className="home-mobile-copy" style={{ display: 'none' }} aria-hidden="true">Share a workflow</span></h2><p>Share the problem, the prompt, and what happened. Good submissions become tested recipes for everyone.</p></div><div className="creator-cta-actions"><Link href="/submit" className="button button-light" data-testid="link-home-submit">Share your workflow <ArrowRight size={16} /></Link><div className="creator-steps"><span><b>01</b> Tell us the moment</span><span><b>02</b> Add the workflow</span><span><b>03</b> We test the result</span></div></div></div></section>
