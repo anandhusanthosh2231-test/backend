@@ -5,16 +5,24 @@ export interface Env {
 
 const HOME_CACHE_FRESH_MS = 5 * 60 * 1000;
 const HOME_CACHE_RETENTION_SECONDS = 24 * 60 * 60;
-const homeRequestsInFlight = new Map<string, Promise<Response>>();
+const publicGetRequestsInFlight = new Map<string, Promise<Response>>();
 
-async function fetchAndCacheHome(
+function isCacheablePublicGet(pathname: string): boolean {
+  return pathname === '/api/home'
+    || pathname === '/api/recipes'
+    || pathname === '/api/categories'
+    || pathname === '/api/audiences'
+    || /^\/api\/(?:recipes|categories|audiences)\/[^/]+(?:\/related)?$/.test(pathname);
+}
+
+async function fetchAndCachePublicGet(
   cacheKey: Request,
   proxyRequest: Request,
   edgeCache: Cache,
   context?: { waitUntil(promise: Promise<unknown>): void },
 ): Promise<Response> {
   const key = cacheKey.url;
-  const pendingRequest = homeRequestsInFlight.get(key);
+  const pendingRequest = publicGetRequestsInFlight.get(key);
   if (pendingRequest) return (await pendingRequest).clone();
 
   const requestPromise = (async () => {
@@ -24,7 +32,7 @@ async function fetchAndCacheHome(
       headers.set('Access-Control-Allow-Origin', '*');
       headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
       headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-      headers.set('X-Home-Cache-Timestamp', Date.now().toString());
+      headers.set('X-Public-API-Cache-Timestamp', Date.now().toString());
       headers.set('Cache-Control', `public, max-age=${HOME_CACHE_RETENTION_SECONDS}`);
       const cacheableResponse = new Response(response.clone().body, {
         status: response.status,
@@ -33,20 +41,23 @@ async function fetchAndCacheHome(
       });
       const cacheWrite = edgeCache.put(cacheKey, cacheableResponse.clone())
         .catch((error: unknown) => {
-          console.error('Failed to cache /api/home response', error);
+          console.error('Failed to cache public API response', error);
         });
-      if (context) context.waitUntil(cacheWrite);
-      await cacheWrite;
+      if (context) {
+        context.waitUntil(cacheWrite);
+      } else {
+        await cacheWrite;
+      }
     }
     return response;
   })();
-  homeRequestsInFlight.set(key, requestPromise);
+  publicGetRequestsInFlight.set(key, requestPromise);
 
   try {
     return (await requestPromise).clone();
   } finally {
-    if (homeRequestsInFlight.get(key) === requestPromise) {
-      homeRequestsInFlight.delete(key);
+    if (publicGetRequestsInFlight.get(key) === requestPromise) {
+      publicGetRequestsInFlight.delete(key);
     }
   }
 }
@@ -60,10 +71,10 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith('/api')) {
-      const cacheableHomeRequest = request.method === 'GET'
-        && url.pathname === '/api/home'
+      const cacheablePublicGet = request.method === 'GET'
+        && isCacheablePublicGet(url.pathname)
         && !request.headers.has('Authorization');
-      const cacheKey = cacheableHomeRequest
+      const cacheKey = cacheablePublicGet
         ? new Request(url.toString(), { method: 'GET' })
         : null;
       const edgeCache = cacheKey
@@ -73,9 +84,12 @@ export default {
         ? await edgeCache.match(cacheKey)
         : undefined;
       if (cachedResponse) {
-        const cachedAt = Number(cachedResponse.headers.get('X-Home-Cache-Timestamp'));
+        const cachedTimestamp = cachedResponse.headers.get('X-Public-API-Cache-Timestamp')
+          ?? cachedResponse.headers.get('X-Home-Cache-Timestamp');
+        const cachedAt = Number(cachedTimestamp);
         if (!Number.isFinite(cachedAt) || Date.now() - cachedAt < HOME_CACHE_FRESH_MS) {
           const headers = new Headers(cachedResponse.headers);
+          headers.delete('X-Public-API-Cache-Timestamp');
           headers.delete('X-Home-Cache-Timestamp');
           headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
           return new Response(cachedResponse.body, {
@@ -97,14 +111,15 @@ export default {
       });
 
       if (cachedResponse && cacheKey && edgeCache) {
-        const refresh = fetchAndCacheHome(cacheKey, proxyRequest, edgeCache, context)
+        const refresh = fetchAndCachePublicGet(cacheKey, proxyRequest, edgeCache, context)
           .catch((error: unknown) => {
-            console.error('Failed to refresh cached /api/home response', error);
+            console.error('Failed to refresh cached public API response', error);
           });
         if (context) context.waitUntil(refresh);
         else await refresh;
 
         const headers = new Headers(cachedResponse.headers);
+        headers.delete('X-Public-API-Cache-Timestamp');
         headers.delete('X-Home-Cache-Timestamp');
         headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
         return new Response(cachedResponse.body, {
@@ -115,7 +130,7 @@ export default {
       }
 
       const response = cacheKey && edgeCache
-        ? await fetchAndCacheHome(cacheKey, proxyRequest, edgeCache, context)
+        ? await fetchAndCachePublicGet(cacheKey, proxyRequest, edgeCache, context)
         : await fetch(proxyRequest);
       const headers = new Headers(response.headers);
       headers.set('Access-Control-Allow-Origin', '*');

@@ -63,6 +63,48 @@ test('serves cached homepage data while refreshing stale data in the background'
   assert.equal(backendCalls, 2);
 });
 
+test('caches public recipe library responses but not authenticated API responses', async () => {
+  const storedResponses = new Map<string, Response>();
+  const cache = {
+    async match(request: Request): Promise<Response | undefined> {
+      return storedResponses.get(request.url)?.clone();
+    },
+    async put(request: Request, response: Response): Promise<void> {
+      storedResponses.set(request.url, response.clone());
+    },
+  };
+  Object.defineProperty(globalThis, 'caches', {
+    configurable: true,
+    value: { default: cache },
+  });
+
+  let backendCalls = 0;
+  globalThis.fetch = async () => new Response(
+    JSON.stringify({ version: ++backendCalls }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  );
+  const env = {
+    ASSETS: { fetch: async () => new Response('asset', { status: 200 }) },
+    API_URL: 'https://backend.test',
+  };
+  const listRequest = new Request('https://site.test/api/recipes?page=1&pageSize=9');
+
+  const firstListResponse = await worker.fetch(listRequest, env);
+  const secondListResponse = await worker.fetch(listRequest, env);
+  assert.deepEqual(await firstListResponse.json(), { version: 1 });
+  assert.deepEqual(await secondListResponse.json(), { version: 1 });
+
+  const firstPrivateResponse = await worker.fetch(new Request('https://site.test/api/me', {
+    headers: { Authorization: 'Bearer test-token' },
+  }), env);
+  const secondPrivateResponse = await worker.fetch(new Request('https://site.test/api/me', {
+    headers: { Authorization: 'Bearer test-token' },
+  }), env);
+  assert.deepEqual(await firstPrivateResponse.json(), { version: 2 });
+  assert.deepEqual(await secondPrivateResponse.json(), { version: 3 });
+  assert.equal(backendCalls, 3);
+});
+
 test('deduplicates concurrent cold homepage requests', async () => {
   const storedResponses = new Map<string, Response>();
   const cache = {
@@ -101,6 +143,42 @@ test('deduplicates concurrent cold homepage requests', async () => {
   assert.deepEqual(await first.json(), { version: 1 });
   assert.deepEqual(await second.json(), { version: 1 });
   assert.equal(backendCalls, 1);
+});
+
+test('does not wait for cache storage before returning homepage data', async () => {
+  let releaseCacheWrite: (() => void) | undefined;
+  const cacheWrite = new Promise<void>((resolve) => {
+    releaseCacheWrite = resolve;
+  });
+  const cache = {
+    async match(): Promise<Response | undefined> {
+      return undefined;
+    },
+    async put(): Promise<void> {
+      await cacheWrite;
+    },
+  };
+  Object.defineProperty(globalThis, 'caches', {
+    configurable: true,
+    value: { default: cache },
+  });
+  globalThis.fetch = async () => new Response('{"ok":true}', {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  const backgroundTasks: Promise<unknown>[] = [];
+  const responsePromise = worker.fetch(
+    new Request('https://site.test/api/home'),
+    { ASSETS: { fetch: async () => new Response('asset') }, API_URL: 'https://backend.test' },
+    { waitUntil: (promise) => backgroundTasks.push(promise) },
+  );
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 50));
+  const response = await Promise.race([responsePromise, timeout]);
+  releaseCacheWrite?.();
+
+  assert.ok(response instanceof Response, 'homepage response should not wait for cache storage');
+  await Promise.all(backgroundTasks);
 });
 
 test('preserves rate-limit errors and supplies a retry delay when missing', async () => {
