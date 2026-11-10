@@ -415,6 +415,7 @@ export function IndividualRecipePage({
             <div className="ir-prompt-actions">
               <button type="button" onClick={handleCopy}><Copy />{copied ? "Copied" : "Copy prompt"}</button>
             </div>
+            <p className="ir-select-copy-hint">Desktop tip: select the prompt and press Ctrl+C to copy it without filling context.</p>
           </div>
           {copyError && <p className="ir-copy-error" role="alert">Prompt could not be copied. Please try again.</p>}
           {attemptedCopy && missingFields.length > 0 && <p className="ir-copy-error" role="alert" aria-live="polite">Complete {missingFields.map((field) => field.label).join(", ")} to clear the preview and copy.</p>}

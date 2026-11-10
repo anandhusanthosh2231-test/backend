@@ -103,6 +103,7 @@ test('homepage previews a real recipe and puts popular workflows directly below 
   await expect(discovery.getByTestId('home-recipe-3')).toBeVisible();
   await expect(discovery.getByTestId('home-recipe-1').getByText('ChatGPT', { exact: true })).toBeVisible();
   await expect(discovery.getByTestId('home-recipe-1').getByText('Recipe of the day')).toBeVisible();
+  await expect(discovery.getByTestId('home-recipe-1')).not.toContainText(recipeCard.estimatedTime);
   await expect(discovery.getByTestId('home-recipe-2').getByText('Claude', { exact: true })).toBeVisible();
   await expect(discovery.getByTestId('home-recipe-3').getByText('Gemini', { exact: true })).toBeVisible();
   for (const linkName of [
@@ -121,6 +122,20 @@ test('homepage previews a real recipe and puts popular workflows directly below 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
+test('mobile dark mode keeps home recipe tiles and text readable', async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/');
+
+  const row = page.getByTestId('mobile-popular-recipes').getByTestId(`mobile-row-recipe-${recipeCard.id}`);
+  await expect(row).toBeVisible();
+  await expect(row).not.toContainText(recipeCard.estimatedTime);
+  await expect(row.locator('strong')).toHaveCSS('color', 'rgb(246, 238, 229)');
+  await expect(row.locator('span').last()).toHaveCSS('color', 'rgb(197, 185, 172)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(21, 17, 14)');
+});
+
 test('homepage surfaces the recipe of the day in the popular recipe cards on desktop and mobile', async ({ page }) => {
   const apiState = await mockApi(page);
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -134,10 +149,13 @@ test('homepage surfaces the recipe of the day in the popular recipe cards on des
   const recipeOfDayCard = discovery.getByTestId(`home-recipe-${recipeCard.id}`);
   await expect(recipeOfDayCard).toBeVisible();
   await expect(recipeOfDayCard.getByText('Recipe of the day')).toBeVisible();
+  await expect(recipeOfDayCard).not.toContainText(recipeCard.estimatedTime);
 
   await page.setViewportSize({ width: 390, height: 844 });
   const mobilePopular = page.getByTestId('mobile-popular-recipes');
-  await expect(mobilePopular.getByTestId(`mobile-row-recipe-${recipeCard.id}`)).toContainText('Recipe of the day');
+  const mobileRecipeRow = mobilePopular.getByTestId(`mobile-row-recipe-${recipeCard.id}`);
+  await expect(mobileRecipeRow).toContainText('Recipe of the day');
+  await expect(mobileRecipeRow).not.toContainText(recipeCard.estimatedTime);
   await expect(page.getByTestId(`mobile-feature-${recipeCard.id}`)).toHaveCount(0);
 });
 
@@ -630,6 +648,24 @@ test('individual recipe prompt builder clears glass, validates missing fields, a
   await expect(page.locator('.ir-prompt-line.is-different').first()).toBeVisible();
   await expect(prompt).toContainText('ChatGPT guidance');
   await expect(page.locator('.ir-grease-glass')).toHaveClass(/is-complete/);
+});
+
+test('desktop prompt preview can be selected and copied before adding context', async ({ page }) => {
+  await mockApi(page, { dynamicRecipe: true });
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/recipes/brief-to-project-plan');
+
+  const prompt = page.locator('#ir-prompt');
+  await expect(page.locator('.ir-select-copy-hint')).toBeVisible();
+  await expect(page.locator('#ir-input-0')).toHaveValue('');
+  await expect(page.getByRole('button', { name: /Complete Target audience before copying/ })).toBeVisible();
+
+  await prompt.selectText();
+  const selectedText = await page.evaluate(() => window.getSelection()?.toString());
+  await page.keyboard.press('Control+C');
+  expect(selectedText).toContain('Write for not specified in a Warm tone.');
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('Write for not specified in a Warm tone.');
 });
 
 test('individual recipe fog clears top-to-bottom for each required field', async ({ page }) => {

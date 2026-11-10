@@ -418,7 +418,7 @@ function MobileRecipeRows({ title, recipes, loading, count, testId, recipeOfDayI
             <Link key={recipe.id} href={`/recipes/${recipe.slug}`} className="mobile-recipe-row" data-testid={`mobile-row-recipe-${recipe.id}`}>
               <span className="mobile-recipe-row__copy">
                 <strong>{recipe.title}</strong>
-                <span>{recipe.id === recipeOfDayId ? 'Recipe of the day · ' : ''}{recipe.category} <i aria-hidden="true">·</i> {recipe.estimatedTime}</span>
+                <span>{recipe.id === recipeOfDayId ? 'Recipe of the day · ' : ''}{recipe.category}</span>
               </span>
               <ChevronRight size={18} aria-hidden="true" />
             </Link>
@@ -479,7 +479,7 @@ function HomeRecipeCard({ recipe, isRecipeOfDay = false }: { recipe: RecipeCard;
     <article className="home-recipe-card" data-testid={`home-recipe-${recipe.id}`}>
       <div className="home-recipe-card__topline">
         <span>{recipe.category}</span>
-        <span>{isRecipeOfDay && <b className="home-recipe-card__day">Recipe of the day</b>}<Clock3 size={13} /> {recipe.estimatedTime}</span>
+        {isRecipeOfDay && <span><b className="home-recipe-card__day">Recipe of the day</b></span>}
       </div>
       <Link href={`/recipes/${recipe.slug}`} className="home-recipe-card__title">
         <h3>{recipe.title}</h3>

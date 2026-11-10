@@ -1246,3 +1246,51 @@ textarea {
     animation: none !important;
   }
 }
+
+@media (max-width: 768px) and (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #15110E;
+    --surface: #211B16;
+    --sand: #2C241D;
+    --border: #493C31;
+    --ink: #F6EEE5;
+    --muted: #C5B9AC;
+    --brand: #E9AA70;
+    --brand-dark: #FFC38B;
+    --brand-tint: #3B2A1D;
+    --cool: #9ACAC6;
+    --cool-tint: #1E383A;
+    --grad: linear-gradient(135deg, #F2C18D, #C8834C);
+    --ink-rgb: 246 238 229;
+    --surface-rgb: 33 27 22;
+    --brand-rgb: 233 170 112;
+    --cool-rgb: 154 202 198;
+    --muted-rgb: 197 185 172;
+    --error: #FF938A;
+    --error-tint: #3F1E1A;
+    --focus-ring: #FFC38B;
+    --dark-surface: #211B16;
+    --dark-surface-raised: #30271F;
+    --dark-editor: #17130F;
+    --dark-text: #F6EEE5;
+    --dark-text-secondary: #C5B9AC;
+    --shadow: 0 8px 30px rgb(0 0 0 / 28%);
+    --shadow-soft-hover: 0 12px 34px rgb(0 0 0 / 38%);
+  }
+
+  html,
+  body {
+    color-scheme: dark;
+    color: var(--ink);
+    background: var(--bg);
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  .home-recipe-card {
+    color: var(--ink);
+  }
+}
